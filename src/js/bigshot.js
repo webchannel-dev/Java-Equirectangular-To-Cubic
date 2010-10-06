@@ -757,8 +757,8 @@ if (!self["bigshot"]) {
             
             rectVisibleAtZoomLevel : function (w, h) {
                 return Math.min (
-                        this.fitZoom (w, this.container.clientWidth),
-                        this.fitZoom (h, this.container.clientHeight));
+                    this.fitZoom (w, this.container.clientWidth),
+                    this.fitZoom (h, this.container.clientHeight));
             }
         };
         
@@ -804,5 +804,23 @@ if (!self["bigshot"]) {
             }, false);
         image.setZoom (0.0);
         return image;
+    }
+    
+    bigshot.ImageFromDescriptor = function (parameters) {
+        var browser = new bigshot.Browser ();
+        var req = browser.createXMLHttpRequest ();
+        
+        req.open("GET", parameters.basePath + "/descriptor", false);   
+        req.send(null);  
+        if(req.status == 200) {
+            var substrings = req.responseText.split (":");
+            for (var i = 0; i < substrings.length; i += 2) {
+                if (!parameters[substrings[i]]) {
+                    parameters[substrings[i]] = parseInt (substrings[i + 1]);
+                }
+            }
+        }
+        
+        return new bigshot.Image (parameters);
     }
 }
