@@ -1,0 +1,68 @@
+<project name="bigshot" default="help" basedir="..">
+    
+    <property name="temp" value="temp/"/>
+    <property name="src" value="src/"/>
+    
+    <target name="clean">
+        <mkdir dir="${temp}/"/>
+        <delete includeEmptyDirs="true">
+            <fileset dir="${temp}/"/>
+        </delete>
+    </target>
+    
+    <target name="build">
+        <mkdir dir="${temp}/classes/"/>
+        <javac failonerror="true" fork="yes" 
+            destdir="${temp}/classes/"
+            classpath="${ibuild.temp}/classes/" 
+            deprecation="on"
+            debug="on"
+            includeantruntime="false">
+            <src path="${src}/java/"/>
+        </javac>
+    </target>
+    
+    <target name="package">
+    </target>
+    
+    <target name="build-image">
+        <mkdir dir="${temp}/image/"/>
+        <delete includeEmptyDirs="true">
+            <fileset dir="${temp}/image/"/>
+        </delete>
+        <java fork="yes" classname="bigshot.MakeImagePyramid" classpath="${temp}/classes/"
+            dir="${basedir}">
+            <arg value="test/sample.jpg"/>
+            <arg value="${temp}/image/"/>
+            <jvmarg value="-Xmx768M"/>
+        </java>
+    </target>
+    
+    <target name="host">
+        <echo><![CDATA[Point your web browser at:
+http://localhost/src/test/test.html]]></echo>
+        <java classname="minihttpd.MinimalHttpd"
+            classpath="${temp}/classes/" fork="yes">
+            <arg value="."/>
+        </java>
+    </target>
+    
+    <target name="demo">
+        <antcall target="clean"/>
+        <antcall target="build"/>
+        <antcall target="build-image"/>
+        <antcall target="host"/>
+    </target>
+    
+    <target name="help">
+        <echo><![CDATA[Targets:
+clean: Cleans the build environment.
+build: Compiles all sources (the image pyramid generator 
+       and the minimal HTTPd server).
+build-image: builds the image pyramid for the test page
+host: starts the minimal httpd so we can access the test 
+      page
+demo: Compiles the sources, builds the test image pyramid,
+      and starts the HTTP server.]]></echo>
+    </target>
+</project>

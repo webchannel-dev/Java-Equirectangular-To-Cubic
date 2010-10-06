@@ -1,0 +1,99 @@
+<html>
+    <head>
+        <title>
+            Bigshot Test Page
+        </title>
+        <style>
+            body {
+                font-family: Arial;
+                font-size: 9pt;
+            }
+            
+            div.hotspot {
+                border : 1px solid #e0e0e0;
+                cursor : pointer;
+                opacity : 0.5;
+            }
+            
+            div.hotspot div.label {
+                visibility: hidden;
+                color: white;
+                background: black;
+                padding: 4px;
+                font-weight: bold;
+                position: relative;
+            }
+            
+            div.hotspot:hover {
+                border : 1px solid white;
+                opacity : 1.0;
+            }
+            
+            div.hotspot:hover div.label {
+                visibility: visible;
+            }
+            
+            </style>
+        <script src="../js/bigshot.js">/* */</script>
+        <script>
+            var jsi = null;
+            
+            function myonload () {
+                var container = document.getElementById ("container");
+                
+                jsi = new bigshot.Image ({ 
+                        width : 7352,
+                        height: 5419,
+                        minZoom : -8.0,
+                        tileSize : 256,
+                        overlap : 0,
+                        posterSize : 512.0,
+                        basePath : "../../temp/image",
+                        container : container,
+                        emptyImage : "empty.png",
+                        wrapX : false,
+                        wrapY : false
+                    });
+                
+                var layerContainer = jsi.createLayerContainer ();
+                var hotspotLayer = new bigshot.HotspotLayer (container, layerContainer);
+                var hotspot = new bigshot.LinkHotspot (100, 100, 200, 100, "Bigshot on Google Code", "http://code.google.com/p/bigshot/");
+                hotspot.getElement ().className = "hotspot";
+                hotspot.getLabel ().className = "label";
+                
+                hotspotLayer.addHotspot (hotspot);
+                jsi.addLayer (hotspotLayer, layerContainer);
+                jsi.setZoom (0.0);
+            }
+            
+            function zoomOut () {
+                jsi.setZoom (jsi.getZoom () - 0.1);
+            }
+            
+            function zoomIn () {
+                jsi.setZoom (jsi.getZoom () + 0.1);
+            }
+            
+            function smoothIn () {
+                jsi.flyTo (7352 / 2, 5419 / 2, 0.0);
+            }
+            
+            function toHotspot () {
+                jsi.flyTo (200, 150, jsi.rectVisibleAtZoomLevel (200,100));
+            }
+        </script>
+    </head>
+    <body onload="myonload();" onresize="jsi.onresize ();">
+        <div style="border:1px solid black; background: black; height:600px;" id="container">
+            
+        </div>
+        <p>
+        <a href="#" onclick="zoomOut(); return false;">-</a> | 
+        <a href="#" onclick="zoomIn(); return false;">+</a> | 
+        <a href="#" onclick="smoothIn(); return false;">Zoom in on center</a> | 
+        <a href="#" onclick="toHotspot(); return false;">Pan to hotspot</a> |
+        <a href="#" onclick="jsi.flyZoomToFit (); return false;">Zoom to Fit</a>
+        </p>
+        
+    </body>
+</html>
