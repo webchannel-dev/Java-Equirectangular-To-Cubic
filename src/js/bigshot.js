@@ -333,7 +333,7 @@ if (!self["bigshot"]) {
     
     bigshot.ImageTileCache = function (onLoaded, parameters) {
         var fullImage = document.createElement ("img");
-        fullImage.src = parameters.basePath + "/poster.jpg";
+        fullImage.src = parameters.basePath + "/poster" + parameters.suffix;
         
         return {
             fullImage : fullImage,
@@ -398,7 +398,11 @@ if (!self["bigshot"]) {
             
             getEmptyImage : function () {
                 var tile = document.createElement ("img");
-                tile.src = parameters.emptyImage;
+                if (parameters.emptyImage) {
+                    tile.src = parameters.emptyImage;
+                } else {
+                    tile.src = "data:image/gif,GIF89a%01%00%01%00%80%00%00%00%00%00%FF%FF%FF!%F9%04%00%00%00%00%00%2C%00%00%00%00%01%00%01%00%00%02%02D%01%00%3B";
+                }
                 return tile;
             },
             
@@ -449,7 +453,7 @@ if (!self["bigshot"]) {
             },
             
             getImageFilename : function (tileX, tileY, zoomLevel) {
-                var f = parameters.basePath + "/" + (-zoomLevel) + "/" + tileX + "_" + tileY + ".jpg";
+                var f = parameters.basePath + "/" + (-zoomLevel) + "/" + tileX + "_" + tileY + parameters.suffix;
                 return f;
             }
         };
@@ -816,7 +820,11 @@ if (!self["bigshot"]) {
             var substrings = req.responseText.split (":");
             for (var i = 0; i < substrings.length; i += 2) {
                 if (!parameters[substrings[i]]) {
-                    parameters[substrings[i]] = parseInt (substrings[i + 1]);
+                    if (substrings[i] == "suffix") {
+                        parameters[substrings[i]] = substrings[i + 1];
+                    } else {
+                        parameters[substrings[i]] = parseInt (substrings[i + 1]);
+                    }
                 }
             }
         }

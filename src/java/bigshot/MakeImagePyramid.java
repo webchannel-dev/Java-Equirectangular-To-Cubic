@@ -143,12 +143,14 @@ public class MakeImagePyramid {
         Output output = new JpegOutput ();
         output.configure (parameters);
         
+        descriptor.append ("suffix:" + output.getSuffix ());
+        
         int w = full.getWidth ();
         int h = full.getHeight ();
         
         System.out.println ("Full image size: " + w + " x " + h + "");
         
-        descriptor.append ("width:" + w + ":height:" + h);
+        descriptor.append (":width:" + w + ":height:" + h);
         
         int maxDimension = Math.max (w, h);
         
