@@ -24,10 +24,20 @@
                 font-size: 9pt;
             }
             
-            div.hotspot {
+            div.bigshotContainer {
+                border:1px solid black; 
+                background: black; 
+            }
+            
+            div.bigshotContainer div.hotspot {
+                visibility:hidden;
+            }
+            
+            div.bigshotContainer:hover div.hotspot {
                 border : 1px solid #e0e0e0;
                 cursor : pointer;
                 opacity : 0.5;
+                visibility: visible;
             }
             
             div.hotspot div.label {
@@ -39,7 +49,7 @@
                 position: relative;
             }
             
-            div.hotspot:hover {
+            div.bigshotContainer:hover div.hotspot:hover {
                 border : 1px solid white;
                 opacity : 1.0;
             }
@@ -99,7 +109,7 @@
         </script>
     </head>
     <body onload="myonload();" onresize="jsi.onresize ();">
-        <div style="border:1px solid black; background: black; height:600px;" id="container">
+        <div style="height:600px;" id="container" class="bigshotContainer">
             
         </div>
         <p>
