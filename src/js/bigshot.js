@@ -721,6 +721,14 @@ if (!self["bigshot"]) {
                         this.fitZoom (parameters.height, this.container.clientHeight)));
             },
             
+            zoomToFitHeight : function () {
+                this.setZoom (this.fitZoom (parameters.height, this.container.clientHeight));
+            },
+            
+            zoomToFitWidth : function () {
+                this.setZoom (this.fitZoom (parameters.width, this.container.clientWidth));
+            },
+            
             flyZoomToFit : function () {
                 var targetZoom = Math.min (
                     this.fitZoom (parameters.width, this.container.clientWidth),

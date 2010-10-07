@@ -270,8 +270,18 @@ public class MakeImagePyramid {
         }   
         
         
-        int maxZoom = getParameterAsInt (parameters, "levels", (int) Math.ceil (Math.log (maxDimension) / Math.log (2)) - 2);
         int tileSize = getParameterAsInt (parameters, "tile-size", 256);
+        
+        int maxZoom = getParameterAsInt (parameters, "levels", (int) Math.ceil (Math.log (maxDimension) / Math.log (2)) - 2);
+        if (parameters.get ("wrap-x") != null) {
+            maxZoom = 0;
+            int wxw = w;
+            while (wxw % tileSize == 0) {
+                wxw /= 2;
+                maxZoom++;
+            }
+        }
+        
         int overlap = getParameterAsInt (parameters, "overlap", 0);
         System.out.println ("Creating pyramid with " + maxZoom + " levels.");
         for (int zoom = 0; zoom < maxZoom; ++zoom) {
