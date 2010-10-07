@@ -331,17 +331,62 @@ if (!self["bigshot"]) {
         return layer;
     };
     
+    bigshot.LRUMap = function () {
+        return {
+            keyToTime : {},
+            counter : 0,
+            size : 0,
+            
+            access : function (key) {
+                this.remove (key);
+                this.keyToTime[key] = this.counter;
+                ++this.counter;
+                ++this.size;
+            },
+            
+            remove : function (key) {
+                if (this.keyToTime[key]) {
+                    delete this.keyToTime[key];
+                    --this.size;
+                    return true;
+                } else {
+                    return false;
+                }
+            },
+            
+            getSize : function () {
+                return this.size;
+            },
+            
+            leastUsed : function () {
+                var least = this.counter + 1;
+                var leastKey = null;
+                for (var k in this.keyToTime) {
+                    if (this.keyToTime[k] < least) {
+                        least = this.keyToTime[k];
+                        leastKey = k;
+                    }
+                }
+                return leastKey;
+            }
+        };
+    }
+    
     bigshot.ImageTileCache = function (onLoaded, parameters) {
         var fullImage = document.createElement ("img");
         fullImage.src = parameters.fileSystem.getFilename ("poster" + parameters.suffix);
         
         return {
             fullImage : fullImage,
+            maxCacheSize : 512,
             maxTileX : 0,
             maxTileY : 0,
             cachedImages : {},
             requestedImages : {},
             usedImages : {},
+            lastOnLoadFiredAt : 0,
+            imageRequests : 0,
+            lruMap : new bigshot.LRUMap (),
             onLoaded : onLoaded,
             browser : new bigshot.Browser (),
             
@@ -412,6 +457,8 @@ if (!self["bigshot"]) {
                 }
                 
                 var key = this.getImageKey (tileX, tileY, zoomLevel);
+                this.lruMap.access (key);
+                
                 if (this.cachedImages[key]) {
                     if (this.usedImages[key]) {
                         var tile = document.createElement ("img");
@@ -436,16 +483,33 @@ if (!self["bigshot"]) {
             requestImage : function (tileX, tileY, zoomLevel) {
                 var key = this.getImageKey (tileX, tileY, zoomLevel);
                 if (!this.requestedImages[key]) {
+                    this.imageRequests++;
                     var tile = document.createElement ("img");
-                    tile.src = this.getImageFilename (tileX, tileY, zoomLevel);
                     var that = this;
                     this.browser.registerListener (tile, "load", function () {                        
                             that.cachedImages[key] = tile;
                             delete that.requestedImages[key];
-                            that.onLoaded ();
+                            that.imageRequests--;
+                            var now = new Date();
+                            if (that.imageRequests == 0 || now.getTime () > (that.lastOnLoadFiredAt + 50)) {
+                                that.purgeCache ();
+                                that.lastOnLoadFiredAt = now.getTime ();
+                                that.onLoaded ();
+                            }
                         }, false);
                     this.requestedImages[key] = tile;
+                    tile.src = this.getImageFilename (tileX, tileY, zoomLevel);                    
                 }            
+            },
+            
+            purgeCache : function () {
+                for (var i = 0; i < 4; ++i) {
+                    if (this.lruMap.getSize () > this.maxCacheSize) {
+                        var leastUsed = this.lruMap.leastUsed ();
+                        this.lruMap.remove (leastUsed);
+                        delete this.cachedImages[leastUsed];                    
+                    }
+                }
             },
             
             getImageKey : function (tileX, tileY, zoomLevel) {
