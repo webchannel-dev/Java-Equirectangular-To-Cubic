@@ -41,6 +41,19 @@ public class MinimalHttpd {
         }
     }
     
+    public static String getParameter (String[] params, String name, String defaultValue) throws Exception {
+        for (String s : params) {
+            if (s.startsWith (name + "=")) {
+                return s.substring (s.indexOf ("=") + 1);
+            }
+        }
+        return defaultValue;
+    }
+    
+    public static int getParameter (String[] params, String name, int defaultValue) throws Exception {
+        return Integer.parseInt (getParameter (params, name, String.valueOf (defaultValue)));
+    }
+    
     public static void main (String[] args) throws Exception {
         final File root = new File (args[0]);
         ServerSocket serverSocket = new ServerSocket (80);
@@ -62,16 +75,30 @@ public class MinimalHttpd {
                         if (path[1].equals ("/")) {
                             path[1] = "/index.html";
                         }
-                        File f = new File (root, path[1]);
+                        String file = path[1];
+                        
+                        String[] parameters = file.split ("\\?|&");
+                        String filename = getParameter (parameters, "file", parameters[0]);
+                        int startRange = getParameter (parameters, "start", 0);
+                        int lengthRange = getParameter (parameters, "length", Integer.MAX_VALUE);
+                        
+                        if (filename.startsWith ("/")) {
+                            filename = filename.substring (1);
+                        }
+                        
+                        File f = new File (root, filename);
                         OutputStream os = sock.getOutputStream ();
                         if (f.exists () && !f.isDirectory ()) {
                             FileInputStream fis = new FileInputStream (f);
                             os.write ("HTTP/1.0 200 OK\r\n".getBytes ());
-                            if (f.getName ().endsWith ("rss.xml")) {
+                            if (filename.endsWith ("rss.xml")) {
                                 os.write ("Content-Type: application/rss+xml\r\n".getBytes ());
                             }
                             os.write ("\r\n".getBytes ());
                             byte[] buffer = new byte[32768];
+                            while (startRange > 0) {
+                                startRange -= fis.skip (startRange);
+                            }
                             while (true) {
                                 int numRead = fis.read (buffer);
                                 if (numRead <= 0) {
@@ -79,7 +106,12 @@ public class MinimalHttpd {
                                 }
                                 long delay = 1000L * numRead / throttle;
                                 Thread.sleep ((int) delay);
+                                numRead = Math.min (lengthRange, numRead);
+                                lengthRange -= numRead;
                                 os.write (buffer, 0, numRead);                                
+                                if (lengthRange <= 0) {
+                                    break;
+                                }
                             }
                         } else {
                             os.write ("HTTP/1.0 404 Not found\r\n\r\n".getBytes ());

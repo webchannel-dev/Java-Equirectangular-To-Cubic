@@ -27,7 +27,13 @@ import javax.imageio.stream.FileImageOutputStream;
 import javax.imageio.ImageWriteParam;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.BufferedOutputStream;
+import java.io.BufferedInputStream;
+import java.io.FileInputStream;
+import java.io.InputStream;
 import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 public class MakeImagePyramid {
@@ -134,6 +140,79 @@ public class MakeImagePyramid {
         }
     }
     
+    public static class PackageEntry {
+        public String key;
+        public File file;
+        public long start;
+        public long length;
+        public String toString () {
+            return key + ":" + start + "+" + length;
+        }
+    }
+    
+    public static long scan (File directory, List<PackageEntry> result, String relativePath, long currentPosition) {
+        for (File f : directory.listFiles ()) {
+            if (f.isDirectory ()) {
+                currentPosition = scan (f, result, relativePath + f.getName () + "/", currentPosition);
+            } else {
+                PackageEntry p = new PackageEntry ();
+                p.key = relativePath + f.getName ();
+                p.file = f;
+                p.start = currentPosition;
+                p.length = f.length ();
+                
+                currentPosition += p.length;
+                result.add (p);
+            }
+        } 
+        return currentPosition;
+    }
+    
+    public static void pack (File outputBase) throws Exception {
+        File packedOutput = new File (outputBase.getParentFile (), outputBase.getName () + ".bigshot");
+        List<PackageEntry> fileList = new ArrayList<PackageEntry> ();
+        scan (outputBase, fileList, "", 0);
+        System.out.println ("Packing " + fileList.size () + " files to " + packedOutput.getName ());
+        
+        byte[] buffer = new byte[128000];
+        BufferedOutputStream packageOs = new BufferedOutputStream (new FileOutputStream (packedOutput));
+        try {
+            StringBuilder index = new StringBuilder ();
+            for (PackageEntry pe : fileList) {
+                index.append (pe.key);
+                index.append (":");
+                index.append (pe.start);
+                index.append (":");
+                index.append (pe.length);
+                index.append (":");
+            }
+            
+            byte[] indexBytes = index.toString ().getBytes ();
+            byte[] header = String.format ("BIGSHOT\0%16x", indexBytes.length).getBytes ();
+            
+            packageOs.write (header);
+            packageOs.write (indexBytes);
+            
+            for (PackageEntry pe : fileList) {
+                System.out.println (pe.key);
+                FileInputStream is = new FileInputStream (pe.file);
+                try {
+                    while (true) {
+                        int numRead = is.read (buffer);
+                        if (numRead <= 0) {
+                            break;
+                        }
+                        packageOs.write (buffer, 0, numRead);
+                    }
+                } finally {
+                    is.close ();
+                }
+            }
+        } finally {
+            packageOs.close ();
+        }
+    }
+    
     public static void makePyramid (File input, File outputBase, Map<String,String> parameters) throws Exception {
         BufferedImage full = ImageIO.read (input);
         outputBase.mkdirs ();
@@ -205,6 +284,8 @@ public class MakeImagePyramid {
         } finally {
             descriptorOut.close ();
         }
+        
+        pack (outputBase);
     }
     
 }
