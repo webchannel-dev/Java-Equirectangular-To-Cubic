@@ -867,6 +867,13 @@ if (!self["bigshot"]) {
             
             getFilename : function (name) {
                 var f = parameters.basePath + "&start=" + this.index[name].start + "&length=" + this.index[name].length;
+                if (f.substring (f.length - 4) == ".jpg") {
+                    f = f + "&type=image/jpeg";
+                } else if (f.substring (f.length - 4) == ".png") {
+                    f = f + "&type=image/png";
+                } else {
+                    f = f + "&type=text/plain";
+                }
                 return f;
             },
             

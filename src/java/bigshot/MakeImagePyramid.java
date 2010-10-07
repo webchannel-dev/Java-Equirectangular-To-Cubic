@@ -195,7 +195,7 @@ public class MakeImagePyramid {
             }
             
             byte[] indexBytes = index.toString ().getBytes ();
-            byte[] header = String.format ("BIGSHOT\0%16x", indexBytes.length).getBytes ();
+            byte[] header = String.format ("BIGSHOT %16x", indexBytes.length).getBytes ();
             
             packageOs.write (header);
             packageOs.write (indexBytes);
