@@ -119,6 +119,13 @@ public class MakeImagePyramid {
         File input = new File (args[0]);
         File outputBase = new File (args[1]);
         Map<String,String> parameters = new HashMap<String,String> ();
+        for (int i = 2; i < args.length; i += 2) {
+            if (args[i].startsWith ("--")) {
+                String key = args[i].substring (2);
+                String value = args[i + 1];
+                parameters.put (key, value);
+            }
+        }
         makePyramid (input, outputBase, parameters);
     }
     
@@ -168,10 +175,10 @@ public class MakeImagePyramid {
         return currentPosition;
     }
     
-    public static void pack (File outputBase) throws Exception {
-        File packedOutput = new File (outputBase.getParentFile (), outputBase.getName () + ".bigshot");
+    public static void pack (File source, File outputBase) throws Exception {
+        File packedOutput = outputBase;
         List<PackageEntry> fileList = new ArrayList<PackageEntry> ();
-        scan (outputBase, fileList, "", 0);
+        scan (source, fileList, "", 0);
         System.out.println ("Packing " + fileList.size () + " files to " + packedOutput.getName ());
         
         byte[] buffer = new byte[128000];
@@ -215,7 +222,17 @@ public class MakeImagePyramid {
     
     public static void makePyramid (File input, File outputBase, Map<String,String> parameters) throws Exception {
         BufferedImage full = ImageIO.read (input);
-        outputBase.mkdirs ();
+        
+        boolean outputPackage = "package".equals (parameters.get ("format"));
+        
+        File folders = outputBase;
+        
+        if (outputPackage) {
+            folders = File.createTempFile ("pyramid", "dir");
+            folders.delete ();
+            folders.mkdirs ();
+        }
+        folders.mkdirs ();
         
         StringBuilder descriptor = new StringBuilder ();
         
@@ -249,7 +266,7 @@ public class MakeImagePyramid {
             g.drawImage (full.getScaledInstance (pw, ph, Image.SCALE_AREA_AVERAGING), 0, 0, null);
             g.dispose ();
             
-            output.write (poster, new File (outputBase, "poster" + output.getSuffix ()));
+            output.write (poster, new File (folders, "poster" + output.getSuffix ()));
         }   
         
         
@@ -258,7 +275,7 @@ public class MakeImagePyramid {
         int overlap = getParameterAsInt (parameters, "overlap", 0);
         System.out.println ("Creating pyramid with " + maxZoom + " levels.");
         for (int zoom = 0; zoom < maxZoom; ++zoom) {
-            File outputDir = new File (outputBase, String.valueOf (zoom));
+            File outputDir = new File (folders, String.valueOf (zoom));
             outputDir.mkdirs ();
             tile (full, tileSize, tileSize - overlap, outputDir, output);
             w /= 2;
@@ -278,14 +295,28 @@ public class MakeImagePyramid {
         descriptor.append (":tileSize:" + tileSize + ":overlap:" + overlap);
         descriptor.append (":minZoom:" + (-maxZoom + 1));
         
-        FileOutputStream descriptorOut = new FileOutputStream (new File (outputBase, "descriptor"));
+        FileOutputStream descriptorOut = new FileOutputStream (new File (folders, "descriptor"));
         try {
             descriptorOut.write (descriptor.toString ().getBytes ());
         } finally {
             descriptorOut.close ();
         }
         
-        pack (outputBase);
+        if (outputPackage) {
+            pack (folders, outputBase);
+            deleteAll (folders);
+        }
     }
     
+    
+    public static void deleteAll (File f) {
+        if (f.isDirectory ()) {
+            for (File f2 : f.listFiles ()) {
+                deleteAll (f2);
+            }
+            f.delete ();
+        } else {
+            f.delete ();
+        }
+    }
 }

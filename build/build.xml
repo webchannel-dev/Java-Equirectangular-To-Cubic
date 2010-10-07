@@ -53,14 +53,12 @@
     </target>
     
     <target name="build-image">
-        <mkdir dir="${temp}/image/"/>
-        <delete includeEmptyDirs="true">
-            <fileset dir="${temp}/image/"/>
-        </delete>
         <java fork="yes" classname="bigshot.MakeImagePyramid" classpath="${temp}/classes/"
             dir="${basedir}">
             <arg value="test/sample.jpg"/>
-            <arg value="${temp}/image/"/>
+            <arg value="${temp}/image.bigshot"/>
+            <arg value="--format"/>
+            <arg value="package"/>
             <jvmarg value="-Xmx768M"/>
         </java>
     </target>
