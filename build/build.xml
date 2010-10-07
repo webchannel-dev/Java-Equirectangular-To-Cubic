@@ -17,11 +17,16 @@
     
     <property name="temp" value="temp/"/>
     <property name="src" value="src/"/>
+    <property name="final" value="final/"/>
     
     <target name="clean">
         <mkdir dir="${temp}/"/>
         <delete includeEmptyDirs="true">
             <fileset dir="${temp}/"/>
+        </delete>
+        <mkdir dir="${final}/"/>
+        <delete includeEmptyDirs="true">
+            <fileset dir="${final}/"/>
         </delete>
     </target>
     
@@ -38,6 +43,13 @@
     </target>
     
     <target name="package">
+        <jar destfile="${final}/bigshot.jar">
+            <fileset dir="${temp}/classes/" includes="bigshot/**"/>
+        </jar>
+        <copy todir="${final}/">
+            <fileset dir="${src}/js/"/>
+            <fileset dir="${src}/php/"/>
+        </copy>
     </target>
     
     <target name="build-image">
