@@ -16,6 +16,9 @@
 if (!self["bigshot"]) {
     bigshot = {};
     
+    /**
+     * Browser compatibility layer and utility functions.
+     */
     bigshot.Browser = function () {
         return {
             removeAllChildren : function (element) {
@@ -147,6 +150,9 @@ if (!self["bigshot"]) {
         }
     };
     
+    /**
+     * Base class for hotspots in a bigshot.HotspotLayer.
+     */
     bigshot.Hotspot = function (x, y, w, h) {
         var element = document.createElement ("div");
         element.style.position = "relative";
@@ -176,6 +182,9 @@ if (!self["bigshot"]) {
         return hs;
     };
     
+    /**
+     * A hotspot with a label under it.
+     */
     bigshot.LabeledHotspot = function (x, y, w, h, labelText) {
         var hs = new bigshot.Hotspot (x, y, w, h);
         var label = document.createElement ("div");
@@ -201,6 +210,10 @@ if (!self["bigshot"]) {
         return hs;
     }
     
+    /**
+     * A labeled hotspot that takes the user to another
+     * location when it is clicked on.
+     */
     bigshot.LinkHotspot = function (x, y, w, h, labelText, url) {
         var hs = new bigshot.LabeledHotspot (x, y, w, h, labelText);
         hs.browser.registerListener (hs.getElement (), "click", function () {
@@ -210,7 +223,9 @@ if (!self["bigshot"]) {
         return hs;
     }
     
-    
+    /**
+     * A hotspot layer.
+     */
     bigshot.HotspotLayer = function (parentContainer, container) {
         var layer = {
             hotspots : new Array (),
@@ -244,7 +259,9 @@ if (!self["bigshot"]) {
         return layer;
     };
     
-    
+    /**
+     * A tiled, zoomable image layer.
+     */
     bigshot.TileLayer = function (parentContainer, container, parameters, w, h, itc) {
         var layer = {
             rows : new Array (),
@@ -331,6 +348,10 @@ if (!self["bigshot"]) {
         return layer;
     };
     
+    /**
+     * Implementation of a Least-Recently-Used cache map.
+     * Used by the ImageTileCache to keep track of cache entries.
+     */
     bigshot.LRUMap = function () {
         return {
             keyToTime : {},
@@ -372,6 +393,9 @@ if (!self["bigshot"]) {
         };
     }
     
+    /**
+     * Tile cache for the TileLayer.
+     */
     bigshot.ImageTileCache = function (onLoaded, parameters) {
         var fullImage = document.createElement ("img");
         fullImage.src = parameters.fileSystem.getFilename ("poster" + parameters.suffix);
@@ -523,6 +547,9 @@ if (!self["bigshot"]) {
         };
     };
     
+    /**
+     * Abstract interface description for a Layer.
+     */
     bigshot.Layer = {
         setMaxTiles : function (x, y) {},
         resize : function (w, h) {},
@@ -871,7 +898,7 @@ if (!self["bigshot"]) {
                 message.style.zIndex = "9999";
                 message.style.textAlign = "center";
                 message.style.opacity = "0.75";
-                message.innerHTML = "<span style='border-radius: 16px; -moz-border-radius: 16px; padding: 16px; padding-left: 32px; padding-right: 32px; background:black'>Press Esc to Close</span>";
+                message.innerHTML = "<span style='border-radius: 16px; -moz-border-radius: 16px; padding: 16px; padding-left: 32px; padding-right: 32px; background:black'>Press Esc to exit full screen mode.</span>";
                 
                 div.appendChild (message);
                 
