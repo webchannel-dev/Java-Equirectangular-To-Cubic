@@ -223,7 +223,7 @@ public class MakeImagePyramid {
     public static void makePyramid (File input, File outputBase, Map<String,String> parameters) throws Exception {
         BufferedImage full = ImageIO.read (input);
         
-        boolean outputPackage = "package".equals (parameters.get ("format"));
+        boolean outputPackage = "archive".equals (parameters.get ("format"));
         
         File folders = outputBase;
         
