@@ -827,6 +827,90 @@ if (!self["bigshot"]) {
                 return Math.min (
                     this.fitZoom (w, this.container.clientWidth),
                     this.fitZoom (h, this.container.clientHeight));
+            },
+            
+            isFullScreen : false,
+            
+            fullScreen : function (onClose) {
+                if (this.isFullScreen) {
+                    return;
+                }
+                this.isFullScreen = true;
+                
+                var div = this.container;
+                var savedStyle = {
+                    position : this.container.style.position,
+                    top : this.container.style.top,
+                    left : this.container.style.left,
+                    width : this.container.style.width,
+                    height : this.container.style.height,
+                    zIndex : this.container.style.zIndex
+                };
+                div.style.position = "fixed";
+                div.style.top = "0px";
+                div.style.left = "0px";
+                div.style.width = "100%";
+                div.style.height = "100%";
+                div.style.zIndex = "9998";
+                
+                var message = document.createElement ("div");
+                message.style.position = "absolute";
+                message.style.fontSize = "16pt";
+                message.style.top = "128px";
+                message.style.width = "100%";
+                message.style.color = "white";
+                message.style.padding = "16px";
+                message.style.zIndex = "9999";
+                message.style.textAlign = "center";
+                message.style.opacity = "0.75";
+                message.innerHTML = "<span style='border-radius: 16px; -moz-border-radius: 16px; padding: 16px; padding-left: 32px; padding-right: 32px; background:black'>Press Esc to Close</span>";
+                
+                div.appendChild (message);
+                
+                var that = this;
+                var escHandler = function (e) {
+                    if (e.keyCode == 27) {
+                        if (message.parentNode) {
+                            try {
+                                div.removeChild (message);
+                            } catch (x) {
+                            }
+                        }
+                        that.browser.unregisterListener (document, "keydown", escHandler);
+                        that.container.style.position = savedStyle.position;
+                        that.container.style.top = savedStyle.top;
+                        that.container.style.left = savedStyle.left;
+                        that.container.style.width = savedStyle.width;
+                        that.container.style.height = savedStyle.height;
+                        that.container.style.zIndex = savedStyle.zIndex;
+                        that.onresize ();
+                        that.isFullScreen = false;
+                        if (onClose) {
+                            onClose ();
+                        }
+                    }
+                };
+                this.browser.registerListener (document, "keydown", escHandler, false);
+                
+                setTimeout (function () {
+                        var opacity = 0.75;
+                        var iter = function () {
+                            opacity -= 0.02;
+                            if (message.parentNode) {
+                                if (opacity <= 0) {
+                                    try {
+                                        div.removeChild (message);
+                                    } catch (x) {}
+                                } else {
+                                    message.style.opacity = opacity;
+                                    setTimeout (iter, 20);
+                                }
+                            }
+                        };
+                        setTimeout (iter, 20);
+                    }, 3500);
+                
+                this.onresize ();
             }
         };
         
@@ -870,13 +954,13 @@ if (!self["bigshot"]) {
                 image.dragMouseMove (e);
                 return false;
             }, false);
-        image.setZoom (0.0);
+        image.zoomToFit ();
         return image;
     }
     
     bigshot.FileSystem = {
         getFilename : function (name) {},
-        getImageFilename : function (tileX, tileY, zoomLevel) {},
+        getImageFilename : function (tileX, tileY, zoomLevel) {}
     };
     
     bigshot.FolderFileSystem = function (parameters) {
@@ -931,9 +1015,9 @@ if (!self["bigshot"]) {
             
             getFilename : function (name) {
                 var f = parameters.basePath + "&start=" + this.index[name].start + "&length=" + this.index[name].length;
-                if (f.substring (f.length - 4) == ".jpg") {
+                if (name.substring (name.length - 4) == ".jpg") {
                     f = f + "&type=image/jpeg";
-                } else if (f.substring (f.length - 4) == ".png") {
+                } else if (name.substring (name.length - 4) == ".png") {
                     f = f + "&type=image/png";
                 } else {
                     f = f + "&type=text/plain";
@@ -944,7 +1028,7 @@ if (!self["bigshot"]) {
             getImageFilename : function (tileX, tileY, zoomLevel) {
                 var key = (-zoomLevel) + "/" + tileX + "_" + tileY + parameters.suffix;
                 return this.getFilename (key);
-            },
+            }
         };
         
         fs.init ();

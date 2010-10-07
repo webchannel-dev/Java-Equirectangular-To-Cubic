@@ -132,6 +132,14 @@
             function toHotspot () {
                 jsi.flyTo (200, 150, jsi.rectVisibleAtZoomLevel (200,100));
             }
+            
+            function fullScreen () {
+                var span = document.getElementById ("fullscreen");
+                span.style.visibility = "hidden";
+                jsi.fullScreen (function () {
+                        span.style.visibility = "inherit";
+                    });
+            }
         </script>
     </head>
     <body onload="myonload();" onresize="jsi.onresize ();">
@@ -143,11 +151,14 @@
                     <a href="#" onclick="zoomIn(); return false;">+</a> | 
                     <a href="#" onclick="smoothIn(); return false;">Zoom in on center</a> | 
                     <a href="#" onclick="toHotspot(); return false;">Pan to hotspot</a> |
-                    <a href="#" onclick="jsi.flyZoomToFit (); return false;">Zoom to Fit</a>
+                    <a href="#" onclick="jsi.flyZoomToFit (); return false;">Zoom to Fit</a><span id="fullscreen"> |
+                    <a href="#" onclick="fullScreen (); return false;">Fullscreen</a></span>
                     </p>
                 </div>
             </div>
         </div>
+        
+        
         
     </body>
 </html>
