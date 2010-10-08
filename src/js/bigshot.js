@@ -658,6 +658,10 @@ if (!self["bigshot"]) {
                 this.minZoom = minZoom;
             },
             
+            getMinZoom : function () {
+                return this.minZoom;
+            },
+            
             translateEvent : function (event) {
                 if (event.clientX) {
                     return event;
@@ -742,6 +746,12 @@ if (!self["bigshot"]) {
                 return Math.log (scale) / Math.LN2;
             },
             
+            getZoomToFitValue : function () {
+                return Math.min (
+                        this.fitZoom (parameters.width, this.container.clientWidth),
+                        this.fitZoom (parameters.height, this.container.clientHeight));
+            },
+            
             zoomToFit : function () {
                 this.setZoom (Math.min (
                         this.fitZoom (parameters.width, this.container.clientWidth),
@@ -754,6 +764,14 @@ if (!self["bigshot"]) {
             
             zoomToFitWidth : function () {
                 this.setZoom (this.fitZoom (parameters.width, this.container.clientWidth));
+            },
+            
+            flyZoomToFitHeight : function () {
+                this.flyTo (this.x, parameters.height / 2, this.fitZoom (parameters.height, this.container.clientHeight));
+            },
+            
+            flyZoomToFitWidth : function () {
+                this.flyTo (parameters.width / 2, this.y, this.fitZoom (parameters.width, this.container.clientWidth));
             },
             
             flyZoomToFit : function () {
@@ -865,6 +883,15 @@ if (!self["bigshot"]) {
             },
             
             isFullScreen : false,
+            exitFullScreenHandler : null,
+            
+            exitFullScreen : function () {
+                if (!this.isFullScreen) {
+                    this.exitFullScreenHandler ();
+                    this.exitFullScreenHandler = null;
+                    return;
+                }
+            },
             
             fullScreen : function (onClose) {
                 if (this.isFullScreen) {
@@ -903,26 +930,30 @@ if (!self["bigshot"]) {
                 div.appendChild (message);
                 
                 var that = this;
+                this.exitFullScreenHandler = function () {
+                    if (message.parentNode) {
+                        try {
+                            div.removeChild (message);
+                        } catch (x) {
+                        }
+                    }
+                    that.browser.unregisterListener (document, "keydown", escHandler);
+                    that.container.style.position = savedStyle.position;
+                    that.container.style.top = savedStyle.top;
+                    that.container.style.left = savedStyle.left;
+                    that.container.style.width = savedStyle.width;
+                    that.container.style.height = savedStyle.height;
+                    that.container.style.zIndex = savedStyle.zIndex;
+                    that.onresize ();
+                    that.isFullScreen = false;
+                    if (onClose) {
+                        onClose ();
+                    }
+                };
+                
                 var escHandler = function (e) {
                     if (e.keyCode == 27) {
-                        if (message.parentNode) {
-                            try {
-                                div.removeChild (message);
-                            } catch (x) {
-                            }
-                        }
-                        that.browser.unregisterListener (document, "keydown", escHandler);
-                        that.container.style.position = savedStyle.position;
-                        that.container.style.top = savedStyle.top;
-                        that.container.style.left = savedStyle.left;
-                        that.container.style.width = savedStyle.width;
-                        that.container.style.height = savedStyle.height;
-                        that.container.style.zIndex = savedStyle.zIndex;
-                        that.onresize ();
-                        that.isFullScreen = false;
-                        if (onClose) {
-                            onClose ();
-                        }
+                        that.exitFullScreenHandler ();
                     }
                 };
                 this.browser.registerListener (document, "keydown", escHandler, false);
