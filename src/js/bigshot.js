@@ -758,8 +758,8 @@ if (!self["bigshot"]) {
             
             getZoomToFitValue : function () {
                 return Math.min (
-                        this.fitZoom (parameters.width, this.container.clientWidth),
-                        this.fitZoom (parameters.height, this.container.clientHeight));
+                    this.fitZoom (parameters.width, this.container.clientWidth),
+                    this.fitZoom (parameters.height, this.container.clientHeight));
             },
             
             zoomToFit : function () {
@@ -909,21 +909,23 @@ if (!self["bigshot"]) {
                 }
                 this.isFullScreen = true;
                 
-                var div = this.container;
-                var savedStyle = {
-                    position : this.container.style.position,
-                    top : this.container.style.top,
-                    left : this.container.style.left,
-                    width : this.container.style.width,
-                    height : this.container.style.height,
-                    zIndex : this.container.style.zIndex
-                };
+                var div = document.createElement ("div");
                 div.style.position = "fixed";
                 div.style.top = "0px";
                 div.style.left = "0px";
                 div.style.width = "100%";
                 div.style.height = "100%";
                 div.style.zIndex = "9998";
+                
+                var savedParent = this.container.parentNode;
+                var savedSize = {
+                    width : this.container.style.width,
+                    height : this.container.style.height
+                };
+                this.container.style.width = "100%";
+                this.container.style.height = "100%";
+                savedParent.removeChild (this.container);
+                div.appendChild (this.container);
                 
                 var message = document.createElement ("div");
                 message.style.position = "absolute";
@@ -938,6 +940,7 @@ if (!self["bigshot"]) {
                 message.innerHTML = "<span style='border-radius: 16px; -moz-border-radius: 16px; padding: 16px; padding-left: 32px; padding-right: 32px; background:black'>Press Esc to exit full screen mode.</span>";
                 
                 div.appendChild (message);
+                document.body.appendChild (div);
                 
                 var that = this;
                 this.exitFullScreenHandler = function () {
@@ -948,14 +951,12 @@ if (!self["bigshot"]) {
                         }
                     }
                     that.browser.unregisterListener (document, "keydown", escHandler);
-                    that.container.style.position = savedStyle.position;
-                    that.container.style.top = savedStyle.top;
-                    that.container.style.left = savedStyle.left;
-                    that.container.style.width = savedStyle.width;
-                    that.container.style.height = savedStyle.height;
-                    that.container.style.zIndex = savedStyle.zIndex;
-                    that.onresize ();
+                    that.container.style.width = savedSize.width;
+                    that.container.style.height = savedSize.height;
+                    savedParent.appendChild (that.container);
+                    document.body.removeChild (div);
                     that.isFullScreen = false;
+                    that.onresize ();
                     if (onClose) {
                         onClose ();
                     }

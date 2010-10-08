@@ -26,7 +26,7 @@
             
             div.bigshotContainer {
                 border:1px solid black; 
-                background: black; 
+                background: red; 
             }
             
             div.bigshotContainer div.hotspot, div.bigshotContainer div.bigshotControls {
@@ -135,6 +135,7 @@
             
             function fullScreen () {
                 var span = document.getElementById ("fullscreen");
+                var container = document.getElementById ("container");
                 span.style.visibility = "hidden";
                 jsi.fullScreen (function () {
                         span.style.visibility = "inherit";
@@ -143,7 +144,7 @@
         </script>
     </head>
     <body onload="myonload();" onresize="jsi.onresize ();">
-        <div style="position: relative; height:600px;" id="container" class="bigshotContainer">
+        <div style="position: relative; overflow:hidden; height:600px;" id="container" class="bigshotContainer">
             <div style="position:absolute; left:50%;">
                 <div class="bigshotControls">
                     <p>
