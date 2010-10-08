@@ -303,7 +303,7 @@ if (!self["bigshot"]) {
             },
             
             layout : function (zoom, x0, y0, tx0, ty0, size, stride, opacity) {
-                zoom = Math.ceil (zoom);
+                zoom = Math.min (0, Math.ceil (zoom));
                 this.imageTileCache.resetUsed ();
                 var y = y0;
                 for (var r = 0; r < this.h; ++r) {
@@ -566,6 +566,7 @@ if (!self["bigshot"]) {
             width : parameters.width,
             height : parameters.height,
             minZoom : parameters.minZoom,
+            maxZoom : 2.0,
             tileSize : parameters.tileSize,
             overlap : 0,
             browser : new bigshot.Browser (),
@@ -580,7 +581,7 @@ if (!self["bigshot"]) {
             },
             
             layoutWithZoomFactor : function (tiles, useZoomFactor) {
-                var zoomLevel = Math.ceil (useZoomFactor);
+                var zoomLevel = Math.min (0, Math.ceil (useZoomFactor));
                 var zoomFactor = Math.pow (2, zoomLevel);
                 var tileWidthInRealPixels = this.tileSize / zoomFactor;
                 
@@ -619,6 +620,7 @@ if (!self["bigshot"]) {
                 if (this.layers.length == 0) {
                     var tileLayerContainer = document.createElement ("div");
                     tileLayerContainer.style.position = "absolute";
+                    tileLayerContainer.style.overflow = "hidden";
                     this.container.appendChild (tileLayerContainer);
                     this.layers.push (
                         new bigshot.TileLayer (this.container, tileLayerContainer, parameters, tilesW, tilesH, this.imageTileCache)
@@ -643,7 +645,7 @@ if (!self["bigshot"]) {
             
             setZoom : function (zoom) {
                 this.stopFlying ();
-                this.zoom = Math.min (0.0, Math.max (zoom, this.minZoom));
+                this.zoom = Math.min (this.maxZoom, Math.max (zoom, this.minZoom));
                 var zoomLevel = Math.ceil (this.zoom);
                 var zoomFactor = Math.pow (2, zoomLevel);
                 var maxTileX = Math.ceil (zoomFactor * this.width / this.tileSize);
@@ -652,6 +654,14 @@ if (!self["bigshot"]) {
                     this.layers[i].setMaxTiles (maxTileX, maxTileY);
                 }
                 this.layout ();
+            },
+            
+            setMaxZoom : function (maxZoom) {
+                this.maxZoom = maxZoom;
+            },
+            
+            getMaxZoom : function () {
+                return this.maxZoom;
             },
             
             setMinZoom : function (minZoom) {
@@ -839,7 +849,7 @@ if (!self["bigshot"]) {
                 
                 var targetX = Math.max (0, Math.min (this.width, x));
                 var targetY = Math.max (0, Math.min (this.height, y));
-                var targetZoom = Math.min (0.0, Math.max (zoom, this.minZoom));
+                var targetZoom = Math.min (this.maxZoom, Math.max (zoom, this.minZoom));
                 
                 this.flying++;
                 var flyingAtStart = this.flying;
