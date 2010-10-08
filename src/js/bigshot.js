@@ -14,13 +14,25 @@
  * limitations under the License. 
  */
 if (!self["bigshot"]) {
+    /**
+     * Bigshot namespace.
+     *
+     * @namespace
+     */
     bigshot = {};
     
     /**
      * Browser compatibility layer and utility functions.
+     * @constructor
      */
     bigshot.Browser = function () {
         return {
+            /**
+             * Removes all children from an element.
+             * 
+             * @public
+             * @memberOf bigshot.Browser#
+             */
             removeAllChildren : function (element) {
                 if (element.children.length > 0) {
                     for (var i = element.children.length - 1; i >= 0; --i) {
@@ -150,12 +162,47 @@ if (!self["bigshot"]) {
         }
     };
     
+    bigshot.object = {
+        extend : function (base, derived) {
+            var _super = {};
+            derived._super = _super;
+            for (var k in base) {
+                if (typeof (base[k]) == "function") {
+                    _super[k] = this.makeThunk (base[k], derived);
+                    if (!derived[k]) {
+                        derived[k] = this.makeThunk (base[k], derived);
+                    }
+                } else {
+                    derived[k] = base[k];
+                }
+            }
+            return derived;
+        },
+        
+        makeThunk : function (fn, object) {
+            return function () {
+                return fn.call (object, arguments);
+            };
+        },
+        
+        alertr : function (o) {
+            var sb = "";
+            for (var k in o) {
+                sb += k + ":" + o[k] + "\n";
+            }
+            alert (sb);
+        }
+    };
+    
     /**
      * Base class for hotspots in a bigshot.HotspotLayer.
+     *
+     * @constructor
      */
     bigshot.Hotspot = function (x, y, w, h) {
         var element = document.createElement ("div");
         element.style.position = "relative";
+        
         var hs = {
             browser : new bigshot.Browser (),
             element : element,
@@ -164,6 +211,15 @@ if (!self["bigshot"]) {
             w : w,
             h : h,
             
+            /**
+             * Lays it out.
+             *
+             * @name bigshot.Hotspot#layout
+             * @param x0 x-coordinate of top-left corner in css pixels
+             * @param y0 y-coordinate of top-left corner in css pixels
+             * @param zoomFactor the zoom factor.
+             * @function
+             */
             layout : function (x0, y0, zoomFactor) {
                 var sx = this.x * zoomFactor + x0;
                 var sy = this.y * zoomFactor + y0;
@@ -175,6 +231,11 @@ if (!self["bigshot"]) {
                 this.element.style.height = sh + "px";
             },
             
+            /**
+             * Lays it out.
+             *
+             * @memberOf bigshot.Hotspot#
+             */
             getElement : function () {
                 return this.element;
             }
@@ -184,6 +245,8 @@ if (!self["bigshot"]) {
     
     /**
      * A hotspot with a label under it.
+     *
+     * @constructor
      */
     bigshot.LabeledHotspot = function (x, y, w, h, labelText) {
         var hs = new bigshot.Hotspot (x, y, w, h);
@@ -213,6 +276,8 @@ if (!self["bigshot"]) {
     /**
      * A labeled hotspot that takes the user to another
      * location when it is clicked on.
+     *
+     * @constructor
      */
     bigshot.LinkHotspot = function (x, y, w, h, labelText, url) {
         var hs = new bigshot.LabeledHotspot (x, y, w, h, labelText);
@@ -225,6 +290,8 @@ if (!self["bigshot"]) {
     
     /**
      * A hotspot layer.
+     *
+     * @constructor
      */
     bigshot.HotspotLayer = function (parentContainer, container) {
         var layer = {
@@ -261,6 +328,8 @@ if (!self["bigshot"]) {
     
     /**
      * A tiled, zoomable image layer.
+     *
+     * @constructor
      */
     bigshot.TileLayer = function (parentContainer, container, parameters, w, h, itc) {
         var layer = {
@@ -351,6 +420,8 @@ if (!self["bigshot"]) {
     /**
      * Implementation of a Least-Recently-Used cache map.
      * Used by the ImageTileCache to keep track of cache entries.
+     *
+     * @constructor
      */
     bigshot.LRUMap = function () {
         return {
@@ -395,6 +466,8 @@ if (!self["bigshot"]) {
     
     /**
      * Tile cache for the TileLayer.
+     *
+     * @constructor
      */
     bigshot.ImageTileCache = function (onLoaded, parameters) {
         var fullImage = document.createElement ("img");
@@ -549,6 +622,8 @@ if (!self["bigshot"]) {
     
     /**
      * Abstract interface description for a Layer.
+     *
+     * @constructor
      */
     bigshot.Layer = {
         setMaxTiles : function (x, y) {},
@@ -556,6 +631,11 @@ if (!self["bigshot"]) {
         layout : function (zoom, x0, y0, tx0, ty0, size, stride, opacity) {}
     };
     
+    /**
+     * Tiled image handler.
+     *
+     * @constructor
+     */     
     bigshot.Image = function (parameters) {
         bigshot.SetupFileSystem (parameters);
         var image = {
@@ -672,19 +752,7 @@ if (!self["bigshot"]) {
                 return this.minZoom;
             },
             
-            translateEvent : function (event) {
-                if (event.clientX) {
-                    return event;
-                } else {
-                    return {
-                        clientX : event.changedTouches[0].clientX,
-                        clientY : event.changedTouches[0].clientY
-                    };
-                };
-            },
-            
             dragMouseDown : function (event) {
-                event = this.translateEvent (event);
                 this.dragStart = {
                     x : event.clientX,
                     y : event.clientY
@@ -692,7 +760,6 @@ if (!self["bigshot"]) {
             },
             
             dragMouseMove : function (event) {
-                event = this.translateEvent (event);
                 if (this.dragStart != null) {
                     var delta = {
                         x : event.clientX - this.dragStart.x,
@@ -710,14 +777,12 @@ if (!self["bigshot"]) {
             },
             
             dragMouseUp : function (event) {
-                event = this.translateEvent (event);
                 if (this.dragStart != null) {
                     this.dragStart = null;
                 }
             },
             
             mouseDoubleClick : function (event) {
-                event = this.translateEvent (event);
                 var elementPos = this.browser.getElementPosition (this.container);
                 var clickPos = {
                     x : event.clientX - elementPos.x - this.container.clientWidth / 2,
@@ -805,31 +870,36 @@ if (!self["bigshot"]) {
                     event = window.event;
                 if (event.wheelDelta) { /* IE/Opera. */
                     delta = event.wheelDelta / 120;
-                    /** In Opera 9, delta differs in sign as compared to IE.
-                        */
+                    /*
+                     * In Opera 9, delta differs in sign as compared to IE.
+                     */
                     if (window.opera)
                         delta = -delta;
                 } else if (event.detail) { /** Mozilla case. */
-                    /** In Mozilla, sign of delta is different than in IE.
-                        * Also, delta is multiple of 3.
-                        */
+                    /*
+                     * In Mozilla, sign of delta is different than in IE.
+                     * Also, delta is multiple of 3.
+                     */
                     delta = -event.detail;
                 }
                 
-                /** If delta is nonzero, handle it.
-                    * Basically, delta is now positive if wheel was scrolled up,
-                    * and negative, if wheel was scrolled down.
-                    */
+                /*
+                 * If delta is nonzero, handle it.
+                 * Basically, delta is now positive if wheel was scrolled up,
+                 * and negative, if wheel was scrolled down.
+                 */
                 if (delta) {
                     this.mouseWheelHandler (delta);
                 }
                 
-                /** Prevent default actions caused by mouse wheel.
-                    * That might be ugly, but we handle scrolls somehow
-                    * anyway, so don't bother here..
-                    */
-                if (event.preventDefault)
-                    event.preventDefault();
+                /*
+                 * Prevent default actions caused by mouse wheel.
+                 * That might be ugly, but we handle scrolls somehow
+                 * anyway, so don't bother here..
+                 */
+                if (event.preventDefault) {
+                    event.preventDefault ();
+                }
                 event.returnValue = false;
             },
             
@@ -991,55 +1061,84 @@ if (!self["bigshot"]) {
             }
         };
         
+        var consumeEvent = function (event) {
+            if (event.preventDefault) {
+                event.preventDefault ();
+            }
+            return false;
+        };
+        
+        var translateEvent = function (event) {
+            if (event.clientX) {
+                return event;
+            } else {
+                return {
+                    clientX : event.changedTouches[0].clientX,
+                    clientY : event.changedTouches[0].clientY
+                };
+            };
+        };
+        
+        
         image.imageTileCache = new bigshot.ImageTileCache (function () {
                 image.layout ();     
             }, parameters);
         image.resize ();
         image.browser.registerListener (parameters.container, "DOMMouseScroll", function (e) {
                 image.mouseWheel (e);
-                return false;
+                return consumeEvent (e);
             }, false);
         image.browser.registerListener (parameters.container, "mousewheel", function (e) {
                 image.mouseWheel (e);
-                return false;
+                return consumeEvent (e);
             }, false);
         image.browser.registerListener (parameters.container, "dblclick", function (e) {
                 image.mouseDoubleClick (e);
-                return false;
+                return consumeEvent (e);
             }, false);
         image.browser.registerListener (parameters.container, "mousedown", function (e) {
                 image.dragMouseDown (e);
-                return false;
+                return consumeEvent (e);
             }, false);
         image.browser.registerListener (parameters.container, "touchstart", function (e) {
-                image.dragMouseDown (e);
-                return false;
+                image.dragMouseDown (translateEvent (e));
+                return consumeEvent (e);
             }, false);
         image.browser.registerListener (parameters.container, "mouseup", function (e) {
                 image.dragMouseUp (e);
-                return false;
+                return consumeEvent (e);
             }, false);
         image.browser.registerListener (parameters.container, "touchend", function (e) {
-                image.dragMouseUp (e);
-                return false;
+                image.dragMouseUp (translateEvent (e));
+                return consumeEvent (e);
             }, false);
         image.browser.registerListener (parameters.container, 'mousemove', function (e) {
                 image.dragMouseMove (e);
-                return false;
+                return consumeEvent (e);
             }, false);
         image.browser.registerListener (parameters.container, 'touchmove', function (e) {
-                image.dragMouseMove (e);
-                return false;
+                image.dragMouseMove (translateEvent (e));
+                return consumeEvent (e);
             }, false);
         image.zoomToFit ();
         return image;
     }
     
+    /**
+     * Abstract filesystem definition.
+     *
+     * @class
+     */
     bigshot.FileSystem = {
         getFilename : function (name) {},
         getImageFilename : function (tileX, tileY, zoomLevel) {}
     };
     
+    /**
+     * Folder-based filesystem.
+     *
+     * @constructor
+     */
     bigshot.FolderFileSystem = function (parameters) {
         return {
             getFilename : function (name) {
@@ -1053,6 +1152,11 @@ if (!self["bigshot"]) {
         };
     };
     
+    /**
+     * Bigshot archive filesystem.
+     *
+     * @constructor
+     */     
     bigshot.ArchiveFileSystem = function (parameters) {
         var fs = {
             indexSize : 0,
@@ -1112,6 +1216,9 @@ if (!self["bigshot"]) {
         return fs;
     }
     
+    /**
+     * Sets up a filesystem instance.
+     */
     bigshot.SetupFileSystem = function (parameters) {
         if (!parameters.fileSystem) {
             if (parameters.fileSystemType == "archive") {
@@ -1122,6 +1229,11 @@ if (!self["bigshot"]) {
         }
     }
     
+    /**
+     * Creates an image from a descriptor.
+     *
+     * @constructor
+     */
     bigshot.ImageFromDescriptor = function (parameters) {
         bigshot.SetupFileSystem (parameters);
         

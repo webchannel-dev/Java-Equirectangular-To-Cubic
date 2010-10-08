@@ -42,7 +42,21 @@
         </javac>
     </target>
     
+    <target name="docs">
+        <mkdir dir="${final}/doc/js"/>
+        <property name="jsdoc-path" value="${ant.home}/../jsdoc-toolkit"/>
+        <java fork="yes" jar="${jsdoc-path}/jsrun.jar"
+            dir="${basedir}">
+            <arg value="${jsdoc-path}/app/run.js"/>
+            <arg value="-a"/>
+            <arg value="-t=${jsdoc-path}/templates\jsdoc"/>
+            <arg value="-d=${final}/doc/js"/>
+            <arg value="${src}/js/"/>
+        </java>
+    </target>
+    
     <target name="package">
+        <antcall name="docs"/>
         <jar destfile="${final}/bigshot.jar">
             <fileset dir="${temp}/classes/" includes="bigshot/**"/>
         </jar>

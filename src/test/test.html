@@ -117,12 +117,34 @@
                 jsi.setZoom (0.0);
             }
             
+            function testOO () {
+                var base = {
+                    
+                    message : "Hello",
+                    
+                    sayIt : function () {
+                        alert ("Base:" + this.message);
+                    }
+                };
+                
+                var derived = {
+                    sayIt : function () {
+                        this._super.sayIt ();
+                        alert ("Derived:" + this.message + " World!");
+                    }
+                };
+                bigshot.object.extend (base, derived);
+                
+                base.sayIt ();
+                derived.sayIt ();
+            }
+            
             function zoomOut () {
-                jsi.setZoom (jsi.getZoom () - 0.1);
+                jsi.setZoom (jsi.getZoom () - 0.5);
             }
             
             function zoomIn () {
-                jsi.setZoom (jsi.getZoom () + 0.1);
+                jsi.setZoom (jsi.getZoom () + 0.5);
             }
             
             function smoothIn () {
@@ -153,13 +175,23 @@
                     <a href="#" onclick="smoothIn(); return false;">Zoom in on center</a> | 
                     <a href="#" onclick="toHotspot(); return false;">Pan to hotspot</a> |
                     <a href="#" onclick="jsi.flyZoomToFitWidth (); return false;">Zoom to Fit</a><span id="fullscreen"> |
-                    <a href="#" onclick="fullScreen (); return false;">Fullscreen</a></span>
+                        <a href="#" onclick="fullScreen (); return false;">Fullscreen</a></span>
                     </p>
                 </div>
             </div>
         </div>
-        
-        
+        <div class="mobileui">
+            <table width="100%">
+                <tr>
+                    <td width="50%">
+                        <button style="width:100%; font-size: 20pt;" type="button" onclick="zoomIn(); return false">In</button>
+                    </td>
+                    <td width="50%">
+                        <button style="width:100%; font-size: 20pt;" type="button" onclick="zoomOut(); return false">Out</button>
+                    </td>
+                </tr>
+            </table>
+        </div>
         
     </body>
 </html>
