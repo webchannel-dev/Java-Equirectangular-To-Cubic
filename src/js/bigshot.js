@@ -653,6 +653,7 @@ if (!self["bigshot"]) {
             imageTileCache : null,
             
             dragStart : null,
+            dragged : false,
             
             layers : new Array (),
             
@@ -757,10 +758,12 @@ if (!self["bigshot"]) {
                     x : event.clientX,
                     y : event.clientY
                 };
+                this.dragged = false;
             },
             
             dragMouseMove : function (event) {
                 if (this.dragStart != null) {
+                    this.dragged = true;
                     var delta = {
                         x : event.clientX - this.dragStart.x,
                         y : event.clientY - this.dragStart.y
@@ -791,7 +794,7 @@ if (!self["bigshot"]) {
                 var scale = Math.pow (2, this.zoom);
                 clickPos.x /= scale;
                 clickPos.y /= scale;
-                this.flyTo (this.x + clickPos.x, this.y + clickPos.y, this.zoom);
+                this.flyTo (this.x + clickPos.x, this.y + clickPos.y, this.zoom + 0.5);
             },
             
             getZoom : function () {
@@ -962,6 +965,33 @@ if (!self["bigshot"]) {
                     this.fitZoom (h, this.container.clientHeight));
             },
             
+            mouseClick : function (event) {
+                if (this.dragged) {
+                    return;
+                }
+                var elementPos = this.browser.getElementPosition (this.container);
+                var clickPos = {
+                    x : event.clientX - elementPos.x - this.container.clientWidth / 2,
+                    y : event.clientY - elementPos.y - this.container.clientHeight / 2
+                };
+                if (Math.abs (clickPos.x) > this.container.clientWidth * 0.4 ||
+                        Math.abs (clickPos.y) > this.container.clientWidth * 0.4) {
+                            this.flyTo (this.x, this.y, this.zoom - 0.5);
+                        } else {
+                            
+                            var newZoom = this.zoom;
+                            if (Math.abs (clickPos.x) < this.container.clientWidth * 0.1 &&
+                                    Math.abs (clickPos.y) < this.container.clientWidth * 0.1) {
+                                        newZoom += 0.5;
+                                    }
+                            
+                            var scale = Math.pow (2, this.zoom);
+                            clickPos.x /= scale;
+                            clickPos.y /= scale;
+                            this.flyTo (this.x + clickPos.x, this.y + clickPos.y, newZoom);
+                        }
+            },
+            
             isFullScreen : false,
             exitFullScreenHandler : null,
             
@@ -1079,7 +1109,6 @@ if (!self["bigshot"]) {
             };
         };
         
-        
         image.imageTileCache = new bigshot.ImageTileCache (function () {
                 image.layout ();     
             }, parameters);
@@ -1118,6 +1147,10 @@ if (!self["bigshot"]) {
             }, false);
         image.browser.registerListener (parameters.container, 'touchmove', function (e) {
                 image.dragMouseMove (translateEvent (e));
+                return consumeEvent (e);
+            }, false);
+        image.browser.registerListener (parameters.container, 'click', function (e) {
+                image.mouseClick (e);
                 return consumeEvent (e);
             }, false);
         image.zoomToFit ();
@@ -1166,7 +1199,7 @@ if (!self["bigshot"]) {
             init : function () {
                 var browser = new bigshot.Browser ();
                 var req = browser.createXMLHttpRequest ();
-                req.open("GET", parameters.basePath + "&start=0&length=24", false);   
+                req.open("GET", parameters.basePath + "&start=0&length=24&type=text/plain", false);   
                 req.send(null);  
                 if(req.status == 200) {
                     if (req.responseText.substring (0, 7) != "BIGSHOT") {
@@ -1176,7 +1209,7 @@ if (!self["bigshot"]) {
                     this.indexSize = parseInt (req.responseText.substring (8), 16);
                     this.offset = this.indexSize + 24;
                     
-                    req.open("GET", parameters.basePath + "&start=24&length=" + this.indexSize, false);   
+                    req.open("GET", parameters.basePath + "&type=text/plain&start=24&length=" + this.indexSize, false);   
                     req.send(null);  
                     if(req.status == 200) {
                         var substrings = req.responseText.split (":");
