@@ -79,6 +79,7 @@ public class MinimalHttpd {
                         
                         String[] parameters = file.split ("\\?|&");
                         String filename = getParameter (parameters, "file", parameters[0]);
+                        String type = getParameter (parameters, "type", null);
                         int startRange = getParameter (parameters, "start", 0);
                         int lengthRange = getParameter (parameters, "length", Integer.MAX_VALUE);
                         
@@ -91,7 +92,9 @@ public class MinimalHttpd {
                         if (f.exists () && !f.isDirectory ()) {
                             FileInputStream fis = new FileInputStream (f);
                             os.write ("HTTP/1.0 200 OK\r\n".getBytes ());
-                            if (filename.endsWith ("rss.xml")) {
+                            if (type != null) {
+                                os.write (("Content-Type: " + type + "\r\n").getBytes ());
+                            } else if (filename.endsWith ("rss.xml")) {
                                 os.write ("Content-Type: application/rss+xml\r\n".getBytes ());
                             }
                             os.write ("\r\n".getBytes ());
