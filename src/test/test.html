@@ -163,6 +163,10 @@
                         span.style.visibility = "inherit";
                     });
             }
+            
+            function flashUI () {
+                jsi.flashTouchUI ();
+            }
         </script>
     </head>
     <body onload="myonload();" onresize="jsi.onresize ();">
@@ -183,11 +187,14 @@
         <div class="mobileui">
             <table width="100%">
                 <tr>
-                    <td width="50%">
+                    <td width="30%">
                         <button style="width:100%; font-size: 20pt;" type="button" onclick="zoomIn(); return false">In</button>
                     </td>
-                    <td width="50%">
+                    <td width="30%">
                         <button style="width:100%; font-size: 20pt;" type="button" onclick="zoomOut(); return false">Out</button>
+                    </td>
+                    <td width="30%">
+                        <button style="width:100%; font-size: 20pt;" type="button" onclick="flashUI(); return false">Flash</button>
                     </td>
                 </tr>
             </table>

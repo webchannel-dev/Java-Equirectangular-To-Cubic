@@ -965,6 +965,10 @@ if (!self["bigshot"]) {
                     this.fitZoom (h, this.container.clientHeight));
             },
             
+            getClickBorderSize : function () {
+                return ((this.container.clientWidth + this.container.clientHeight) / 2) * 0.1;
+            },
+            
             mouseClick : function (event) {
                 if (this.dragged) {
                     return;
@@ -974,22 +978,88 @@ if (!self["bigshot"]) {
                     x : event.clientX - elementPos.x - this.container.clientWidth / 2,
                     y : event.clientY - elementPos.y - this.container.clientHeight / 2
                 };
-                if (Math.abs (clickPos.x) > this.container.clientWidth * 0.4 ||
-                        Math.abs (clickPos.y) > this.container.clientWidth * 0.4) {
-                            this.flyTo (this.x, this.y, this.zoom - 0.5);
-                        } else {
-                            
-                            var newZoom = this.zoom;
-                            if (Math.abs (clickPos.x) < this.container.clientWidth * 0.1 &&
-                                    Math.abs (clickPos.y) < this.container.clientWidth * 0.1) {
-                                        newZoom += 0.5;
-                                    }
-                            
-                            var scale = Math.pow (2, this.zoom);
-                            clickPos.x /= scale;
-                            clickPos.y /= scale;
-                            this.flyTo (this.x + clickPos.x, this.y + clickPos.y, newZoom);
-                        }
+                
+                var zoomOutBorderSize = this.getClickBorderSize ();
+                var zoomInHotspotSize = this.getClickBorderSize ();
+                
+                if (Math.abs (clickPos.x) > (this.container.clientWidth / 2 - zoomOutBorderSize) || Math.abs (clickPos.y) > (this.container.clientHeight / 2 - zoomOutBorderSize)) {
+                    this.flyTo (this.x, this.y, this.zoom - 0.5);
+                } else {
+                    var newZoom = this.zoom;
+                    if (Math.abs (clickPos.x) < zoomInHotspotSize && Math.abs (clickPos.y) < zoomInHotspotSize) {
+                        newZoom += 0.5;
+                    }
+                    var scale = Math.pow (2, this.zoom);
+                    clickPos.x /= scale;
+                    clickPos.y /= scale;
+                    this.flyTo (this.x + clickPos.x, this.y + clickPos.y, newZoom);
+                }
+            },
+            
+            flashTouchUI : function () {
+                var zoomOutBorderSize = this.getClickBorderSize ();
+                var zoomInHotspotSize = this.getClickBorderSize ();
+                var centerX = this.container.clientWidth / 2;
+                var centerY = this.container.clientHeight / 2;
+               
+                var frameDiv = document.createElement ("div");
+                frameDiv.style.position = "absolute";
+                frameDiv.style.zIndex = "9999";
+                frameDiv.style.opacity = 0.9;
+                frameDiv.style.width = this.container.clientWidth + "px";
+                frameDiv.style.height = this.container.clientHeight + "px";
+                
+                var centerSpotAnchor = document.createElement ("div");
+                centerSpotAnchor.style.position = "absolute";
+                
+                var centerSpot = document.createElement ("div");
+                centerSpot.style.position = "relative";
+                centerSpot.style.background = "black";
+                centerSpot.style.textAlign = "center";
+                centerSpot.style.top = (centerY - zoomInHotspotSize) + "px";
+                centerSpot.style.left = (centerX - zoomInHotspotSize) + "px";
+                centerSpot.style.width = (2 * zoomInHotspotSize) + "px";
+                centerSpot.style.height = (2 * zoomInHotspotSize) + "px";
+                
+                frameDiv.appendChild (centerSpotAnchor);
+                centerSpotAnchor.appendChild (centerSpot);
+                centerSpot.innerHTML = "<span style='display:inline-box; position:relative; vertical-align:middle; font-size: 20pt; top: 10pt; color:white'>ZOOM IN</span>";
+                
+                var zoomOutBorderAnchor = document.createElement ("div");
+                zoomOutBorderAnchor.style.position = "absolute";
+                
+                var zoomOutBorder = document.createElement ("div");
+                zoomOutBorder.style.position = "relative";
+                zoomOutBorder.style.border = zoomOutBorderSize + "px solid black";
+                zoomOutBorder.style.top = "0px";
+                zoomOutBorder.style.left = "0px";
+                zoomOutBorder.style.textAlign = "center";
+                zoomOutBorder.style.width = this.container.clientWidth + "px";
+                zoomOutBorder.style.height = this.container.clientHeight + "px";
+                zoomOutBorder.style.MozBoxSizing = 
+                    zoomOutBorder.style.boxSizing = 
+                    zoomOutBorder.style.WebkitBoxSizing = 
+                    "border-box";
+                
+                zoomOutBorder.innerHTML = "<span style='position:relative; font-size: 20pt; top: -25pt; color:white'>ZOOM OUT</span>";
+                
+                zoomOutBorderAnchor.appendChild (zoomOutBorder);
+                frameDiv.appendChild (zoomOutBorderAnchor);
+                
+                this.container.appendChild (frameDiv);
+                
+                var that = this;
+                var opacity = 0.9;
+                var iter = function () {
+                    opacity = opacity - 0.05;
+                    if (opacity < 0.0) {
+                        that.container.removeChild (frameDiv);
+                    } else {
+                        frameDiv.style.opacity = opacity;
+                        setTimeout (iter, 50);
+                    }
+                };
+                setTimeout (iter, 2500);
             },
             
             isFullScreen : false,
