@@ -115,18 +115,52 @@ public class MakeImagePyramid {
         }
     }
     
-    public static void main (String[] args) throws Exception {
-        File input = new File (args[0]);
-        File outputBase = new File (args[1]);
-        Map<String,String> parameters = new HashMap<String,String> ();
-        for (int i = 2; i < args.length; i += 2) {
-            if (args[i].startsWith ("--")) {
-                String key = args[i].substring (2);
-                String value = args[i + 1];
-                parameters.put (key, value);
+    public static void showHelp () throws Exception {
+        byte[] buffer = new byte[1024];
+        InputStream is = MakeImagePyramid.class.getResourceAsStream ("help.txt");
+        try {
+            while (true) {
+                int numRead = is.read (buffer);
+                if (numRead < 1) {
+                    break;
+                }
+                System.err.write (buffer, 0, numRead);
             }
+        } finally {
+            is.close ();
         }
-        makePyramid (input, outputBase, parameters);
+    }
+    
+    public static void main (String[] args) throws Exception {
+        if (args.length < 2) {
+            showHelp ();
+            System.err.println ("No input files specified.");
+            System.exit (1);
+        } else if (args.length == 1 && (args[0].equals ("-h") || args[0].equals ("--help"))) {
+            showHelp ();
+            System.exit (0);
+        } else {
+            File input = new File (args[0]);
+            File outputBase = new File (args[1]);
+            Map<String,String> parameters = new HashMap<String,String> ();
+            for (int i = 2; i < args.length; i += 2) {
+                if (args[i].startsWith ("--")) {
+                    String key = args[i].substring (2);
+                    String value = args[i + 1];
+                    parameters.put (key, value);
+                }
+            }
+            makePyramid (input, outputBase, parameters);
+        }
+    }
+    
+    private static String getParameter (Map<String,String> parameters, String key, String defaultValue) {
+        String v = parameters.get (key);
+        if (v == null) {
+            return defaultValue;
+        } else {
+            return v;
+        }
     }
     
     private static double getParameterAsDouble (Map<String,String> parameters, String key, double defaultValue) {
@@ -236,8 +270,18 @@ public class MakeImagePyramid {
         
         StringBuilder descriptor = new StringBuilder ();
         
-        Output output = new JpegOutput ();
+        Output output = null;
+        String imageFormat = getParameter (parameters, "image-format", "jpg");
+        if ("jpg".equals (imageFormat)) {
+            output = new JpegOutput ();
+        } else if ("png".equals (imageFormat)) {
+            output = new PngOutput ();
+        } else {
+            System.err.println ("Unknown image format: \"" + imageFormat + "\". Using JPEG.");
+            output = new JpegOutput ();
+        }
         output.configure (parameters);
+        
         
         descriptor.append ("suffix:" + output.getSuffix ());
         
@@ -271,8 +315,9 @@ public class MakeImagePyramid {
         
         
         int tileSize = getParameterAsInt (parameters, "tile-size", 256);
+        int heuristicMaxZoom = (int) (Math.ceil (Math.log (maxDimension) / Math.log (2)) - Math.floor (Math.log (tileSize) / Math.log (2)) + 2);
         
-        int maxZoom = getParameterAsInt (parameters, "levels", (int) Math.ceil (Math.log (maxDimension) / Math.log (2)) - 2);
+        int maxZoom = getParameterAsInt (parameters, "levels", (int) heuristicMaxZoom);
         if (parameters.get ("wrap-x") != null) {
             maxZoom = 0;
             int wxw = w;

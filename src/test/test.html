@@ -99,9 +99,7 @@
                         tileSize : 256,
                         overlap : 0,
                         posterSize : 512.0,*/
-                        basePath : "/bigshot.php?file=temp/image.bigshot",
-                        fileSystemType : "archive",
-                            touchUI : false,
+                        basePath : "../../temp/image.bigshot",
                         container : container/*,
                         emptyImage : "empty.png",
                         wrapX : false,
@@ -116,29 +114,7 @@
                 hotspotLayer.addHotspot (hotspot);
                 jsi.addLayer (hotspotLayer);
             }
-            
-            function testOO () {
-                var base = {
-                    
-                    message : "Hello",
-                    
-                    sayIt : function () {
-                        alert ("Base:" + this.message);
-                    }
-                };
-                
-                var derived = {
-                    sayIt : function () {
-                        this._super.sayIt ();
-                        alert ("Derived:" + this.message + " World!");
-                    }
-                };
-                bigshot.object.extend (base, derived);
-                
-                base.sayIt ();
-                derived.sayIt ();
-            }
-            
+
             function zoomOut () {
                 jsi.setZoom (jsi.getZoom () - 0.5);
             }
@@ -165,7 +141,7 @@
             }
             
             function flashUI () {
-                jsi.flashTouchUI ();
+                jsi.showTouchUI ();
             }
         </script>
     </head>

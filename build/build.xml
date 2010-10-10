@@ -1,23 +1,27 @@
 <!--
- - Copyright 2010 Leo Sutic <leo.sutic@gmail.com>
- -  
- - Licensed under the Apache License, Version 2.0 (the "License"); 
- - you may not use this file except in compliance with the License. 
- - You may obtain a copy of the License at 
- - 
- -     http://www.apache.org/licenses/LICENSE-2.0 
- -     
- - Unless required by applicable law or agreed to in writing, software 
- - distributed under the License is distributed on an "AS IS" BASIS, 
- - WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
- - See the License for the specific language governing permissions and 
- - limitations under the License. 
- -->
+- Copyright 2010 Leo Sutic <leo.sutic@gmail.com>
+-  
+- Licensed under the Apache License, Version 2.0 (the "License"); 
+- you may not use this file except in compliance with the License. 
+- You may obtain a copy of the License at 
+- 
+-     http://www.apache.org/licenses/LICENSE-2.0 
+-     
+- Unless required by applicable law or agreed to in writing, software 
+- distributed under the License is distributed on an "AS IS" BASIS, 
+- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
+- See the License for the specific language governing permissions and 
+- limitations under the License. 
+-->
 <project name="bigshot" default="help" basedir="..">
     
     <property name="temp" value="temp/"/>
     <property name="src" value="src/"/>
+    <property name="doc" value="doc/"/>
     <property name="final" value="final/"/>
+    <property name="version" value="1.0"/>
+    <property name="package-dir" value="${final}/bigshot"/>
+    
     
     <target name="clean">
         <mkdir dir="${temp}/"/>
@@ -43,36 +47,55 @@
     </target>
     
     <target name="docs">
-        <mkdir dir="${final}/doc/js"/>
+        <mkdir dir="${package-dir}/doc/js"/>
         <property name="jsdoc-path" value="${ant.home}/../jsdoc-toolkit"/>
         <java fork="yes" jar="${jsdoc-path}/jsrun.jar"
             dir="${basedir}">
             <arg value="${jsdoc-path}/app/run.js"/>
             <!-- <arg value="-a"/> -->
             <arg value="-t=${jsdoc-path}/templates\jsdoc"/>
-            <arg value="-d=${final}/doc/js"/>
+            <arg value="-d=${package-dir}/doc/js"/>
             <arg value="${src}/js/"/>
         </java>
-    </target>
-    
-    <target name="package">
-        <antcall name="docs"/>
-        <jar destfile="${final}/bigshot.jar">
-            <fileset dir="${temp}/classes/" includes="bigshot/**"/>
-        </jar>
-        <copy todir="${final}/">
-            <fileset dir="${src}/js/"/>
-            <fileset dir="${src}/php/"/>
+        <copy todir="${package-dir}/doc/js">
+            <fileset dir="${doc}/jsdoc-files/"/>
         </copy>
     </target>
     
+    <target name="package">
+        <antcall target="docs"/>
+        <jar destfile="${package-dir}/bigshot.jar">
+            <fileset dir="${temp}/classes/" includes="bigshot/**"/>
+            <fileset dir="${src}/java/" includes="bigshot/**.txt"/>
+            <manifest>
+                <attribute name="Main-Class" value="bigshot.MakeImagePyramid"/>
+            </manifest>
+        </jar>
+        <copy todir="${package-dir}">
+            <fileset dir="${src}/js/"/>
+            <fileset dir="${src}/php/"/>
+            <fileset dir="${doc}" includes="LICENSE.txt,README.txt"/>
+        </copy>
+        <java fork="yes" jar="${basedir}/yuicompressor-2.4.2.jar"
+            dir="${basedir}">
+            <arg value="-o"/>
+            <arg value="${package-dir}/bigshot-compressed.js"/>
+            <arg value="${package-dir}/bigshot.js"/>
+        </java>
+        <zip destfile="${final}/bigshot-${version}.zip">
+            <fileset dir="${package-dir}"/>
+        </zip>
+    </target>
+    
     <target name="build-image">
-        <java fork="yes" classname="bigshot.MakeImagePyramid" classpath="${temp}/classes/"
+        <java fork="yes" jar="${package-dir}/bigshot.jar"
             dir="${basedir}">
             <arg value="test/sample.jpg"/>
             <arg value="${temp}/image.bigshot"/>
-            <arg value="--format"/>
+            <!--
+            <arg value="- -format"/>
             <arg value="archive"/>
+            -->
             <jvmarg value="-Xmx768M"/>
         </java>
     </target>
@@ -89,6 +112,7 @@ http://localhost/src/test/test.html]]></echo>
     <target name="demo">
         <antcall target="clean"/>
         <antcall target="build"/>
+        <antcall target="package"/>
         <antcall target="build-image"/>
         <antcall target="host"/>
     </target>

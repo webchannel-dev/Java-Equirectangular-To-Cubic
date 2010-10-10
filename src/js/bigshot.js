@@ -287,11 +287,11 @@ if (!self["bigshot"]) {
         this.h = h;
         
         /**
-         * Lays it out.
+         * Lays out the hotspot in the viewport.
          *
          * @name bigshot.Hotspot#layout
-         * @param x0 x-coordinate of top-left corner in css pixels
-         * @param y0 y-coordinate of top-left corner in css pixels
+         * @param x0 x-coordinate of top-left corner of the full image in css pixels
+         * @param y0 y-coordinate of top-left corner of the full image in css pixels
          * @param zoomFactor the zoom factor.
          * @function
          */
@@ -868,7 +868,7 @@ if (!self["bigshot"]) {
      *
      * @class Image parameter object.
      * You need not set any fields that can be read from the image descriptor that 
-     * MakeImagePyramid creates. See the bigshot.Image documentation
+     * MakeImagePyramid creates. See the {@link bigshot.Image} documentation
      * for required parameters.
      *
      * <p>Usage:
@@ -1020,8 +1020,22 @@ if (!self["bigshot"]) {
         this.fileSystem = null;
         
         /**
-         * Enable the touch-friendly ui.
+         * Enable the touch-friendly ui. The touch-friendly UI splits the viewport into
+         * three click-sensitive regions:
+         * <p style="text-align:center"><img src="../images/touch-ui.png"/></p>
          * 
+         * <p>Clicking (or tapping with a finger) on the outer region causes the viewport to zoom out.
+         * Clicking anywhere within the middle, "pan", region centers the image on the spot clicked.
+         * Finally, clicking in the center hotspot will center the image on the spot clicked and zoom
+         * in half a zoom level.
+         *
+         * <p>As before, you can drag to pan anywhere.
+         *
+         * <p>If you have navigation tools for mouse users, it is recommended that any click events
+         * on them are captured, otherwise the click will propagate to the touch ui.
+         *
+         * @see bigshot.Image#showTouchUI
+         *
          * @type boolean
          * @default false
          */
@@ -1593,13 +1607,14 @@ if (!self["bigshot"]) {
         };
         
         /**
-         * Briefly shows the touch ui zones.
-         *
-         * @function
+         * Briefly shows the touch ui zones. See the {@link bigshot.ImageParameters#touchUI}
+         * documentation for an explanation of the touch ui.
+         * 
+         * @see bigshot.ImageParameters#touchUI
          * @param {int} [delay] milliseconds before fading out
          * @param {int} [fadeOut] milliseconds to fade out the zone overlays in
          */
-        this.flashTouchUI = function (delay, fadeOut) {
+        this.showTouchUI = function (delay, fadeOut) {
             if (!delay) {
                 delay = 2500;
             }

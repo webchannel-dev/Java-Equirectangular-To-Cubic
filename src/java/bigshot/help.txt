@@ -1,0 +1,55 @@
+bigshot.MakeImagePyramid
+------------------------
+
+Usage:
+    java -jar bigshot.jar [--help]
+        Shows help - this page. 
+ 
+    java -jar bigshot.jar _infile_ _out_ [options]
+        Builds a tiles image pyramid. 
+
+Options:
+
+    --format
+        Output format. Can be "archive" or "folders".
+        Default: "folders".
+            archive : outputs the pyramid to a .bigshot archive
+            folders : outputs the pyramid to a folder structure
+
+    --poster-size pixels
+        Size of the low-resolution preview image along the
+        longest image dimension (width or height).
+        Default: 512
+
+    --tile-size pixels
+        Size in pixels of an image tile.
+        Default: 256
+
+    --levels levels
+        Number of levels in the image pyramid.
+        Default: Enough to shrink the image to half a tile
+        along the longest dimension.
+
+    --overlap pixels
+        Number of pixels overlap between tiles.
+        Not implemented yet, please don't use!
+        Default: 0
+
+    --image-format format
+        Image format for the tiles and everything. Can be
+        "jpg" or "png".
+        Default: "jpg"
+            jpg : Create JPEG files.
+            png : Create PNG files.
+        
+    --jpeg-quality quality
+        Jpeg quality, between 0.0 and 1.0. Only has effect
+        if --image-format is "jpg"
+        Default: 0.95
+
+
+
+Example:
+
+    java -jar bigshot.jar big.jpg big.bigshot --format archive
+
