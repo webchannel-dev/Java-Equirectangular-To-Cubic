@@ -48,7 +48,7 @@
         <java fork="yes" jar="${jsdoc-path}/jsrun.jar"
             dir="${basedir}">
             <arg value="${jsdoc-path}/app/run.js"/>
-            <arg value="-a"/>
+            <!-- <arg value="-a"/> -->
             <arg value="-t=${jsdoc-path}/templates\jsdoc"/>
             <arg value="-d=${final}/doc/js"/>
             <arg value="${src}/js/"/>

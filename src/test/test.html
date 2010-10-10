@@ -91,7 +91,8 @@
             function myonload () {
                 var container = document.getElementById ("container");
                 
-                jsi = new bigshot.ImageFromDescriptor ({ 
+                jsi = new bigshot.ImageFromDescriptor (
+                    new bigshot.ImageParameters ({ 
                         /*width : 7352,
                         height: 5419,
                         minZoom : -11.0,
@@ -100,11 +101,12 @@
                         posterSize : 512.0,*/
                         basePath : "/bigshot.php?file=temp/image.bigshot",
                         fileSystemType : "archive",
+                            touchUI : false,
                         container : container/*,
                         emptyImage : "empty.png",
                         wrapX : false,
                         wrapY : false*/
-                    });
+                        }));
                 
                 var layerContainer = jsi.createLayerContainer ();
                 var hotspotLayer = new bigshot.HotspotLayer (container, layerContainer);
@@ -114,7 +116,6 @@
                 
                 hotspotLayer.addHotspot (hotspot);
                 jsi.addLayer (hotspotLayer, layerContainer);
-                jsi.setZoom (0.0);
             }
             
             function testOO () {
@@ -170,7 +171,7 @@
         </script>
     </head>
     <body onload="myonload();" onresize="jsi.onresize ();">
-        <div style="position: relative; overflow:hidden; height:600px;" id="container" class="bigshotContainer">
+        <div style="position: relative; background:red; overflow:hidden; height:600px;" id="container" class="bigshotContainer">
             <div style="position:absolute; left:50%;">
                 <div class="bigshotControls">
                     <p>
@@ -178,7 +179,7 @@
                     <a href="#" onclick="zoomIn(); return false;">+</a> | 
                     <a href="#" onclick="smoothIn(); return false;">Zoom in on center</a> | 
                     <a href="#" onclick="toHotspot(); return false;">Pan to hotspot</a> |
-                    <a href="#" onclick="jsi.flyZoomToFitWidth (); return false;">Zoom to Fit</a><span id="fullscreen"> |
+                    <a href="#" onclick="alert (jsi.zoomToFit); jsi.zoomToFit (); return false;">Zoom to Fit</a><span id="fullscreen"> |
                         <a href="#" onclick="fullScreen (); return false;">Fullscreen</a></span>
                     </p>
                 </div>

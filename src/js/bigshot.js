@@ -632,12 +632,210 @@ if (!self["bigshot"]) {
     };
     
     /**
+     * Image parameter object. If you use the bigshot.ImageFromDescriptor constructor
+     * (<b>and we very much recommend you do that</b>),
+     * you need not set any fields that can be read from the image descriptor that 
+     * MakeImagePyramid creates. See the bigshot.ImageFromDescriptor documentation
+     * for required parameters.
+     *
+     * <p>Usage:
+     *
+     * <pre><code>var bsi = new bigshot.ImageFromDescriptor (
+     *     new bigshot.ImageParameters ({
+     *         basePath : "/bigshot.php?file=myshot.bigshot",
+     *         fileSystemType : "archive",
+     *         container : document.getElementById ("bigshot_div")
+     *         }));</code></pre>
+     * 
+     * @class
+     * @param values named parameter map, see the fields below for parameter names and types.
+     * @see bigshot.ImageFromDescriptor
+     * @see bigshot.Image
+     */
+    bigshot.ImageParameters = function (values) {
+        /**#@+
+         * @memberOf bigshot.ImageParameters#
+         */
+        var v = {
+            /**
+             * Size of low resolution preview image along the longest image
+             * dimension. The preview is assumed to have the same aspect
+             * ratio as the full image (specified by width and height).
+             *
+             * @default set by MakeImagePyramid and bigshot.ImageFromDescriptor
+             * @type int
+             * @name posterSize
+             * @public
+             */
+            posterSize : 0,
+            
+            /**
+             * Url for the image tile to show while the tile is loading and no 
+             * low-resolution preview is available.
+             *
+             * @default set to an all-black image
+             * @name emptyImage
+             * @type String
+             * @public
+             */
+            emptyImage : null,
+            
+            /**
+             * Suffix to append to the tile filenames. Typically <code>".jpg"</code> or 
+             * <code>".png"</code>.
+             *
+             * @default set by MakeImagePyramid and bigshot.ImageFromDescriptor
+             * @name suffix
+             * @type String
+             */
+            suffix : null,
+            
+            /**
+             * The width of the full image, in pixels.
+             *
+             * @default set by MakeImagePyramid and bigshot.ImageFromDescriptor
+             * @name width
+             * @type int
+             */
+            width : 0,
+            
+            /**
+             * The height of the full image, in pixels.
+             *
+             * @default set by MakeImagePyramid and bigshot.ImageFromDescriptor
+             * @name height
+             * @type int
+             */
+            height : 0,
+            
+            /**
+             * The div to use as a container for the image.
+             *
+             * @type HTMLDivElement
+             * @name container
+             */
+            container : null,
+            
+            /**
+             * The minimum zoom value. Zoom values are specified as a magnification, where
+             * 2<sup>n</sup> is the magnification and n is the zoom value. So a zoom value of
+             * 2 means a 4x magnification of the full image. -3 means showing an image that
+             * is a quarter (1/8 or 1/2<sup>3</sup>) of the full size.
+             *
+             * @type number
+             * @default set by MakeImagePyramid and bigshot.ImageFromDescriptor
+             * @name minZoom
+             */
+            minZoom : 0.0,
+            
+            /**
+             * Size of one tile in pixels.
+             *
+             * @type int
+             * @name tileSize
+             * @default set by MakeImagePyramid and bigshot.ImageFromDescriptor
+             */
+            tileSize : 0,
+
+            /**
+             * Tile overlap. Not implemented.
+             *
+             * @type int
+             * @name overlap
+             * @default set by MakeImagePyramid and bigshot.ImageFromDescriptor
+             */
+            overlap : 0,
+            
+            /**
+             * Flag indicating that the image should wrap horizontally. The image wraps on tile
+             * boundaries, so in order to get a seamless wrap at zoom level -n, the image width must
+             * be evenly divisible by <code>tileSize * 2^n</code>. Set the minZoom value appropriately.
+             * 
+             * @type boolean
+             * @default false
+             * @name wrapX
+             */
+            wrapX : false,
+            
+            /**
+             * Flag indicating that the image should wrap vertically. The image wraps on tile
+             * boundaries, so in order to get a seamless wrap at zoom level -n, the image height must
+             * be evenly divisible by <code>tileSize * 2^n</code>. Set the minZoom value appropriately.
+             *
+             * @type boolean
+             * @default false
+             * @name wrapY
+             */
+            wrapY : false,
+            
+            /**
+             * Base path for the image. This is filesystem dependent, but for the two most common cases
+             * the following should be set:
+             *
+             * <ul>
+             * <li><b>archive</b>: The basePath is <code>"&lt;path&gt;/bigshot.php?file=&lt;path-to-bigshot-archive-relative-to-bigshot.php&gt;"</code>,
+             *     for example, <code>"/bigshot.php?file=images/bigshot-sample.bigshot"</code>.
+             * <li><b>folder</b>: The basePath is <code>"&lt;path-to-image-folder&gt;"</code>,
+             *     for example, <code>"/images/bigshot-sample"</code>.
+             * </ul>
+             *
+             * @type String
+             * @name basePath
+             */
+            basePath : null,
+
+            /**
+             * The file system type. Used to create a filesystem instance unless
+             * the fileSystem field is set. Possible values are <code>"archive"</code> 
+             * or <code>"folder"</code>.
+             *
+             * @name fileSystemType
+             * @type String
+             * @name fileSystemType
+             * @default "folder"
+             */
+            fileSystemType : "folder",
+
+            /**
+             * A reference to a filesystem implementation. If set, it overrides the
+             * fileSystemType field.
+             *
+             * @name fileSystem
+             * @default set depending on value of bigshot.ImageParameters.fileSystemType
+             * @type bigshot.FileSystem
+             */
+            fileSystem : null,
+            
+            /**
+             * Enable the touch-friendly ui.
+             * 
+             * @name touchUI
+             * @type boolean
+             * @default true
+             */
+            touchUI : true
+        };
+        /**#@-*/
+        if (values) {
+            for (var k in values) {
+                v[k] = values[k];
+            }
+        }
+        return v;        
+    };
+    
+    /**
      * Tiled image handler.
      *
-     * @constructor
+     * @param parameters
+     * @class
      */     
-    bigshot.Image = function (parameters) {
+    bigshot.Image = function (/**bigshot.ImageParameters*/ parameters) {
         bigshot.SetupFileSystem (parameters);
+        
+        /**#@+
+         * @memberOf bigshot.Image#
+         */
         var image = {
             container : parameters.container,
             x : parameters.width / 2.0,
@@ -724,7 +922,14 @@ if (!self["bigshot"]) {
                 this.layers.push (layer);
             },
             
-            setZoom : function (zoom) {
+            /**
+             * Sets the current zoom value.
+             *
+             * @name setZoom
+             * @function
+             * @param zoom the zoom value.
+             */
+            setZoom : function (/**number*/ zoom) {
                 this.stopFlying ();
                 this.zoom = Math.min (this.maxZoom, Math.max (zoom, this.minZoom));
                 var zoomLevel = Math.ceil (this.zoom);
@@ -737,22 +942,60 @@ if (!self["bigshot"]) {
                 this.layout ();
             },
             
-            setMaxZoom : function (maxZoom) {
+            /**
+             * Sets the maximum zoom value. The maximum magnification (of the full-size image)
+             * is 2<sup>maxZoom</sup>. Set to 0.0 to avoid pixelation.
+             *
+             * @function
+             * @name setMaxZoom
+             * @param maxZoom the maximum zoom value
+             */
+            setMaxZoom : function (/**number*/ maxZoom) {
                 this.maxZoom = maxZoom;
             },
             
+            /**
+             * Gets the maximum zoom value. The maximum magnification (of the full-size image)
+             * is 2<sup>maxZoom</sup>.
+             * 
+             * @function
+             * @name getMaxZoom
+             * @type number
+             */
             getMaxZoom : function () {
                 return this.maxZoom;
             },
             
-            setMinZoom : function (minZoom) {
+            /**
+             * Sets the minimum zoom value. The minimum magnification (of the full-size image)
+             * is 2<sup>minZoom</sup>, so a minZoom of <code>-3</code> means that the smallest
+             * image shown will be one-eighth of the full-size image.
+             *
+             * @function
+             * @name setMinZoom
+             * @param minZoom the minimum zoom value for this image
+             */
+            setMinZoom : function (/**number*/ minZoom) {
                 this.minZoom = minZoom;
             },
             
+            /**
+             * Gets the minimum zoom value. The minimum magnification (of the full-size image)
+             * is 2<sup>minZoom</sup>, so a minZoom of <code>-3</code> means that the smallest
+             * image shown will be one-eighth of the full-size image.
+             * 
+             * @function
+             * @name getMinZoom
+             * @type number
+             */
             getMinZoom : function () {
                 return this.minZoom;
             },
             
+            /**
+             * @name dragMouseDown
+             * @private
+             */
             dragMouseDown : function (event) {
                 this.dragStart = {
                     x : event.clientX,
@@ -831,9 +1074,7 @@ if (!self["bigshot"]) {
             },
             
             zoomToFit : function () {
-                this.setZoom (Math.min (
-                        this.fitZoom (parameters.width, this.container.clientWidth),
-                        this.fitZoom (parameters.height, this.container.clientHeight)));
+                this.setZoom (this.getZoomToFitValue ());
             },
             
             zoomToFitHeight : function () {
@@ -853,10 +1094,7 @@ if (!self["bigshot"]) {
             },
             
             flyZoomToFit : function () {
-                var targetZoom = Math.min (
-                    this.fitZoom (parameters.width, this.container.clientWidth),
-                    this.fitZoom (parameters.height, this.container.clientHeight));
-                this.flyTo (parameters.width / 2, parameters.height / 2, targetZoom);
+                this.flyTo (parameters.width / 2, parameters.height / 2, this.getZoomToFitValue ());
             },
             
             mouseWheelHandler : function (delta) {
@@ -878,7 +1116,7 @@ if (!self["bigshot"]) {
                      */
                     if (window.opera)
                         delta = -delta;
-                } else if (event.detail) { /** Mozilla case. */
+                } else if (event.detail) { /* Mozilla case. */
                     /*
                      * In Mozilla, sign of delta is different than in IE.
                      * Also, delta is multiple of 3.
@@ -922,7 +1160,9 @@ if (!self["bigshot"]) {
                 
                 var targetX = Math.max (0, Math.min (this.width, x));
                 var targetY = Math.max (0, Math.min (this.height, y));
+                
                 var targetZoom = Math.min (this.maxZoom, Math.max (zoom, this.minZoom));
+                
                 
                 this.flying++;
                 var flyingAtStart = this.flying;
@@ -965,11 +1205,15 @@ if (!self["bigshot"]) {
                     this.fitZoom (h, this.container.clientHeight));
             },
             
-            getClickBorderSize : function () {
-                return ((this.container.clientWidth + this.container.clientHeight) / 2) * 0.1;
+            getTouchAreaBaseSize : function () {
+                var averageSize = ((this.container.clientWidth + this.container.clientHeight) / 2) * 0.2;
+                return Math.min (averageSize, Math.min (this.container.clientWidth, this.container.clientHeight) / 6);
             },
             
             mouseClick : function (event) {
+                if (!parameters.touchUI) {
+                    return;
+                }
                 if (this.dragged) {
                     return;
                 }
@@ -979,8 +1223,8 @@ if (!self["bigshot"]) {
                     y : event.clientY - elementPos.y - this.container.clientHeight / 2
                 };
                 
-                var zoomOutBorderSize = this.getClickBorderSize ();
-                var zoomInHotspotSize = this.getClickBorderSize ();
+                var zoomOutBorderSize = this.getTouchAreaBaseSize ();
+                var zoomInHotspotSize = this.getTouchAreaBaseSize ();
                 
                 if (Math.abs (clickPos.x) > (this.container.clientWidth / 2 - zoomOutBorderSize) || Math.abs (clickPos.y) > (this.container.clientHeight / 2 - zoomOutBorderSize)) {
                     this.flyTo (this.x, this.y, this.zoom - 0.5);
@@ -996,9 +1240,24 @@ if (!self["bigshot"]) {
                 }
             },
             
-            flashTouchUI : function () {
-                var zoomOutBorderSize = this.getClickBorderSize ();
-                var zoomInHotspotSize = this.getClickBorderSize ();
+            /**
+             * Briefly shows the touch ui zones.
+             *
+             * @function
+             * @name flashTouchUI
+             * @param [delay] milliseconds before fading out
+             * @param [fadeOut] milliseconds to fade out the zone overlays in
+             */
+            flashTouchUI : function (/**int*/ delay, /**int*/ fadeOut) {
+                if (!delay) {
+                    delay = 2500;
+                }
+                if (!fadeOut) {
+                    fadeOut = 1000;
+                }
+                
+                var zoomOutBorderSize = this.getTouchAreaBaseSize ();
+                var zoomInHotspotSize = this.getTouchAreaBaseSize ();
                 var centerX = this.container.clientWidth / 2;
                 var centerY = this.container.clientHeight / 2;
                
@@ -1050,8 +1309,12 @@ if (!self["bigshot"]) {
                 
                 var that = this;
                 var opacity = 0.9;
+                var fadeOutSteps = fadeOut / 50;
+                if (fadeOutSteps < 1) {
+                    fadeOutSteps = 1;
+                }
                 var iter = function () {
-                    opacity = opacity - 0.05;
+                    opacity = opacity - (0.9 / fadeOutSteps);
                     if (opacity < 0.0) {
                         that.container.removeChild (frameDiv);
                     } else {
@@ -1059,7 +1322,7 @@ if (!self["bigshot"]) {
                         setTimeout (iter, 50);
                     }
                 };
-                setTimeout (iter, 2500);
+                setTimeout (iter, delay);
             },
             
             isFullScreen : false,
@@ -1160,7 +1423,7 @@ if (!self["bigshot"]) {
                 this.onresize ();
             }
         };
-        
+        /**#@-*/
         var consumeEvent = function (event) {
             if (event.preventDefault) {
                 event.preventDefault ();
@@ -1335,9 +1598,14 @@ if (!self["bigshot"]) {
     /**
      * Creates an image from a descriptor.
      *
-     * @constructor
+     * @param parameters the image parameters. Required fields are: <code>basePath</code> and <code>container</code>.
+     * If you intend to use the archive filesystem, you need to set the <code>fileSystemType</code> to <code>"archive"</code>
+     * as well.
+     * 
+     * @class
+     * @augments bigshot.Image
      */
-    bigshot.ImageFromDescriptor = function (parameters) {
+    bigshot.ImageFromDescriptor = function (/**bigshot.ImageParameters*/ parameters) {
         bigshot.SetupFileSystem (parameters);
         
         var browser = new bigshot.Browser ();
