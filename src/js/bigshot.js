@@ -181,16 +181,21 @@ if (!self["bigshot"]) {
          */
         extend : function (base, derived) {
             var _super = {};
-            derived._super = _super;
+
+            for (var k in derived) {
+                if (typeof (derived[k]) == "function") {
+                    derived[k] = this.makeThunk (derived[k], derived, _super);
+                }
+            }
+
             for (var k in base) {
                 if (typeof (base[k]) == "function") {
                     var fn = base[k];
-                    if (fn.isThunkFor) {
-                        fn = fn.isThunkFor;
-                    }
-                    _super[k] = this.makeThunk (fn, derived);
+                    var usesSuper = (fn.usesSuper ? fn.usesSuper : null);
+                    var fn = (fn.isThunkFor ? fn.isThunkFor : fn);
+                    _super[k] = this.makeThunk (fn, derived, usesSuper);
                     if (!derived[k]) {
-                        derived[k] = this.makeThunk (fn, derived);
+                        derived[k] = _super[k];
                     }
                 } else if (!derived[k]) {
                     derived[k] = base[k];
@@ -201,22 +206,35 @@ if (!self["bigshot"]) {
         
         /**
          * Creates a function thunk that resets the <code>this</code>
-         * reference.
+         * reference and the object's <code>_super</code> reference.
+         * The returned function has three properties that can be used
+         * to examine it:
+         *
+         * <ul>
+         * <li><code>thunksTo</code>: Set to <code>_this</code>
+         * <li><code>isThunkFor</code>: Set to <code>fn</code>
+         * <li><code>usesSuper</code>: Set to <code>_super</code>
+         * </ul>
          * 
          * @param {function} fn the function to thunk
-         * @param {Object} object the new <code>this</code> reference.
+         * @param {Object} _this the new <code>this</code> reference.
+         * @param {Object} _super the new <code>_super</code> reference.
          */
-        makeThunk : function (fn, object) {
+        makeThunk : function (fn, _this, _super) {
             var f = function () {
-                alert ("Calling " + fn);
-                return fn.call (object, arguments);
+                _this._super = _super;
+                return fn.apply (_this, arguments);
             };
+            f.thunksTo = _this;
             f.isThunkFor = fn;
+            f.usesSuper = _super;
             return f;
         },
         
         /**
          * Utility function to show an object's fields in a message box.
+         *
+         * @param {Object} o the object
          */
         alertr : function (o) {
             var sb = "";
