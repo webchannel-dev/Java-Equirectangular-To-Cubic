@@ -29,6 +29,13 @@ Options:
         Number of levels in the image pyramid.
         Default: Enough to shrink the image to half a tile
         along the longest dimension.
+        Cannot be used with --wrap-x
+
+    --wrap-x true|false
+        Sets the number of levels in the pyramid to the number
+        of times the image can be reduced by a factor of 2
+        before it no longer falls on tile boundaries.
+        Cannot be used with --levels
 
     --overlap pixels
         Number of pixels overlap between tiles.

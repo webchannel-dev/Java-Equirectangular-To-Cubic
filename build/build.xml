@@ -76,7 +76,7 @@
             <fileset dir="${src}/php/"/>
             <fileset dir="${doc}" includes="LICENSE.txt,README.txt"/>
         </copy>
-        <java fork="yes" jar="${basedir}/yuicompressor-2.4.2.jar"
+        <java fork="yes" jar="${basedir}/tools/yuicompressor-2.4.2.jar"
             dir="${basedir}">
             <arg value="-o"/>
             <arg value="${package-dir}/bigshot-compressed.js"/>
