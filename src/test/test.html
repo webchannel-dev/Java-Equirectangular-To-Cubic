@@ -91,7 +91,7 @@
             function myonload () {
                 var container = document.getElementById ("container");
                 
-                jsi = new bigshot.ImageFromDescriptor (
+                jsi = new bigshot.Image (
                     new bigshot.ImageParameters ({ 
                         /*width : 7352,
                         height: 5419,
@@ -108,14 +108,13 @@
                         wrapY : false*/
                         }));
                 
-                var layerContainer = jsi.createLayerContainer ();
-                var hotspotLayer = new bigshot.HotspotLayer (container, layerContainer);
+                var hotspotLayer = new bigshot.HotspotLayer (jsi);
                 var hotspot = new bigshot.LinkHotspot (100, 100, 200, 100, "Bigshot on Google Code", "http://code.google.com/p/bigshot/");
                 hotspot.getElement ().className = "hotspot";
                 hotspot.getLabel ().className = "label";
                 
                 hotspotLayer.addHotspot (hotspot);
-                jsi.addLayer (hotspotLayer, layerContainer);
+                jsi.addLayer (hotspotLayer);
             }
             
             function testOO () {
