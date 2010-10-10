@@ -8,6 +8,9 @@ Files
 
 bigshot.jar
   - Java JAR file with the MakeImagePyramid tool.
+    Execute: 
+        java -jar bigshot.jar
+    for help.
 
 bigshot.js
   - Uncompressed JavaScript library
