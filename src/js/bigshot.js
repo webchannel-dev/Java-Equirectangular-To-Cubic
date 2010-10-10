@@ -15,7 +15,22 @@
  */
 if (!self["bigshot"]) {
     /**
-     * @namespace Bigshot namespace
+     * @namespace Bigshot namespace.
+     * The two classes that are needed for zoomable images are:
+     *
+     * <ul>
+     * <li>{@link bigshot.Image}
+     * <li>{@link bigshot.ImageParameters}
+     * </ul>
+     *
+     * For hotspots, see:
+     *
+     * <ul>
+     * <li>{@link bigshot.HotspotLayer}
+     * <li>{@link bigshot.Hotspot}
+     * <li>{@link bigshot.LabeledHotspot}
+     * <li>{@link bigshot.LinkHotspot}
+     * </ul>
      */
     bigshot = {};
     
@@ -248,12 +263,14 @@ if (!self["bigshot"]) {
     /**
      * Creates a new hotspot instance.
      *
-     * @class Base class for hotspots in a {@link bigshot.HotspotLayer}.
+     * @class Base class for hotspots in a {@link bigshot.HotspotLayer}. See {@link bigshot.HotspotLayer} for 
+     * examples.
      *
      * @param {number} x x-coordinate of the top-left corner, given in full image pixels
      * @param {number} y y-coordinate of the top-left corner, given in full image pixels
      * @param {number} w width of the hotspot, given in full image pixels
      * @param {number} h height of the hotspot, given in full image pixels
+     * @see bigshot.HotspotLayer
      * @see bigshot.LabeledHotspot
      * @see bigshot.LinkHotspot
      * @constructor
@@ -306,8 +323,10 @@ if (!self["bigshot"]) {
      * Creates a new labeled hotspot instance.
      *
      * @class A hotspot with a label under it. The label element can be accessed using
-     * the getLabel method and styled as any HTMLElement.
+     * the getLabel method and styled as any HTMLElement. See {@link bigshot.HotspotLayer} for 
+     * examples.
      *
+     * @see bigshot.HotspotLayer
      * @param {number} x x-coordinate of the top-left corner, given in full image pixels
      * @param {number} y y-coordinate of the top-left corner, given in full image pixels
      * @param {number} w width of the hotspot, given in full image pixels
@@ -327,6 +346,7 @@ if (!self["bigshot"]) {
         this.getLabel = function () {
             return this.label;
         };
+        
         this.layout = function (x0, y0, zoomFactor) {
             this._super.layout (x0, y0, zoomFactor);
             var labelSize = this.browser.getElementSize (this.label);
@@ -350,8 +370,10 @@ if (!self["bigshot"]) {
      * Creates a new link-hotspot instance.
      *
      * @class A labeled hotspot that takes the user to another
-     * location when it is clicked on.
+     * location when it is clicked on. See {@link bigshot.HotspotLayer} for 
+     * examples.
      *
+     * @see bigshot.HotspotLayer
      * @param {number} x x-coordinate of the top-left corner, given in full image pixels
      * @param {number} y y-coordinate of the top-left corner, given in full image pixels
      * @param {number} w width of the hotspot, given in full image pixels
@@ -374,8 +396,23 @@ if (!self["bigshot"]) {
     /**
      * Creates a new hotspot layer. The layer must be added to the image using
      * {@link bigshot.Image#addLayer}.
-     * 
+     *
      * @class A hotspot layer.
+     * @example
+     * var image = new bigshot.Image (...);
+     * var hotspotLayer = new bigshot.HotspotLayer (image);
+     * var hotspot = new bigshot.LinkHotspot (100, 100, 200, 100, 
+     *    "Bigshot on Google Code", 
+     *    "http://code.google.com/p/bigshot/");
+     *
+     * // Style the hotspot a bit
+     * hotspot.getElement ().className = "hotspot"; 
+     * hotspot.getLabel ().className = "label";
+     *
+     * hotspotLayer.addHotspot (hotspot);
+     *
+     * image.addLayer (hotspotLayer);
+     * 
      * @param {bigshot.Image} image the image this hotspot layer will be part of
      * @augments bigshot.Layer
      * @constructor
@@ -1000,6 +1037,14 @@ if (!self["bigshot"]) {
     
     /**
      * Creates a new tiled image viewer.
+     *
+     * @example
+     * var bsi = new bigshot.Image (
+     *     new bigshot.ImageParameters ({
+     *         basePath : "/bigshot.php?file=myshot.bigshot",
+     *         fileSystemType : "archive",
+     *         container : document.getElementById ("bigshot_div")
+     *     }));
      *
      * @param {bigshot.ImageParameters} parameters the image parameters. Required fields are: <code>basePath</code> and <code>container</code>.
      * If you intend to use the archive filesystem, you need to set the <code>fileSystemType</code> to <code>"archive"</code>
