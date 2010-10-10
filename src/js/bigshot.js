@@ -15,14 +15,14 @@
  */
 if (!self["bigshot"]) {
     /**
-     * Bigshot namespace.
-     *
-     * @namespace
+     * @namespace Bigshot namespace
      */
     bigshot = {};
     
     /**
-     * Browser compatibility layer and utility functions.
+     * Creates a new instance.
+     * 
+     * @class Browser compatibility layer and utility functions.
      *
      * @constructor
      */
@@ -159,29 +159,65 @@ if (!self["bigshot"]) {
         return this;
     };
     
+    /**
+     * @class Object-oriented support functions, used to make JavaScript
+     * a bit more palatable to a Java-head.
+     */
     bigshot.object = {
+        /**
+         * Performs an inheritance operation with a base-class instance 
+         * and a derived instance. Each method that exists in the base class
+         * but not in the derived instance is copied across. Every method in the
+         * base-class instance is thunked and put in a field named <code>_super</code>
+         * in the derived instance. The thunk takes care of making sure the
+         * <code>this</code> reference points where you'd expect it.
+         * Methods in the derived class can refer to <code>_super.<i>methodName</i></code>
+         * to get the method as defined by the base class.
+         * Fields not of <code>function</code> type are copied across if they do not
+         * exist in the derived class.
+         *
+         * @param {Object} base the base-class instance
+         * @param {Object} derived the derived-class instance
+         */
         extend : function (base, derived) {
             var _super = {};
             derived._super = _super;
             for (var k in base) {
                 if (typeof (base[k]) == "function") {
-                    _super[k] = this.makeThunk (base[k], derived);
-                    if (!derived[k]) {
-                        derived[k] = this.makeThunk (base[k], derived);
+                    var fn = base[k];
+                    if (fn.isThunkFor) {
+                        fn = fn.isThunkFor;
                     }
-                } else {
+                    _super[k] = this.makeThunk (fn, derived);
+                    if (!derived[k]) {
+                        derived[k] = this.makeThunk (fn, derived);
+                    }
+                } else if (!derived[k]) {
                     derived[k] = base[k];
                 }
             }
             return derived;
         },
         
+        /**
+         * Creates a function thunk that resets the <code>this</code>
+         * reference.
+         * 
+         * @param {function} fn the function to thunk
+         * @param {Object} object the new <code>this</code> reference.
+         */
         makeThunk : function (fn, object) {
-            return function () {
+            var f = function () {
+                alert ("Calling " + fn);
                 return fn.call (object, arguments);
             };
+            f.isThunkFor = fn;
+            return f;
         },
         
+        /**
+         * Utility function to show an object's fields in a message box.
+         */
         alertr : function (o) {
             var sb = "";
             for (var k in o) {
@@ -192,12 +228,16 @@ if (!self["bigshot"]) {
     };
     
     /**
-     * Base class for hotspots in a {@link bigshot.HotspotLayer}.
+     * Creates a new hotspot instance.
+     *
+     * @class Base class for hotspots in a {@link bigshot.HotspotLayer}.
      *
      * @param {number} x x-coordinate of the top-left corner, given in full image pixels
      * @param {number} y y-coordinate of the top-left corner, given in full image pixels
      * @param {number} w width of the hotspot, given in full image pixels
      * @param {number} h height of the hotspot, given in full image pixels
+     * @see bigshot.LabeledHotspot
+     * @see bigshot.LinkHotspot
      * @constructor
      */
     bigshot.Hotspot = function (x, y, w, h) {
@@ -245,7 +285,9 @@ if (!self["bigshot"]) {
     };
     
     /**
-     * A hotspot with a label under it. The label element can be accessed using
+     * Creates a new labeled hotspot instance.
+     *
+     * @class A hotspot with a label under it. The label element can be accessed using
      * the getLabel method and styled as any HTMLElement.
      *
      * @param {number} x x-coordinate of the top-left corner, given in full image pixels
@@ -283,11 +325,13 @@ if (!self["bigshot"]) {
         hs.getElement ().appendChild (this.label);
         this.label.innerHTML = labelText;
         
-        return bigshot.oo.extend (hs, this);
+        return bigshot.object.extend (hs, this);
     };
     
     /**
-     * A labeled hotspot that takes the user to another
+     * Creates a new link-hotspot instance.
+     *
+     * @class A labeled hotspot that takes the user to another
      * location when it is clicked on.
      *
      * @param {number} x x-coordinate of the top-left corner, given in full image pixels
@@ -305,13 +349,15 @@ if (!self["bigshot"]) {
                 document.location.href = url;
             });
         
-        return bigshot.oo.extend (hs, this);
+        return bigshot.object.extend (hs, this);
     };
     
     
     /**
-     * A hotspot layer.
-     *
+     * Creates a new hotspot layer. The layer must be added to the image using
+     * {@link bigshot.Image#addLayer}.
+     * 
+     * @class A hotspot layer.
      * @param {bigshot.Image} image the image this hotspot layer will be part of
      * @augments bigshot.Layer
      * @constructor
@@ -354,12 +400,18 @@ if (!self["bigshot"]) {
         };
         
         this.resize (0, 0);
-        return bigshot.oo.extend (new bigshot.Layer (), this);
+        return bigshot.object.extend (new bigshot.Layer (), this);
     }
     
     /**
-     * Creates a tiled, zoomable image layer.
-     *
+     * Creates a new image layer.
+     * 
+     * @param {bigshot.Image} image the image that this layer is part of
+     * @param {bigshot.ImageParameters} parameters the associated image parameters
+     * @param {number} w the current width in css pixels of the viewport
+     * @param {number} h the current height in css pixels of the viewport
+     * @param {bigshot.ImageTileCache} itc the tle cache to use
+     * @class A tiled, zoomable image layer.
      * @constructor
      */
     bigshot.TileLayer = function (image, parameters, w, h, itc) {
@@ -451,9 +503,10 @@ if (!self["bigshot"]) {
     };
     
     /**
-     * Implementation of a Least-Recently-Used cache map.
+     * Creates a new, empty, LRUMap instance.
+     * 
+     * @class Implementation of a Least-Recently-Used cache map.
      * Used by the ImageTileCache to keep track of cache entries.
-     *
      * @constructor
      */
     bigshot.LRUMap = function () {
@@ -495,7 +548,7 @@ if (!self["bigshot"]) {
          * Removes a key from the map.
          *
          * @param {String} key the key to remove
-         * @return true iff the key existed in the map.
+         * @returns true iff the key existed in the map.
          * @type boolean
          */
         this.remove = function (key) {
@@ -538,8 +591,9 @@ if (!self["bigshot"]) {
     };
     
     /**
-     * Tile cache for the TileLayer.
+     * Creates a new cache instance.
      *
+     * @class Tile cache for the {@link bigshot.TileLayer}.
      * @constructor
      */
     bigshot.ImageTileCache = function (onLoaded, parameters) {
@@ -708,6 +762,7 @@ if (!self["bigshot"]) {
     /**
      * Abstract interface description for a Layer.
      *
+     * @class Abstract interface description for a layer.
      * @constructor
      */
     bigshot.Layer = function () {
@@ -753,7 +808,10 @@ if (!self["bigshot"]) {
     };
     
     /**
-     * Image parameter object.
+     * Creates a new image parameter object and populates it with default values for
+     * all values not explicitly given.
+     *
+     * @class Image parameter object.
      * You need not set any fields that can be read from the image descriptor that 
      * MakeImagePyramid creates. See the bigshot.Image documentation
      * for required parameters.
@@ -928,7 +986,7 @@ if (!self["bigshot"]) {
      * @param {bigshot.ImageParameters} parameters the image parameters. Required fields are: <code>basePath</code> and <code>container</code>.
      * If you intend to use the archive filesystem, you need to set the <code>fileSystemType</code> to <code>"archive"</code>
      * as well.
-     *
+     * @class A tiled, zoomable image viewer.
      * @constructor
      */     
     bigshot.Image = function (parameters) {
@@ -1214,7 +1272,7 @@ if (!self["bigshot"]) {
         /**
          * Helper function for calculating zoom levels.
          *
-         * @return the zoom level at which the given number of full-image pixels
+         * @returns the zoom level at which the given number of full-image pixels
          * occupy the given number of screen pixels.
          * @param {number} imageDimension the image dimension in full-image pixels
          * @param {number} containerDimension the container dimension in screen pixels
@@ -1273,10 +1331,17 @@ if (!self["bigshot"]) {
             this.flyTo (parameters.width / 2, this.y, this.fitZoom (parameters.width, this.container.clientWidth));
         };
         
+        /**
+         * Smoothly adjust the zoom level to fit the 
+         * full image in the viewport.
+         */
         this.flyZoomToFit = function () {
             this.flyTo (parameters.width / 2, parameters.height / 2, this.getZoomToFitValue ());
         };
         
+        /**
+         * handles mouse wheel actions.
+         */
         this.mouseWheelHandler = function (delta) {
             if (delta > 0) {
                 this.flyTo (this.x, this.y, this.getZoom () + 0.5);
@@ -1324,6 +1389,9 @@ if (!self["bigshot"]) {
             event.returnValue = false;
         };
         
+        /**
+         * Must be called on window resize.
+         */
         this.onresize = function () {
             this.resize ();
             this.layout ();
@@ -1733,7 +1801,7 @@ if (!self["bigshot"]) {
     /**
      * Abstract filesystem definition.
      *
-     * @class
+     * @class Abstract filesystem definition.
      */
     bigshot.FileSystem = function () {
         this.getFilename = function (name) {};
@@ -1741,9 +1809,10 @@ if (!self["bigshot"]) {
     };
     
     /**
-     * Folder-based filesystem.
+     * Creates a new instance of a folder-based filesystem adapter.
      *
      * @augments bigshot.FileSystem
+     * @class Folder-based filesystem.
      * @constructor
      */
     bigshot.FolderFileSystem = function (parameters) {
@@ -1758,8 +1827,9 @@ if (!self["bigshot"]) {
     };
     
     /**
-     * Bigshot archive filesystem.
-     *
+     * Creates a new instance of a <code>.bigshot</code> archive filesystem adapter.
+     * 
+     * @class Bigshot archive filesystem.
      * @augments bigshot.FileSystem
      * @constructor
      */     
@@ -1818,7 +1888,12 @@ if (!self["bigshot"]) {
     }
     
     /**
-     * Sets up a filesystem instance.
+     * Sets up a filesystem instance in the given parameters object, if none exist.
+     * If the {@link bigshot.ImageParameters#fileSystem} member isn't set, the 
+     * {@link bigshot.ImageParameters#fileSystemType} member is used to create a new 
+     * {@link bigshot.FileSystem} instance and set it.
+     *
+     * @param {bigshot.ImageParameters} parameters the parameters object to populate
      */
     bigshot.setupFileSystem = function (parameters) {
         if (!parameters.fileSystem) {
