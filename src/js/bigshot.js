@@ -976,56 +976,56 @@ if (!self["bigshot"]) {
         this.wrapX = false;
         
         /**
-        * Flag indicating that the image should wrap vertically. The image wraps on tile
-        * boundaries; so in order to get a seamless wrap at zoom level -n; the image height must
-        * be evenly divisible by <code>tileSize * 2^n</code>. Set the minZoom value appropriately.
-        *
-        * @type boolean
-        * @default false
-        */
+         * Flag indicating that the image should wrap vertically. The image wraps on tile
+         * boundaries; so in order to get a seamless wrap at zoom level -n; the image height must
+         * be evenly divisible by <code>tileSize * 2^n</code>. Set the minZoom value appropriately.
+         *
+         * @type boolean
+         * @default false
+         */
         this.wrapY = false;
         
         /**
-        * Base path for the image. This is filesystem dependent; but for the two most common cases
-        * the following should be set=
-        *
-        * <ul>
-        * <li><b>archive</b>= The basePath is <code>"&lt;path&gt;/bigshot.php?file=&lt;path-to-bigshot-archive-relative-to-bigshot.php&gt;"</code>;
-        *     for example; <code>"/bigshot.php?file=images/bigshot-sample.bigshot"</code>.
-        * <li><b>folder</b>= The basePath is <code>"&lt;path-to-image-folder&gt;"</code>;
-        *     for example; <code>"/images/bigshot-sample"</code>.
-        * </ul>
-        *
-        * @type String
-        */
+         * Base path for the image. This is filesystem dependent; but for the two most common cases
+         * the following should be set=
+         *
+         * <ul>
+         * <li><b>archive</b>= The basePath is <code>"&lt;path&gt;/bigshot.php?file=&lt;path-to-bigshot-archive-relative-to-bigshot.php&gt;"</code>;
+         *     for example; <code>"/bigshot.php?file=images/bigshot-sample.bigshot"</code>.
+         * <li><b>folder</b>= The basePath is <code>"&lt;path-to-image-folder&gt;"</code>;
+         *     for example; <code>"/images/bigshot-sample"</code>.
+         * </ul>
+         *
+         * @type String
+         */
         this.basePath = null;
         
         /**
-        * The file system type. Used to create a filesystem instance unless
-        * the fileSystem field is set. Possible values are <code>"archive"</code> 
-        * or <code>"folder"</code>.
-        *
-        * @type String
-        * @default "folder"
-        */
+         * The file system type. Used to create a filesystem instance unless
+         * the fileSystem field is set. Possible values are <code>"archive"</code> 
+         * or <code>"folder"</code>.
+         *
+         * @type String
+         * @default "folder"
+         */
         this.fileSystemType = "folder";
         
         /**
-        * A reference to a filesystem implementation. If set; it overrides the
-        * fileSystemType field.
-        *
-        * @default set depending on value of bigshot.ImageParameters.fileSystemType
-        * @type bigshot.FileSystem
-        */
+         * A reference to a filesystem implementation. If set; it overrides the
+         * fileSystemType field.
+         *
+         * @default set depending on value of bigshot.ImageParameters.fileSystemType
+         * @type bigshot.FileSystem
+         */
         this.fileSystem = null;
         
         /**
-        * Enable the touch-friendly ui.
-        * 
-        * @type boolean
-        * @default true
-        */
-        this.touchUI = true;
+         * Enable the touch-friendly ui.
+         * 
+         * @type boolean
+         * @default false
+         */
+        this.touchUI = false;
         
         if (values) {
             for (var k in values) {
