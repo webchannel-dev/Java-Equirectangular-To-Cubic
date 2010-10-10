@@ -43,10 +43,10 @@ if (!self["bigshot"]) {
      */
     bigshot.Browser = function () {
         /**
-            * Removes all children from an element.
-            * 
-            * @public
-            */
+         * Removes all children from an element.
+         * 
+         * @public
+         */
         this.removeAllChildren = function (element) {
             if (element.children.length > 0) {
                 for (var i = element.children.length - 1; i >= 0; --i) {
@@ -111,6 +111,20 @@ if (!self["bigshot"]) {
                     eventObject.cancelBubble = true; 
                 }
             }
+        };
+        
+        this.stopEventBubblingHandler = function () {
+            var that = this;
+            return function (event) {
+                that.stopEventBubbling (event);
+                return false;
+            };
+        }
+        
+        this.stopMouseEventBubbling = function (element) {
+            this.registerListener (element, "mousedown", this.stopEventBubblingHandler (), false);
+            this.registerListener (element, "mouseup", this.stopEventBubblingHandler (), false);
+            this.registerListener (element, "mousemove", this.stopEventBubblingHandler (), false);
         };
         
         this.getElementSize = function (obj) {
@@ -1031,15 +1045,21 @@ if (!self["bigshot"]) {
          *
          * <p>As before, you can drag to pan anywhere.
          *
-         * <p>If you have navigation tools for mouse users, it is recommended that any click events
-         * on them are captured, otherwise the click will propagate to the touch ui.
+         * <p>If you have navigation tools for mouse users that hover over the image container, it 
+         * is recommended that any click events on them are kept from bubbling, otherwise the click 
+         * will propagate to the touch ui. One way is to use the 
+         * {@link bigshot.Browser#stopMouseEventBubbling} method:
+         *
+         * @example
+         * var browser = new bigshot.Browser ();
+         * browser.stopMouseEventBubbling (document.getElementById ("myBigshotControlDiv"));
          *
          * @see bigshot.Image#showTouchUI
          *
          * @type boolean
-         * @default false
+         * @default true
          */
-        this.touchUI = false;
+        this.touchUI = true;
         
         if (values) {
             for (var k in values) {
@@ -1050,7 +1070,7 @@ if (!self["bigshot"]) {
     };
     
     /**
-     * Creates a new tiled image viewer.
+     * Creates a new tiled image viewer. (Note: See {@link bigshot.Image#dispose} for important information.)
      *
      * @example
      * var bsi = new bigshot.Image (
@@ -1063,6 +1083,7 @@ if (!self["bigshot"]) {
      * @param {bigshot.ImageParameters} parameters the image parameters. Required fields are: <code>basePath</code> and <code>container</code>.
      * If you intend to use the archive filesystem, you need to set the <code>fileSystemType</code> to <code>"archive"</code>
      * as well.
+     * @see bigshot.Image#dispose
      * @class A tiled, zoomable image viewer.
      * @constructor
      */     
@@ -1275,11 +1296,13 @@ if (!self["bigshot"]) {
          */
         this.dragMouseMove = function (event) {
             if (this.dragStart != null) {
-                this.dragged = true;
                 var delta = {
                     x : event.clientX - this.dragStart.x,
                     y : event.clientY - this.dragStart.y
                 };
+                if (delta.x != 0 || delta.y != 0) {
+                    this.dragged = true;
+                }
                 var zoomFactor = Math.pow (2, this.zoom);
                 var realX = delta.x / zoomFactor;
                 var realY = delta.y / zoomFactor;
@@ -1297,6 +1320,9 @@ if (!self["bigshot"]) {
         this.dragMouseUp = function (event) {
             if (this.dragStart != null) {
                 this.dragStart = null;
+            }
+            if (!this.dragged && parameters.touchUI) {
+                this.mouseClick (event);
             }
         };
         
@@ -1467,7 +1493,7 @@ if (!self["bigshot"]) {
         };
         
         /**
-         * Must be called on window resize.
+         * Called on window resize via the {@link bigshot.Image#onresizeHandler} stub.
          */
         this.onresize = function () {
             this.resize ();
@@ -1704,7 +1730,12 @@ if (!self["bigshot"]) {
         
         /**
          * Maximizes the image to cover the browser viewport.
-         * For unknown reasons (probably security), browsers will
+         * The container div is removed from its parent node upon entering 
+         * full screen mode. When leaving full screen mode, the container
+         * is appended to its old parent node. To avoid rearranging the
+         * nodes, wrap the container in an extra div.
+         *
+         * <p>For unknown reasons (probably security), browsers will
          * not let you open a window that covers the entire screen.
          * Even when specifying "fullscreen=yes", all you get is a window
          * that has a title bar and only covers the desktop (not any task
@@ -1800,6 +1831,22 @@ if (!self["bigshot"]) {
         };
         
         /**
+         * Unregisters event handlers and other page-level hooks. The client need not call this
+         * method unless bigshot images are created and removed from the page
+         * dynamically. In that case, this method must be called when the client wishes to
+         * free the resources allocated by the image. Otherwise the browser will garbage-collect
+         * all resources automatically.
+         */
+        this.dispose = function () {
+            this.browser.unregisterListener (window, "resize", this.onresizeHandler, false);
+        };
+        
+        var that = this;
+        this.onresizeHandler = function (e) {
+            that.onresize ();
+        }
+        
+        /**
          * Helper function to consume events.
          */
         var consumeEvent = function (event) {
@@ -1823,7 +1870,6 @@ if (!self["bigshot"]) {
             };
         };
         
-        var that = this;
         this.thisTileCache = new bigshot.ImageTileCache (function () {
                 that.layout ();     
             }, parameters);
@@ -1832,6 +1878,7 @@ if (!self["bigshot"]) {
             new bigshot.TileLayer (this, parameters, 0, 0, this.thisTileCache)
         );
         this.resize ();
+        
         this.browser.registerListener (parameters.container, "DOMMouseScroll", function (e) {
                 that.mouseWheel (e);
                 return consumeEvent (e);
@@ -1868,10 +1915,7 @@ if (!self["bigshot"]) {
                 that.dragMouseMove (translateEvent (e));
                 return consumeEvent (e);
             }, false);
-        this.browser.registerListener (parameters.container, 'click', function (e) {
-                that.mouseClick (e);
-                return consumeEvent (e);
-            }, false);
+        this.browser.registerListener (window, 'resize', that.onresizeHandler, false);
         this.zoomToFit ();
         return this;
     };
