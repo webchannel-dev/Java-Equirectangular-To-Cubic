@@ -92,18 +92,9 @@
                 var container = document.getElementById ("container");
                 
                 jsi = new bigshot.Image (
-                    new bigshot.ImageParameters ({ 
-                        /*width : 7352,
-                        height: 5419,
-                        minZoom : -11.0,
-                        tileSize : 256,
-                        overlap : 0,
-                        posterSize : 512.0,*/
+                    new bigshot.ImageParameters ({
                         basePath : "../../temp/image.bigshot",
-                        container : container/*,
-                        emptyImage : "empty.png",
-                        wrapX : false,
-                        wrapY : false*/
+                        container : container
                         }));
                 
                 var hotspotLayer = new bigshot.HotspotLayer (jsi);
@@ -170,7 +161,7 @@
                         <button style="width:100%; font-size: 20pt;" type="button" onclick="zoomOut(); return false">Out</button>
                     </td>
                     <td width="30%">
-                        <button style="width:100%; font-size: 20pt;" type="button" onclick="flashUI(); return false">Flash</button>
+                        <button style="width:100%; font-size: 20pt;" type="button" onclick="flashUI(); return false">Touch UI</button>
                     </td>
                 </tr>
             </table>
