@@ -19,8 +19,9 @@ if (!self["bigshot"]) {
      * The two classes that are needed for zoomable images are:
      *
      * <ul>
-     * <li>{@link bigshot.Image}
-     * <li>{@link bigshot.ImageParameters}
+     * <li>{@link bigshot.Image}: The main class for making zoomable images. See the class docs
+     *     for a tutorial.
+     * <li>{@link bigshot.ImageParameters}: Parameters for zoomable images. See 
      * </ul>
      *
      * For hotspots, see:
@@ -887,12 +888,13 @@ if (!self["bigshot"]) {
      *
      * <p>Usage:
      *
-     * <pre><code>var bsi = new bigshot.Image (
+     * @example
+     * var bsi = new bigshot.Image (
      *     new bigshot.ImageParameters ({
      *         basePath : "/bigshot.php?file=myshot.bigshot",
      *         fileSystemType : "archive",
      *         container : document.getElementById ("bigshot_div")
-     *         }));</code></pre>
+     *         }));
      * 
      * @class
      * @param values named parameter map, see the fields below for parameter names and types.
@@ -911,13 +913,13 @@ if (!self["bigshot"]) {
         this.posterSize = 0;
         
         /**
-            * Url for the image tile to show while the tile is loading and no 
-            * low-resolution preview is available.
-            *
-            * @default set to an all-black image
-            * @type String
-            * @public
-            */
+         * Url for the image tile to show while the tile is loading and no 
+         * low-resolution preview is available.
+         *
+         * @default <code>null</code>, which results in an all-black image
+         * @type String
+         * @public
+         */
         this.emptyImage = null;
         
         /**
@@ -1132,6 +1134,8 @@ if (!self["bigshot"]) {
         /**
          * Lays out all layers according to the current 
          * x, y and zoom values.
+         *
+         * @public
          */
         this.layout = function () {
             var zoomLevel = Math.min (0, Math.ceil (this.zoom));
@@ -1169,6 +1173,8 @@ if (!self["bigshot"]) {
         
         /**
          * Resizes the layers of this image.
+         *
+         * @public
          */
         this.resize = function () {
             var tilesW = Math.ceil (2 * this.container.clientWidth / this.tileSize) + 2;
@@ -1183,6 +1189,7 @@ if (!self["bigshot"]) {
          * is called by the layer's constructor to obtain a 
          * container.
          *
+         * @public
          * @type HTMLDivElement
          */
         this.createLayerContainer = function () {
@@ -1195,6 +1202,7 @@ if (!self["bigshot"]) {
         /**
          * Returns the div element used as viewport.
          *
+         * @public
          * @type HTMLDivElement
          */
         this.getContainer = function () {
@@ -1204,6 +1212,7 @@ if (!self["bigshot"]) {
         /**
          * Adds a new layer to the image.
          *
+         * @public
          * @param {bigshot.Layer} layer the layer to add.
          */
         this.addLayer = function (layer) {
@@ -1214,11 +1223,11 @@ if (!self["bigshot"]) {
         /**
          * Sets the current zoom value.
          *
-         * @function
+         * @private
          * @param {number} zoom the zoom value.
+         * @param {boolean} layout trigger a viewport update after setting. Defaults to <code>true</code>.
          */
-        this.setZoom = function (zoom) {
-            this.stopFlying ();
+        this.setZoom = function (zoom, updateViewport) {
             this.zoom = Math.min (this.maxZoom, Math.max (zoom, this.minZoom));
             var zoomLevel = Math.ceil (this.zoom);
             var zoomFactor = Math.pow (2, zoomLevel);
@@ -1227,14 +1236,13 @@ if (!self["bigshot"]) {
             for (var i = 0; i < this.layers.length; ++i) {
                 this.layers[i].setMaxTiles (maxTileX, maxTileY);
             }
-            this.layout ();
         };
         
         /**
          * Sets the maximum zoom value. The maximum magnification (of the full-size image)
          * is 2<sup>maxZoom</sup>. Set to 0.0 to avoid pixelation.
          *
-         * @function
+         * @public
          * @param {number} maxZoom the maximum zoom value
          */
         this.setMaxZoom = function (maxZoom) {
@@ -1245,7 +1253,7 @@ if (!self["bigshot"]) {
          * Gets the maximum zoom value. The maximum magnification (of the full-size image)
          * is 2<sup>maxZoom</sup>.
          * 
-         * @function
+         * @public
          * @type number
          */
         this.getMaxZoom = function () {
@@ -1257,7 +1265,7 @@ if (!self["bigshot"]) {
          * is 2<sup>minZoom</sup>, so a minZoom of <code>-3</code> means that the smallest
          * image shown will be one-eighth of the full-size image.
          *
-         * @function
+         * @public
          * @param {number} minZoom the minimum zoom value for this image
          */
         this.setMinZoom = function (minZoom) {
@@ -1269,7 +1277,7 @@ if (!self["bigshot"]) {
          * is 2<sup>minZoom</sup>, so a minZoom of <code>-3</code> means that the smallest
          * image shown will be one-eighth of the full-size image.
          * 
-         * @function
+         * @public
          * @type number
          */
         this.getMinZoom = function () {
@@ -1293,6 +1301,7 @@ if (!self["bigshot"]) {
          * Handles a mouse drag event by panning the image.
          * Also sets the dragged flag to indicate that the
          * following <code>click</code> event should be ignored.
+         * @private
          */
         this.dragMouseMove = function (event) {
             if (this.dragStart != null) {
@@ -1306,7 +1315,7 @@ if (!self["bigshot"]) {
                 var zoomFactor = Math.pow (2, this.zoom);
                 var realX = delta.x / zoomFactor;
                 var realY = delta.y / zoomFactor;
-                this.setPosition (this.x - realX, this.y - realY);
+                this.moveTo (this.x - realX, this.y - realY);
                 this.dragStart = {
                     x : event.clientX,
                     y : event.clientY
@@ -1316,6 +1325,7 @@ if (!self["bigshot"]) {
         
         /**
          * Ends a drag event by freeing the associated structures.
+         * @private
          */
         this.dragMouseUp = function (event) {
             if (this.dragStart != null) {
@@ -1329,6 +1339,7 @@ if (!self["bigshot"]) {
         /**
          * Mouse double-click handler. Pans to the clicked point and
          * zooms in half a zoom level (approx 40%).
+         * @private
          */
         this.mouseDoubleClick = function (event) {
             var elementPos = this.browser.getElementPosition (this.container);
@@ -1345,6 +1356,7 @@ if (!self["bigshot"]) {
         /**
          * Returns the current zoom level.
          *
+         * @public
          * @type number
          */
         this.getZoom = function () {
@@ -1352,29 +1364,61 @@ if (!self["bigshot"]) {
         };
         
         /**
-         * Sets the current position.
+         * Stops any current flyTo operation and sets the current position.
+         *
+         * @param [x] the new x-coordinate
+         * @param [y] the new y-coordinate
+         * @param [zoom] the new zoom level
+         * @param [updateViewport] if the viewport should be updated, defaults to <code>true</code>
+         * @public
          */
-        this.setPosition = function (x, y) {
+        this.moveTo = function (x, y, zoom) {
             this.stopFlying ();
-            if (parameters.wrapX) {
-                if (x < 0 || x >= this.width) {
-                    x = (x + this.width) % this.width;
+            if (x != null || y != null) {
+                this.setPosition (x, y, false);
+            }
+            if (zoom != null) {
+                this.setZoom (zoom, false);
+            }
+            this.layout ();
+        }
+        
+        /**
+         * Sets the current position.
+         *
+         * @param [x] the new x-coordinate
+         * @param [y] the new y-coordinate
+         * @param [updateViewport] if the viewport should be updated, defaults to <code>true</code>
+         * @private
+         */
+        this.setPosition = function (x, y, updateViewport) {
+            if (x != null) {
+                if (parameters.wrapX) {
+                    if (x < 0 || x >= this.width) {
+                        x = (x + this.width) % this.width;
+                    }
                 }
+                this.x = Math.max (0, Math.min (this.width, x));
             }
             
-            if (parameters.wrapY) {
-                if (y < 0 || y >= this.height) {
-                    y = (y + this.height) % this.height;
+            if (y != null) {
+                if (parameters.wrapY) {
+                    if (y < 0 || y >= this.height) {
+                        y = (y + this.height) % this.height;
+                    }
                 }
+                this.y = Math.max (0, Math.min (this.height, y));
             }
-            this.x = Math.max (0, Math.min (this.width, x));
-            this.y = Math.max (0, Math.min (this.height, y));
-            this.layout ();
+            
+            if (updateViewport != false) {
+                this.layout ();
+            }
         };
         
         /**
          * Helper function for calculating zoom levels.
          *
+         * @public
          * @returns the zoom level at which the given number of full-image pixels
          * occupy the given number of screen pixels.
          * @param {number} imageDimension the image dimension in full-image pixels
@@ -1388,6 +1432,7 @@ if (!self["bigshot"]) {
         /**
          * Returns the maximum zoom level at which the full image
          * is visible in the viewport.
+         * @public
          */
         this.getZoomToFitValue = function () {
             return Math.min (
@@ -1397,53 +1442,60 @@ if (!self["bigshot"]) {
         
         /**
          * Adjust the zoom level to fit the image in the viewport.
+         * @public
          */
         this.zoomToFit = function () {
-            this.setZoom (this.getZoomToFitValue ());
+            this.moveTo (null, null, this.getZoomToFitValue ());
         };
         
         /**
          * Adjust the zoom level to fit the 
          * image height in the viewport.
+         * @public
          */
         this.zoomToFitHeight = function () {
-            this.setZoom (this.fitZoom (parameters.height, this.container.clientHeight));
+            this.moveTo (null, null, this.fitZoom (parameters.height, this.container.clientHeight));
         };
         
         /**
          * Adjust the zoom level to fit the 
          * image width in the viewport.
+         * @public
          */
         this.zoomToFitWidth = function () {
-            this.setZoom (this.fitZoom (parameters.width, this.container.clientWidth));
+            this.moveTo (null, null, this.fitZoom (parameters.width, this.container.clientWidth));
         };
         
         /**
          * Smoothly adjust the zoom level to fit the 
          * image height in the viewport.
+         * @public
          */
         this.flyZoomToFitHeight = function () {
-            this.flyTo (this.x, parameters.height / 2, this.fitZoom (parameters.height, this.container.clientHeight));
+            this.flyTo (null, parameters.height / 2, this.fitZoom (parameters.height, this.container.clientHeight));
         };
         
         /**
          * Smoothly adjust the zoom level to fit the 
          * image width in the viewport.
+         * @public
          */
         this.flyZoomToFitWidth = function () {
-            this.flyTo (parameters.width / 2, this.y, this.fitZoom (parameters.width, this.container.clientWidth));
+            this.flyTo (parameters.width / 2, null, this.fitZoom (parameters.width, this.container.clientWidth));
         };
         
         /**
          * Smoothly adjust the zoom level to fit the 
          * full image in the viewport.
+         * @public
          */
         this.flyZoomToFit = function () {
             this.flyTo (parameters.width / 2, parameters.height / 2, this.getZoomToFitValue ());
         };
         
         /**
-         * handles mouse wheel actions.
+         * Handles mouse wheel actions.
+         * @private
          */
         this.mouseWheelHandler = function (delta) {
             if (delta > 0) {
@@ -1453,6 +1505,10 @@ if (!self["bigshot"]) {
             }
         };
         
+        /**
+         * Translates mouse wheel events.
+         * @private
+         */
         this.mouseWheel = function (event){
             var delta = 0;
             if (!event) /* For IE. */
@@ -1494,6 +1550,7 @@ if (!self["bigshot"]) {
         
         /**
          * Called on window resize via the {@link bigshot.Image#onresizeHandler} stub.
+         * @private
          */
         this.onresize = function () {
             this.resize ();
@@ -1503,6 +1560,8 @@ if (!self["bigshot"]) {
         /**
          * Returns the current x-coordinate, which is the full-image x coordinate
          * in the center of the viewport.
+         * @public
+         * @type number
          */
         this.getX = function () {
             return this.x;
@@ -1511,13 +1570,16 @@ if (!self["bigshot"]) {
         /**
          * Returns the current y-coordinate, which is the full-image x coordinate
          * in the center of the viewport.
+         * @public
+         * @type number
          */
         this.getY = function () {
             return this.y;
         };
         
         /**
-         * Interrupts the current flyTo, if one is active.
+         * Interrupts the current {@link #flyTo}, if one is active.
+         * @public
          */
         this.stopFlying = function () {
             this.flying++;
@@ -1526,12 +1588,17 @@ if (!self["bigshot"]) {
         /**
          * Smoothly flies to the specified position.
          *
-         * @param {number} x the new x-coordinate
-         * @param {number} y the new y-coordinate
-         * @param {number} zoom the new zoom level
+         * @public
+         * @param {number} [x] the new x-coordinate
+         * @param {number} [y] the new y-coordinate
+         * @param {number} [zoom] the new zoom level
          */
         this.flyTo = function (x, y, zoom) {
             var that = this;
+            
+            x = x != null ? x : this.x;
+            y = y != null ? y : this.y;
+            zoom = zoom != null ? zoom : this.zoom;
             
             var targetX = Math.max (0, Math.min (this.width, x));
             var targetY = Math.max (0, Math.min (this.height, y));
@@ -1540,11 +1607,16 @@ if (!self["bigshot"]) {
             
             this.flying++;
             var flyingAtStart = this.flying;
+            
+            var approach = function (current, target, step) {
+                return current + (target - current) * step;
+            };
+            
             var iter = function () {
                 if (that.flying == flyingAtStart) {
-                    var nx = (targetX + that.x) / 2;
-                    var ny = (targetY + that.y) / 2;
-                    var nz = (targetZoom + that.zoom) / 2;
+                    var nx = approach (that.x, targetX, 0.5);
+                    var ny = approach (that.y, targetY, 0.5);
+                    var nz = approach (that.zoom, targetZoom, 0.5);
                     var done = true;
                     if (Math.abs (that.x - targetX) < 1.0) {
                         nx = targetX;
@@ -1561,11 +1633,10 @@ if (!self["bigshot"]) {
                     } else {
                         done = false;
                     }
-                    that.x = nx;
-                    that.y = ny;
-                    that.setZoom (nz);
+                    that.setPosition (nx, ny, false);
+                    that.setZoom (nz, false);
+                    that.layout ();
                     if (!done) {
-                        that.flying--;
                         setTimeout (iter, 20);
                     }
                 };
@@ -1577,6 +1648,7 @@ if (!self["bigshot"]) {
          * Returns the maximum zoom level at which a rectangle with the given dimensions
          * fit into the viewport.
          *
+         * @public
          * @param {number} w the width of the rectangle, given in full-image pixels
          * @param {number} h the height of the rectangle, given in full-image pixels
          */        
@@ -1591,6 +1663,8 @@ if (!self["bigshot"]) {
          * The zoom out border will be getTouchAreaBaseSize() pixels wide,
          * and the center zoom in hotspot will be 2*getTouchAreaBaseSize() pixels wide
          * and tall.
+         * @type number
+         * @public
          */
         this.getTouchAreaBaseSize = function () {
             var averageSize = ((this.container.clientWidth + this.container.clientHeight) / 2) * 0.2;
@@ -1601,6 +1675,7 @@ if (!self["bigshot"]) {
          * Handles mouse click events. If the touch UI is active,
          * we'll pan and/or zoom, as appropriate. If not, we just ignore
          * the event.
+         * @private
          */
         this.mouseClick = function (event) {
             if (!parameters.touchUI) {
@@ -1636,6 +1711,7 @@ if (!self["bigshot"]) {
          * Briefly shows the touch ui zones. See the {@link bigshot.ImageParameters#touchUI}
          * documentation for an explanation of the touch ui.
          * 
+         * @public
          * @see bigshot.ImageParameters#touchUI
          * @param {int} [delay] milliseconds before fading out
          * @param {int} [fadeOut] milliseconds to fade out the zone overlays in
@@ -1719,6 +1795,7 @@ if (!self["bigshot"]) {
         
         /**
          * Forces exit from full screen mode, if we're there.
+         * @public
          */
         this.exitFullScreen = function () {
             if (!this.isFullScreen) {
@@ -1742,6 +1819,7 @@ if (!self["bigshot"]) {
          * bars or the like). For now, this is the best that I can do,
          * but should the situation change I'll update this to be
          * full-screen<i>-ier</i>.
+         * @public
          */
         this.fullScreen = function (onClose) {
             if (this.isFullScreen) {
@@ -1836,6 +1914,7 @@ if (!self["bigshot"]) {
          * dynamically. In that case, this method must be called when the client wishes to
          * free the resources allocated by the image. Otherwise the browser will garbage-collect
          * all resources automatically.
+         * @public
          */
         this.dispose = function () {
             this.browser.unregisterListener (window, "resize", this.onresizeHandler, false);
@@ -1939,6 +2018,7 @@ if (!self["bigshot"]) {
      *
      * @augments bigshot.FileSystem
      * @class Folder-based filesystem.
+     * @param {bigshot.ImageParameters} parameters the associated image parameters
      * @constructor
      */
     bigshot.FolderFileSystem = function (parameters) {
@@ -1956,6 +2036,7 @@ if (!self["bigshot"]) {
      * Creates a new instance of a <code>.bigshot</code> archive filesystem adapter.
      * 
      * @class Bigshot archive filesystem.
+     * @param {bigshot.ImageParameters} parameters the associated image parameters
      * @augments bigshot.FileSystem
      * @constructor
      */     
