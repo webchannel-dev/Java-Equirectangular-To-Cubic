@@ -1911,6 +1911,10 @@ if (!self["bigshot"]) {
                 that.dragMouseMove (e);
                 return consumeEvent (e);
             }, false);
+        this.browser.registerListener (parameters.container, 'mouseout', function (e) {
+                that.dragMouseUp (e);
+                return consumeEvent (e);
+            }, false);
         this.browser.registerListener (parameters.container, 'touchmove', function (e) {
                 that.dragMouseMove (translateEvent (e));
                 return consumeEvent (e);
