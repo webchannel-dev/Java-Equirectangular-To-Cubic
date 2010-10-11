@@ -1995,7 +1995,7 @@ if (!self["bigshot"]) {
                 return consumeEvent (e);
             }, false);
         this.browser.registerListener (parameters.container, 'mouseout', function (e) {
-                that.dragMouseUp (e);
+                //that.dragMouseUp (e);
                 return consumeEvent (e);
             }, false);
         this.browser.registerListener (parameters.container, 'touchmove', function (e) {
