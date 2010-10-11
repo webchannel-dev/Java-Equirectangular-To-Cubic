@@ -111,11 +111,11 @@
             }
             
             function zoomOut () {
-                jsi.setZoom (jsi.getZoom () - 0.5);
+                jsi.moveTo (null, null, jsi.getZoom () - 0.5);
             }
             
             function zoomIn () {
-                jsi.setZoom (jsi.getZoom () + 0.5);
+                jsi.moveTo (null, null, jsi.getZoom () + 0.5);
             }
             
             function smoothIn () {
