@@ -142,20 +142,20 @@
     </head>
     <body onload="myonload();">
         <div>
-        <div style="position: relative; background:red; overflow:hidden; height:600px;" id="container" class="bigshotContainer">
-            <div style="position:absolute; left:50%;">
-                <div id="bigshotControls" class="bigshotControls">
-                    <p>
-                    <a href="#" onclick="zoomOut(); return false;">-</a> | 
-                    <a href="#" onclick="zoomIn(); return false;">+</a> | 
-                    <a href="#" onclick="smoothIn(); return false;">Zoom in on center</a> | 
-                    <a href="#" onclick="toHotspot(); return false;">Pan to hotspot</a> |
-                    <a href="#" onclick="jsi.flyZoomToFit (); return false;">Zoom to Fit</a><span id="fullscreen"> |
-                        <a onclick="fullScreen (); return false;" href="#">Fullscreen</a></span>
-                    </p>
+            <div style="position: relative; background:red; overflow:hidden; height:600px;" id="container" class="bigshotContainer">
+                <div style="position:absolute; left:50%;">
+                    <div id="bigshotControls" class="bigshotControls">
+                        <p>
+                        <a href="#" onclick="zoomOut(); return false;">-</a> | 
+                        <a href="#" onclick="zoomIn(); return false;">+</a> | 
+                        <a href="#" onclick="smoothIn(); return false;">Zoom in on center</a> | 
+                        <a href="#" onclick="toHotspot(); return false;">Pan to hotspot</a> |
+                        <a href="#" onclick="jsi.flyZoomToFit (); return false;">Zoom to Fit</a><span id="fullscreen"> |
+                            <a onclick="fullScreen (); return false;" href="#">Fullscreen</a></span>
+                        </p>
+                    </div>
                 </div>
             </div>
-        </div>
         </div>
         <div class="mobileui">
             <table width="100%">
@@ -172,6 +172,5 @@
                 </tr>
             </table>
         </div>
-        
     </body>
 </html>

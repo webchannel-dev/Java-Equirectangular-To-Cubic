@@ -210,13 +210,13 @@ if (!self["bigshot"]) {
          */
         extend : function (base, derived) {
             var _super = {};
-
+            
             for (var k in derived) {
                 if (typeof (derived[k]) == "function") {
                     derived[k] = this.makeThunk (derived[k], derived, _super);
                 }
             }
-
+            
             for (var k in base) {
                 if (typeof (base[k]) == "function") {
                     var fn = base[k];
@@ -1320,9 +1320,9 @@ if (!self["bigshot"]) {
         this.dragMouseUp = function (event) {
             if (this.dragStart != null) {
                 this.dragStart = null;
-            }
-            if (!this.dragged && parameters.touchUI) {
-                this.mouseClick (event);
+                if (!this.dragged && parameters.touchUI) {
+                    this.mouseClick (event);
+                }
             }
         };
         
