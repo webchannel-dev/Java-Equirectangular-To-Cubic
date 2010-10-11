@@ -1213,6 +1213,7 @@ if (!self["bigshot"]) {
          * Adds a new layer to the image.
          *
          * @public
+         * @see bigshot.HotspotLayer for usage example
          * @param {bigshot.Layer} layer the layer to add.
          */
         this.addLayer = function (layer) {
@@ -1549,8 +1550,9 @@ if (!self["bigshot"]) {
         };
         
         /**
+         * Triggers a right-sizing of all layers.
          * Called on window resize via the {@link bigshot.Image#onresizeHandler} stub.
-         * @private
+         * @public
          */
         this.onresize = function () {
             this.resize ();
@@ -1927,6 +1929,7 @@ if (!self["bigshot"]) {
         
         /**
          * Helper function to consume events.
+         * @private
          */
         var consumeEvent = function (event) {
             if (event.preventDefault) {
@@ -1937,6 +1940,7 @@ if (!self["bigshot"]) {
         
         /**
          * Helper function to translate touch events to mouse-like events.
+         * @private
          */
         var translateEvent = function (event) {
             if (event.clientX) {
