@@ -38,6 +38,108 @@ import java.util.HashMap;
 
 public class MakeImagePyramid {
     
+    private static interface DescriptorOutput {
+        public void setSuffix (String suffix);
+        public void setFullSize (int width, int height);
+        public void setTileSize (int tileSize, int overlap, int minZoom);
+        public void setPosterSize (int posterSize, int pw, int ph);
+        public void configure (Map<String,String> parameters);
+        public void output (File targetFile) throws Exception;
+    }
+    
+    private static class BigshotDescriptorOutput implements DescriptorOutput {
+        
+        private final StringBuilder descriptor = new StringBuilder ();
+        
+        public void setSuffix (String suffix) {
+            descriptor.append (":suffix:" + suffix);
+        }        
+        
+        public void setFullSize (int width, int height) {
+            descriptor.append (":width:" + width + ":height:" + height);
+        }
+        
+        public void setTileSize (int tileSize, int overlap, int minZoom) {
+            descriptor.append (":tileSize:" + tileSize + ":overlap:" + overlap);
+            descriptor.append (":minZoom:" + minZoom);
+        }
+        
+        public void setPosterSize (int posterSize, int pw, int ph) {
+            descriptor.append (":posterSize:" + posterSize + ":posterWidth:" + pw + ":posterHeight:" + ph);
+        }
+        
+        public void configure (Map<String,String> parameters) {
+            
+        }
+        
+        public void output (File folders) throws Exception {
+            FileOutputStream descriptorOut = new FileOutputStream (new File (folders, "descriptor"));
+            try {
+                descriptorOut.write (descriptor.toString ().getBytes ());
+            } finally {
+                descriptorOut.close ();
+            }
+        }
+    }
+    
+    private static class DziDescriptorOutput implements DescriptorOutput {
+        
+        private final StringBuilder descriptor = new StringBuilder ();
+        
+        private String suffix;
+        private int width;
+        private int height;
+        private int tileSize;
+        private int overlap;
+        
+        public void setSuffix (String suffix) {
+            this.suffix = suffix;
+            if (this.suffix.startsWith (".")) {
+                this.suffix = this.suffix.substring (1);
+            }
+        }        
+        
+        public void setFullSize (int width, int height) {
+            this.width = width;
+            this.height = height;
+        }
+        
+        public void setTileSize (int tileSize, int overlap, int minZoom) {
+            this.tileSize = tileSize;
+            this.overlap = overlap;
+        }
+        
+        public void setPosterSize (int posterSize, int pw, int ph) {
+        }
+        
+        public void configure (Map<String,String> parameters) {
+            
+        }
+        
+        public void output (File folders) throws Exception {
+            /*
+            <?xml version=\"1.0\" encoding=\"utf-8\"?>
+            <Image TileSize=\"375\" Overlap=\"1\" Format=\"jpg\" ServerFormat=\"Default\" xmnls=\"http://schemas.microsoft.com/deepzoom/2009\">
+            <Size Width=\"1500\" Height=\"1500\" />
+            </Image>
+            */
+            StringBuilder descriptor = new StringBuilder (
+                "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" +
+                "<Image TileSize=\"" + tileSize + "\" Overlap=\"" + overlap + "\" Format=\"" + suffix + "\" ServerFormat=\"Default\" xmnls=\"http://schemas.microsoft.com/deepzoom/2009\">\n" +
+                "<Size Width=\"" + width + "\" Height=\"" + height + "\" />\n" +
+                "</Image>\n"
+                );
+            
+            FileOutputStream descriptorOut = new FileOutputStream (new File (folders.getParentFile (), folders.getName () + ".xml"));
+            try {
+                descriptorOut.write (descriptor.toString ().getBytes ());
+            } finally {
+                descriptorOut.close ();
+            }
+        }
+    }
+    
+    
     private static interface Output {
         public void write (BufferedImage image, File output) throws Exception;
         public String getSuffix ();
@@ -92,16 +194,18 @@ public class MakeImagePyramid {
         }
     }
     
-    public static void tile (BufferedImage full, int tileWidth, int tileOffset, File outputBase, Output output) throws Exception {
+    public static void tile (BufferedImage full, int tileWidth, int overlap, File outputBase, Output output) throws Exception {
         BufferedImage tile = new BufferedImage (tileWidth, tileWidth, BufferedImage.TYPE_INT_RGB);
-        for (int y = 0; y < full.getHeight (); y += tileOffset) {
-            for (int x = 0; x < full.getWidth (); x += tileOffset) {
-                int tx = x / tileWidth;
-                int ty = y / tileWidth;
+        int startOffset = 0;
+        
+        int ty = 0;
+        for (int y = startOffset; y < full.getHeight () - overlap; y += tileWidth - overlap) {
+            int tx = 0;
+            for (int x = startOffset; x < full.getWidth () - overlap; x += tileWidth - overlap) {
                 int w = Math.min (x + tileWidth, full.getWidth ()) - x;
                 int h = Math.min (y + tileWidth, full.getHeight ()) - y;
                 
-                System.out.println ("Generating tile " + tx + "," + ty + " = [" + x + "," + y + "] + [" + w + "," + h + "]...");
+                System.out.println ("Generating tile " + tx + "," + ty + " = [" + x + "," + y + "] + [" + w + "," + h + "] -> [" + (x + w) + "," + (y + h) + "]...");
                 
                 BufferedImage section = full.getSubimage (x, y, w, h);
                 Graphics2D g = tile.createGraphics ();
@@ -111,7 +215,10 @@ public class MakeImagePyramid {
                 g.dispose ();
                 String filename = tx + "_" + ty + output.getSuffix ();
                 output.write (tile, new File (outputBase, filename));
+                
+                ++tx;
             }
+            ++ty;
         }
     }
     
@@ -150,7 +257,44 @@ public class MakeImagePyramid {
                     parameters.put (key, value);
                 }
             }
-            makePyramid (input, outputBase, parameters);
+            boolean makeVr = "facemap".equals (parameters.get ("transform"));
+            
+            if (makeVr) {
+                boolean archive = "archive".equals (parameters.get ("format"));
+                
+                File facesOut = File.createTempFile ("makeimagepyramid", "bigshot");
+                facesOut.delete ();
+                facesOut.mkdirs ();
+                try {
+                    File[] faces = EquirectangularToCubic.transformToFaces (input, facesOut, getParameterAsInt (parameters, "face-size", 2048) + getParameterAsInt (parameters, "overlap", 0));
+                    parameters.remove ("format");
+                    parameters.remove ("folder-layout");
+                    
+                    File pyramidBase = outputBase;
+                    if (archive) {
+                        pyramidBase = File.createTempFile ("makeimagepyramid", "bigshot");
+                        pyramidBase.delete ();
+                        pyramidBase.mkdirs ();
+                    }
+                    
+                    for (File f : faces) {
+                        System.out.println ("Making pyramid for " + f.getName ());
+                        File face = new File (f.getPath () + ".png");
+                        File out = new File (pyramidBase, f.getName ());
+                        makePyramid (face, out, parameters);
+                        face.delete ();
+                    }
+                    
+                    if (archive) {
+                        pack (pyramidBase, outputBase);
+                        deleteAll (pyramidBase);
+                    }
+                } finally {
+                    deleteAll (facesOut);
+                }
+            } else {
+                makePyramid (input, outputBase, parameters);
+            }
         }
     }
     
@@ -258,6 +402,7 @@ public class MakeImagePyramid {
         BufferedImage full = ImageIO.read (input);
         
         boolean outputPackage = "archive".equals (parameters.get ("format"));
+        boolean dziLayout = "dzi".equals (parameters.get ("folder-layout"));
         
         File folders = outputBase;
         
@@ -268,7 +413,10 @@ public class MakeImagePyramid {
         }
         folders.mkdirs ();
         
-        StringBuilder descriptor = new StringBuilder ();
+        if (dziLayout) {
+            folders = new File (folders, outputBase.getName ());
+            folders.mkdirs ();
+        }
         
         Output output = null;
         String imageFormat = getParameter (parameters, "image-format", "jpg");
@@ -283,14 +431,26 @@ public class MakeImagePyramid {
         output.configure (parameters);
         
         
-        descriptor.append ("suffix:" + output.getSuffix ());
+        DescriptorOutput descriptor = null;
+        String descriptorFormat = getParameter (parameters, "descriptor-format", "bigshot");
+        if ("bigshot".equals (descriptorFormat)) {
+            descriptor = new BigshotDescriptorOutput ();
+        } else if ("dzi".equals (descriptorFormat)) {
+            descriptor = new DziDescriptorOutput ();
+        } else {
+            System.err.println ("Unknown descriptor format: \"" + descriptorFormat + "\". Using Bigshot.");
+            descriptor = new BigshotDescriptorOutput ();
+        }
+        descriptor.configure (parameters);
+        
+        descriptor.setSuffix (output.getSuffix ());
         
         int w = full.getWidth ();
         int h = full.getHeight ();
         
         System.out.println ("Full image size: " + w + " x " + h + "");
         
-        descriptor.append (":width:" + w + ":height:" + h);
+        descriptor.setFullSize (w, h);
         
         int maxDimension = Math.max (w, h);
         
@@ -301,7 +461,7 @@ public class MakeImagePyramid {
             int pw = (int) (w * posterScale);
             int ph = (int) (h * posterScale);
             
-            descriptor.append (":posterSize:" + posterSize + ":posterWidth:" + pw + ":posterHeight:" + ph);
+            descriptor.setPosterSize (posterSize, pw, ph);
             
             System.out.println ("Creating " + pw + " x " + ph + " poster image.");
             
@@ -330,11 +490,17 @@ public class MakeImagePyramid {
         int overlap = getParameterAsInt (parameters, "overlap", 0);
         System.out.println ("Creating pyramid with " + maxZoom + " levels.");
         for (int zoom = 0; zoom < maxZoom; ++zoom) {
-            File outputDir = new File (folders, String.valueOf (zoom));
+            File outputDir = 
+                "invert".equals (getParameter (parameters, "level-numbering", "invert"))
+                ?
+                new File (folders, String.valueOf (maxZoom - zoom - 1))
+                :
+                new File (folders, String.valueOf (zoom));
             outputDir.mkdirs ();
-            tile (full, tileSize, tileSize - overlap, outputDir, output);
-            w /= 2;
-            h /= 2;
+            tile (full, tileSize, overlap, outputDir, output);
+            
+            w = (w - overlap) / 2 + overlap;
+            h = (h - overlap) / 2 + overlap;
             
             if (zoom < maxZoom - 1) {
                 System.out.println ("Reducing by factor of 2...");
@@ -347,19 +513,18 @@ public class MakeImagePyramid {
             }
         }
         
-        descriptor.append (":tileSize:" + tileSize + ":overlap:" + overlap);
-        descriptor.append (":minZoom:" + (-maxZoom + 1));
+        descriptor.setTileSize (tileSize, overlap, (-maxZoom + 1));
         
-        FileOutputStream descriptorOut = new FileOutputStream (new File (folders, "descriptor"));
-        try {
-            descriptorOut.write (descriptor.toString ().getBytes ());
-        } finally {
-            descriptorOut.close ();
-        }
+        descriptor.output (folders);
         
         if (outputPackage) {
-            pack (folders, outputBase);
-            deleteAll (folders);
+            if (dziLayout) {
+                pack (folders.getParentFile (), outputBase);
+                deleteAll (folders.getParentFile ());
+            } else {
+                pack (folders, outputBase);
+                deleteAll (folders);
+            }
         }
     }
     

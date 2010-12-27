@@ -33,6 +33,7 @@
     $start = (int) $_GET["start"];
     $length = (int) $_GET["length"];
     $type = $_GET["type"];
+    $entry = $_GET["entry"];
     
     // Clean the path, make sure it is relative to the script
     // and doesn't allow any traversals upward in the directory 
@@ -51,6 +52,20 @@
     // Make sure we're serving up a bigshot file.
     if (substr ($filename, -8) != ".bigshot") {
         trigger_error($filename . " is not a bigshot file.", E_USER_ERROR);
+    }
+    
+    if ($entry) {
+        $header = file_get_contents ($filename, false, NULL, 8, 16);
+        $indexSize = intval (trim ($header), 16);
+        $index = file_get_contents ($filename, false, NULL, 24, $indexSize);
+        $indexEntries = explode (":", $index);
+        foreach ($indexEntries as $i => $value) {
+            if ($value == $entry) {
+                $start = ((int) $indexEntries[$i + 1]) + 24 + $indexSize;
+                $length = (int) $indexEntries[$i + 2];
+                break;
+            }
+        }
     }
     
     if ($start < 0) {

@@ -100,6 +100,33 @@
         </java>
     </target>
     
+    <target name="build-dzi">
+        <java fork="yes" jar="${package-dir}/bigshot.jar"
+            dir="${basedir}">
+            <arg value="${temp}/dzi.jpg"/>
+            <arg value="${temp}/dzi.bigshot"/>
+            <arg value="--transform"/>
+            <arg value="facemap"/>
+            <arg value="--descriptor-format"/>
+            <arg value="dzi"/>
+            <arg value="--levels"/>
+            <arg value="13"/>
+            <arg value="--folder-layout"/>
+            <arg value="dzi"/>
+            <arg value="--format"/>
+            <arg value="archive"/>
+            <arg value="--level-numbering"/>
+            <arg value="invert"/>
+            <arg value="--face-size"/>
+            <arg value="2048"/>
+            <arg value="--tile-size"/>
+            <arg value="257"/>
+            <arg value="--overlap"/>
+            <arg value="1"/>
+            <jvmarg value="-Xmx768M"/>
+        </java>
+    </target>
+    
     <target name="host">
         <echo><![CDATA[Point your web browser at:
 http://localhost/src/test/test.html]]></echo>

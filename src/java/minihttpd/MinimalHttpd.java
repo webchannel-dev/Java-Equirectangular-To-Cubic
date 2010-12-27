@@ -23,6 +23,7 @@ import java.io.FileInputStream;
 import java.io.BufferedInputStream;
 import java.io.OutputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.RandomAccessFile;
 
 public class MinimalHttpd {
     
@@ -54,6 +55,33 @@ public class MinimalHttpd {
         return Integer.parseInt (getParameter (params, name, String.valueOf (defaultValue)));
     }
     
+    public static int[] getExtents (File f, String entry) throws Exception {
+        RandomAccessFile raf = new RandomAccessFile (f, "r");
+        try {
+            byte[] header = new byte[24];
+            raf.readFully (header);
+            int indexSize = Integer.parseInt (new String (header).substring (7).trim (), 16);
+            byte[] index = new byte[indexSize];
+            raf.readFully (index);
+            
+            int offset = indexSize + 24;
+            
+            String[] substrings = new String (index).split (":");
+            for (int i = 0; i < substrings.length; i += 3) {
+                if (substrings[i].equals (entry)) {
+                    return new int[]{
+                        Integer.parseInt (substrings[i + 1]) + offset,
+                        Integer.parseInt (substrings[i + 2])
+                        };
+                }                    
+            }
+            
+            return null;
+        } finally {
+            raf.close ();
+        }
+    }
+    
     public static void main (String[] args) throws Exception {
         final File root = new File (args[0]);
         ServerSocket serverSocket = new ServerSocket (80);
@@ -80,6 +108,7 @@ public class MinimalHttpd {
                         String[] parameters = file.split ("\\?|&");
                         String filename = getParameter (parameters, "file", parameters[0]);
                         String type = getParameter (parameters, "type", null);
+                        String entry = getParameter (parameters, "entry", null);
                         int startRange = getParameter (parameters, "start", 0);
                         int lengthRange = getParameter (parameters, "length", Integer.MAX_VALUE);
                         
@@ -88,6 +117,12 @@ public class MinimalHttpd {
                         }
                         
                         File f = new File (root, filename);
+                        if (entry != null) {
+                            int[] extents = getExtents (f, entry);
+                            startRange = extents[0];
+                            lengthRange = extents[1];
+                        }
+                        
                         OutputStream os = sock.getOutputStream ();
                         if (f.exists () && !f.isDirectory ()) {
                             FileInputStream fis = new FileInputStream (f);
