@@ -17,11 +17,22 @@
     
     /**
      * This script serves up parts of a .bigshot image pyramid archive.
-     * It is controlled with four parameters:
+     * It is controlled with five parameters:
      *
      * file : the path to the .bigshot file, relative to the script
-     * start : offset in bytes from the start of the file
-     * length : number of bytes to read
+     *
+     * Either
+     *     start : offset in bytes from the start of the file
+     *     length : number of bytes to read
+     * or
+     *     entry : the name of the entry in the bigshot archive.
+     *
+     * Using the "entry" parameter requires two extra file accesses server side.
+     * It is recommended that a client parses the file header and index and then
+     * uses the start/length combo to read the data from the archive. The purpose
+     * of the "entry" parameters is to make it possible to use, for example, 
+     * SaladoPlayer, to show VR panoramas archived in a Bigshot archive.
+     *
      * type : MIME-type for the Content-Type header being returned.
      *
      * To avoid path traversal attacks, the script will only read from 
@@ -51,9 +62,11 @@
     
     // Make sure we're serving up a bigshot file.
     if (substr ($filename, -8) != ".bigshot") {
-        trigger_error($filename . " is not a bigshot file.", E_USER_ERROR);
+        trigger_error ($filename . " is not a bigshot file.", E_USER_ERROR);
     }
     
+    // If the user specified an entry, load the index and find it.
+    // This overwrites the start & length parameters.
     if ($entry) {
         $header = file_get_contents ($filename, false, NULL, 8, 16);
         $indexSize = intval (trim ($header), 16);
@@ -69,15 +82,15 @@
     }
     
     if ($start < 0) {
-        trigger_error("start is negative: " . $start, E_USER_ERROR);
+        trigger_error ("start is negative: " . $start, E_USER_ERROR);
     }
     
     if ($length < 0) {
-        trigger_error("length is negative: " . $length, E_USER_ERROR);
+        trigger_error ("length is negative: " . $length, E_USER_ERROR);
     }
     
     if (!file_exists ($filename)) {
-        trigger_error($filename . " not found.", E_USER_ERROR);
+        trigger_error ($filename . " not found.", E_USER_ERROR);
     }
     
     header ("Content-Type: " . $type);
