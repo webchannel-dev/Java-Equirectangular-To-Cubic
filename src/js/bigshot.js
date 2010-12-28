@@ -669,13 +669,13 @@ if (!self["bigshot"]) {
      */
     bigshot.ImageTileCache = function (onLoaded, parameters) {
         /**
-            * Reduced-resolution preview of the full image.
-            * Loaded from the "poster" image created by 
-            * MakeImagePyramid
-            *
-            * @private
-            * @type HTMLImageElement
-            */
+          * Reduced-resolution preview of the full image.
+          * Loaded from the "poster" image created by 
+          * MakeImagePyramid
+          *
+          * @private
+          * @type HTMLImageElement
+          */
         this.fullImage = document.createElement ("img");
         this.fullImage.src = parameters.fileSystem.getFilename ("poster" + parameters.suffix);
         
@@ -903,14 +903,14 @@ if (!self["bigshot"]) {
      */
     bigshot.ImageParameters = function (values) {
         /**
-            * Size of low resolution preview image along the longest image
-            * dimension. The preview is assumed to have the same aspect
-            * ratio as the full image (specified by width and height).
-            *
-            * @default <i>Optional</i> set by MakeImagePyramid and loaded from descriptor
-            * @type int
-            * @public
-            */
+         * Size of low resolution preview image along the longest image
+         * dimension. The preview is assumed to have the same aspect
+         * ratio as the full image (specified by width and height).
+         *
+         * @default <i>Optional</i> set by MakeImagePyramid and loaded from descriptor
+         * @type int
+         * @public
+         */
         this.posterSize = 0;
         
         /**
@@ -2049,8 +2049,13 @@ if (!self["bigshot"]) {
         this.indexSize = 0;
         this.offset = 0;
         this.index = {};
+        this.prefix = "";
         
         this.getFilename = function (name) {
+            name = this.prefix + name;
+            if (!this.index[name]) {
+                console.log ("Can't find " + name);
+            }
             var f = parameters.basePath + "&start=" + this.index[name].start + "&length=" + this.index[name].length;
             if (name.substring (name.length - 4) == ".jpg") {
                 f = f + "&type=image/jpeg";
@@ -2067,6 +2072,9 @@ if (!self["bigshot"]) {
             return this.getFilename (key);
         };
         
+        this.setPrefix = function (prefix) {
+            this.prefix = prefix;
+        }        
         
         var browser = new bigshot.Browser ();
         var req = browser.createXMLHttpRequest ();

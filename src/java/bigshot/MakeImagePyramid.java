@@ -474,7 +474,7 @@ public class MakeImagePyramid {
         }   
         
         
-        int tileSize = getParameterAsInt (parameters, "tile-size", 256);
+        int tileSize = getParameterAsInt (parameters, "tile-size", 256) + getParameterAsInt (parameters, "overlap", 0);
         int heuristicMaxZoom = (int) (Math.ceil (Math.log (maxDimension) / Math.log (2)) - Math.floor (Math.log (tileSize) / Math.log (2)) + 2);
         
         int maxZoom = getParameterAsInt (parameters, "levels", (int) heuristicMaxZoom);
@@ -491,7 +491,7 @@ public class MakeImagePyramid {
         System.out.println ("Creating pyramid with " + maxZoom + " levels.");
         for (int zoom = 0; zoom < maxZoom; ++zoom) {
             File outputDir = 
-                "invert".equals (getParameter (parameters, "level-numbering", "invert"))
+                "invert".equals (getParameter (parameters, "level-numbering", ""))
                 ?
                 new File (folders, String.valueOf (maxZoom - zoom - 1))
                 :

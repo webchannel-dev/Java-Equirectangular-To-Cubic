@@ -120,7 +120,30 @@
             <arg value="--face-size"/>
             <arg value="2048"/>
             <arg value="--tile-size"/>
-            <arg value="257"/>
+            <arg value="256"/>
+            <arg value="--overlap"/>
+            <arg value="1"/>
+            <jvmarg value="-Xmx768M"/>
+        </java>
+    </target>
+    
+    <target name="build-vr">
+        <java fork="yes" jar="${package-dir}/bigshot.jar"
+            dir="${basedir}">
+            <arg value="C:\Archive\Photos\2010\201012\20101225\201012252355-DSC_9737-DSC_9772-1.jpg"/>
+            <arg value="${temp}/vr.bigshot"/>
+            <arg value="--transform"/>
+            <arg value="facemap"/>
+            <arg value="--levels"/>
+            <arg value="12"/>
+            <arg value="--folder-layout"/>
+            <arg value="dzi"/>
+            <arg value="--format"/>
+            <arg value="archive"/>
+            <arg value="--face-size"/>
+            <arg value="2048"/>
+            <arg value="--tile-size"/>
+            <arg value="256"/>
             <arg value="--overlap"/>
             <arg value="1"/>
             <jvmarg value="-Xmx768M"/>
