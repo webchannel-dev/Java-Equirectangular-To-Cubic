@@ -57,6 +57,7 @@ function VRFace (key, topLeft, width, u, v) {
             fileSystem : this.afs,
             suffix : ".jpg",
             tileSize : 257,
+            posterSize : 512,
             width : 2049,
             height : 2049
         });
@@ -171,13 +172,17 @@ function vrpano () {
     var screen_canvas = document.getElementById('canvas');
     var renderer = new Pre3d.Renderer(screen_canvas);
     renderer.perform_z_sorting = false;
+    renderer.draw_overdraw = false;
     
-    var w = 257;
-    var h = 257;
+    var t = document.getElementById ("texture");
+    
     
     function selectTexture(quad_face, quad_index, shape) {
         var ti = quad_face.textureInfo;
         
+        var w = ti.textureImage.width;
+        var h = ti.textureImage.height;
+    
         var texinfo1 = new Pre3d.TextureInfo();
         texinfo1.image = null;
         texinfo1.u0 = 0;
@@ -217,8 +222,8 @@ function vrpano () {
     
     function draw() {
         renderer.transform.reset();
-        renderer.transform.rotateX(state.cube_rotate_x_rad);
         renderer.transform.rotateY(state.cube_rotate_y_rad);
+        renderer.transform.rotateX(state.cube_rotate_x_rad);
         renderer.transform.translate(state.cube_x, state.cube_y, -1.0);
         
         
@@ -227,14 +232,14 @@ function vrpano () {
         }
         
         // White background.
-        renderer.ctx.setFillColor(1, 1, 1, 1);
+        /*renderer.ctx.setFillColor(1, 1, 1, 1);
         renderer.drawBackground();
-        
+        */
         renderer.drawBuffer();
         renderer.emptyBuffer();
     }
     
-    renderer.camera.focal_length = 2.0;
+    renderer.camera.focal_length = 2.5;
     
     
     drawer = draw;
@@ -246,6 +251,7 @@ var frame = 0;
 function redraw () {
     drawer ();
     state.cube_rotate_y_rad = frame * 0.02;
+    //state.cube_rotate_x_rad = frame * 0.01;
     ++frame;
     if (frame < 800) {
         setTimeout (redraw, 50);

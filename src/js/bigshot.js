@@ -695,6 +695,7 @@ if (!self["bigshot"]) {
         this.lruMap = new bigshot.LRUMap ();
         this.onLoaded = onLoaded;
         this.browser = new bigshot.Browser ();
+        this.partialImageSize = parameters.tileSize / 8;
         
         this.resetUsed = function () {
             this.usedImages = {};
@@ -707,13 +708,12 @@ if (!self["bigshot"]) {
         
         this.getPartialImage = function (tileX, tileY, zoomLevel) {
             if (this.fullImage.complete) {
-                var partialImageSize = parameters.tileSize / 8;
                 var canvas = document.createElement ("canvas");
                 if (!canvas["width"]) {
                     return null;
                 }
-                canvas.width = partialImageSize;
-                canvas.height = partialImageSize;
+                canvas.width = this.partialImageSize;
+                canvas.height = this.partialImageSize;
                 var ctx = canvas.getContext('2d'); 
                 
                 var posterScale = parameters.posterSize / Math.max (parameters.width, parameters.height);
@@ -726,16 +726,16 @@ if (!self["bigshot"]) {
                 var sy = Math.floor (tileSizeAtZoom * tileY);
                 var sw = Math.floor (tileSizeAtZoom);
                 var sh = Math.floor (tileSizeAtZoom);
-                var dw = partialImageSize + 2;
-                var dh = partialImageSize + 2;
+                var dw = this.partialImageSize + 2;
+                var dh = this.partialImageSize + 2;
                 
                 if (sx + sw > posterWidth) {
                     sw = posterWidth - sx;
-                    dw = partialImageSize * (sw / Math.floor (tileSizeAtZoom));
+                    dw = this.partialImageSize * (sw / Math.floor (tileSizeAtZoom));
                 }
                 if (sy + sh > posterHeight) {
                     sh = posterHeight - sy;
-                    dh = partialImageSize * (sh / Math.floor (tileSizeAtZoom));
+                    dh = this.partialImageSize * (sh / Math.floor (tileSizeAtZoom));
                 }
                 
                 ctx.drawImage (this.fullImage, sx, sy, sw, sh, -1, -1, dw, dh);
