@@ -41,8 +41,8 @@ function alertObject (o) {
 
 function VRFace (key, topLeft, width, u, v) {
     this.key = key;
-    this.topLeft = pt3dMult (topLeft, 10);
-    this.width = width * 10;
+    this.topLeft = pt3dMult (topLeft, 64);
+    this.width = width * 64;
     this.u = u;
     this.v = v;
     
@@ -168,42 +168,88 @@ var state = {
     cube_y: 0
 };
 
+var dragStart = null;
+
+function dragMouseDown (e) {
+    dragStart = e;
+}
+
+function dragMouseUp (e) {
+    dragStart = null;
+}
+
+function dragMouseMove (e) {
+    if (dragStart != null) {
+        var dx = e.clientX - dragStart.clientX;
+        var dy = e.clientY - dragStart.clientY;
+        state.cube_rotate_y_rad += dx / 100.0;
+        state.cube_rotate_x_rad += dy / 100.0 ;
+        drawer ();
+        dragStart = e;
+    }
+}
+
+bigshot.VRPano = function (parameters) {
+    
+}
+
 function vrpano () {
     var screen_canvas = document.getElementById('canvas');
+    
+    var browser  = new bigshot.Browser ();
+    /**
+    * Helper function to consume events.
+    * @private
+    */
+    var consumeEvent = function (event) {
+        if (event.preventDefault) {
+            event.preventDefault ();
+        }
+        return false;
+    };
+    
+    browser.registerListener (screen_canvas, "mousedown", function (e) {
+            dragMouseDown (e);
+            return consumeEvent (e);
+        }, false);
+    browser.registerListener (screen_canvas, "mouseup", function (e) {
+            dragMouseUp (e);
+            return consumeEvent (e);
+        }, false);
+    browser.registerListener (screen_canvas, 'mousemove', function (e) {
+            dragMouseMove (e);
+            return consumeEvent (e);
+        }, false);
+    
     var renderer = new Pre3d.Renderer(screen_canvas);
     renderer.perform_z_sorting = false;
     renderer.draw_overdraw = false;
-    
-    var t = document.getElementById ("texture");
-    
     
     function selectTexture(quad_face, quad_index, shape) {
         var ti = quad_face.textureInfo;
         
         var w = ti.textureImage.width;
         var h = ti.textureImage.height;
-    
-        var texinfo1 = new Pre3d.TextureInfo();
-        texinfo1.image = null;
-        texinfo1.u0 = 0;
-        texinfo1.v0 = 0;
-        texinfo1.u1 = 0;
-        texinfo1.v1 = h;
-        texinfo1.u2 = w;
-        texinfo1.v2 = h;
         
-        var texinfo2 = new Pre3d.TextureInfo();
-        texinfo2.image = null;
-        texinfo2.u0 = 0;
-        texinfo2.v0 = 0;
-        texinfo2.u1 = w;
-        texinfo2.v1 = h;
-        texinfo2.u2 = w;
-        texinfo2.v2 = 0;
+        var texinfo = new Pre3d.TextureInfo();
+        texinfo.image = ti.textureImage;
+        if (ti.face == 0) {
+            texinfo.u0 = 0;
+            texinfo.v0 = 0;
+            texinfo.u1 = 0;
+            texinfo.v1 = h;
+            texinfo.u2 = w;
+            texinfo.v2 = h;
+        } else {
+            texinfo.u0 = 0;
+            texinfo.v0 = 0;
+            texinfo.u1 = w;
+            texinfo.v1 = h;
+            texinfo.u2 = w;
+            texinfo.v2 = 0;
+        }
         
-        var baseTi = ti.face == 0 ? texinfo1 : texinfo2;
-        baseTi.image = ti.textureImage;
-        renderer.texture = baseTi;
+        renderer.texture = texinfo;
         return false;
     }
     
@@ -253,8 +299,8 @@ function redraw () {
     state.cube_rotate_y_rad = frame * 0.02;
     //state.cube_rotate_x_rad = frame * 0.01;
     ++frame;
-    if (frame < 800) {
-        setTimeout (redraw, 50);
+    if (frame < 100) {
+        setTimeout (redraw, 0);
     }
 }
 
