@@ -75,7 +75,11 @@ public class MakeImagePyramid {
         public void output (File folders) throws Exception {
             FileOutputStream descriptorOut = new FileOutputStream (new File (folders, "descriptor"));
             try {
-                descriptorOut.write (descriptor.toString ().getBytes ());
+                String d = descriptor.toString ();
+                if (d.startsWith (":")) {
+                    d = d.substring (1);
+                }
+                descriptorOut.write (d.getBytes ());
             } finally {
                 descriptorOut.close ();
             }
