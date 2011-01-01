@@ -145,7 +145,7 @@
             <arg value="--tile-size"/>
             <arg value="256"/>
             <arg value="--overlap"/>
-            <arg value="1"/>
+            <arg value="0"/>
             <jvmarg value="-Xmx768M"/>
         </java>
     </target>

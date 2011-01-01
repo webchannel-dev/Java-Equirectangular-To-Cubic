@@ -91,42 +91,31 @@ function VRFace (owner, key, topLeft_, width_, u, v) {
     var singleTile = Math.log (this.tileSize - this.overlap) / Math.LN2;
     this.maxDivisions = fullZoom - singleTile;
     
-    this.generateFace = function (shape, topLeft, width, u, v, key, tx, ty, divisions) {
-        var startIndex = shape.vertices.length;
-        
+    this.minDivisions = 2;
+    this.maxDivisions = 3;
+    
+    this.generateFace = function (scene, topLeft, width, u, v, key, tx, ty, divisions) {
         width *= 1 + this.overlap / this.tileSize;
         
-        var p = topLeft;
-        shape.vertices.push (p);
-        p = pt3dMultAdd (v, width, topLeft);
-        shape.vertices.push (p);
-        p = pt3dMultAdd (u, width, p);
-        shape.vertices.push (p);
-        p = pt3dMultAdd (u, width, topLeft);
-        shape.vertices.push (p);
-        
-        
         var textureImage = this.tileCache.getImage (tx, ty, -this.maxDivisions + divisions);
-        
-        {
-            var qf = new Pre3d.QuadFace (startIndex, startIndex + 1, startIndex + 2, null);
-            qf.textureInfo = new bigshot.VRTextureInfo (divisions, tx, ty, 0, textureImage);
-            shape.quads.push (qf);
-        }
-        
-        {
-            var qf = new Pre3d.QuadFace (startIndex, startIndex + 2, startIndex + 3, null);
-            qf.textureInfo = new bigshot.VRTextureInfo (divisions, tx, ty, 1, textureImage);
-            shape.quads.push (qf);
-        }        
+        scene.addQuad (new bigshot.WebGLTexturedQuad (
+                    topLeft,
+                    pt3dMult (u, width),
+                    pt3dMult (v, width),
+                    textureImage
+                )
+        );
     }
     
     this.isBehind = function (renderer, p) {
+        return false;
+        /* FIXME
         var tp = renderer.transform.transformPoint (p);
         return tp.z > -0.1;
+        */
     }
     
-    this.generateSubdivisionFace = function (renderer, shape, topLeft, width, u, v, key, divisions, tx, ty) {
+    this.generateSubdivisionFace = function (renderer, scene, topLeft, width, u, v, key, divisions, tx, ty) {
         var bottomLeft = pt3dMultAdd (v, width, topLeft);
         var topRight = pt3dMultAdd (u, width, topLeft);
         var bottomRight = pt3dMultAdd (u, width, bottomLeft);
@@ -159,12 +148,12 @@ function VRFace (owner, key, topLeft_, width_, u, v) {
             var center = pt3dMultAdd ({x: u.x + v.x, y: u.y + v.y, z: u.z + v.z }, width / 2, topLeft);
             var midTop = pt3dMultAdd (u, width / 2, topLeft);
             var midLeft = pt3dMultAdd (v, width / 2, topLeft);
-            this.generateSubdivisionFace (renderer, shape, topLeft, width / 2, u, v, key, divisions + 1, tx * 2, ty * 2);
-            this.generateSubdivisionFace (renderer, shape, midTop, width / 2, u, v, key, divisions + 1, tx * 2 + 1, ty * 2);
-            this.generateSubdivisionFace (renderer, shape, midLeft, width / 2, u, v, key, divisions + 1, tx * 2, ty * 2 + 1);
-            this.generateSubdivisionFace (renderer, shape, center, width / 2, u, v, key, divisions + 1, tx * 2 + 1, ty * 2 + 1);
+            this.generateSubdivisionFace (renderer, scene, topLeft, width / 2, u, v, key, divisions + 1, tx * 2, ty * 2);
+            this.generateSubdivisionFace (renderer, scene, midTop, width / 2, u, v, key, divisions + 1, tx * 2 + 1, ty * 2);
+            this.generateSubdivisionFace (renderer, scene, midLeft, width / 2, u, v, key, divisions + 1, tx * 2, ty * 2 + 1);
+            this.generateSubdivisionFace (renderer, scene, center, width / 2, u, v, key, divisions + 1, tx * 2 + 1, ty * 2 + 1);
         } else {
-            this.generateFace (shape, topLeft, width, u, v, key, tx, ty, divisions);
+            this.generateFace (scene, topLeft, width, u, v, key, tx, ty, divisions);
         }
     }
     
@@ -172,13 +161,11 @@ function VRFace (owner, key, topLeft_, width_, u, v) {
         return this.updated;
     };
     
-    this.render = function (renderer) {
+    this.render = function (renderer, scene) {
         this.updated = false;
         this.tileCache.resetUsed ();
-        var face = new Pre3d.Shape ();
-        this.generateSubdivisionFace (renderer, face, this.topLeft, this.width, this.u, this.v, this.key, 0, 0, 0);
-        Pre3d.ShapeUtils.rebuildMeta (face);
-        renderer.bufferShape(face);
+        
+        this.generateSubdivisionFace (renderer, scene, this.topLeft, this.width, this.u, this.v, this.key, 0, 0, 0);
     }
     
     
@@ -191,6 +178,13 @@ function VRFace (owner, key, topLeft_, width_, u, v) {
     }
     
     this.screenDistance = function (renderer, p0, p1) {
+        var r = {
+            x : 64,
+            y : 64
+        };
+        return r;
+        /* FIXME
+        
         var p0t = this.projectPointToCanvas (renderer, p0);
         var p1t = this.projectPointToCanvas (renderer, p1);
         
@@ -199,6 +193,7 @@ function VRFace (owner, key, topLeft_, width_, u, v) {
             y : p0t.y - p1t.y
         };
         return r;
+        */
     }
     
     this.screenDistanceHyp = function (renderer, p0, p1) {
@@ -229,61 +224,41 @@ bigshot.VRPano = function (parameters) {
         y : 0.0
     };
     
-    this.renderer = new Pre3d.Renderer (this.container);
-    this.renderer.perform_z_sorting = false;
-    this.renderer.draw_overdraw = false;
-    this.renderer.fill_rgba = null;
-    this.renderer.camera.focal_length = 3;
-    
-    function selectTexture (quad_face, quad_index, shape) {
-        var ti = quad_face.textureInfo;
-        var w = ti.textureImage.width;
-        var h = ti.textureImage.height;
-        var texinfo = new Pre3d.TextureInfo();
-        texinfo.image = ti.textureImage;
-        if (ti.face == 0) {
-            texinfo.u0 = 0;
-            texinfo.v0 = 0;
-            texinfo.u1 = 0;
-            texinfo.v1 = h;
-            texinfo.u2 = w;
-            texinfo.v2 = h;
-        } else {
-            texinfo.u0 = 0;
-            texinfo.v0 = 0;
-            texinfo.u1 = w;
-            texinfo.v1 = h;
-            texinfo.u2 = w;
-            texinfo.v2 = 0;
-        }
-        
-        that.renderer.texture = texinfo;
-        return false;
-    }
-    this.renderer.quad_callback = selectTexture;
+    this.webGl = new bigshot.WebGL (this.container);
+    this.webGl.initShaders();
+    this.webGl.gl.clearColor(0.0, 1.0, 0.0, 1.0);
+    this.webGl.gl.clearDepth(1.0);
     
     this.getParameters = function () {
         return this.parameters;
     }
     
     this.beginRender = function () {
-        this.renderer.transform.reset ();
-        this.renderer.transform.rotateY (this.state.y);
-        this.renderer.transform.rotateX (this.state.p);
-        this.renderer.transform.translate (0, 0, -1.0);
+        this.webGl.gl.viewport (0, 0, this.webGl.gl.viewportWidth, this.webGl.gl.viewportHeight);
+        this.webGl.gl.clear (this.webGl.gl.COLOR_BUFFER_BIT | this.webGl.gl.DEPTH_BUFFER_BIT);
+        
+        this.webGl.perspective (60, this.webGl.gl.viewportWidth / this.webGl.gl.viewportHeight, 0.1, 100.0);
+        this.webGl.mvReset ();
+        
+        this.webGl.mvTranslate ([0.0, 0.0, 0.0]);
+        
+        this.webGl.mvRotate (this.state.p, [1, 0, 0]);
+        this.webGl.mvRotate (this.state.y, [0, 1, 0]);
     }
     
     this.endRender = function () {
-        this.renderer.drawBuffer();
-        this.renderer.emptyBuffer();
     }
     
     this.render = function () {
         this.beginRender ();
         
+        var scene = new bigshot.WebGLTexturedQuadScene (this.webGl);
+        
         for (var f in this.vrFaces) {
-            this.vrFaces[f].render (this.renderer);
+            this.vrFaces[f].render (this.renderer, scene);
         }
+        
+        scene.render (this.webGl);
         
         // White background.
         /*renderer.ctx.setFillColor(1, 1, 1, 1);
@@ -295,16 +270,16 @@ bigshot.VRPano = function (parameters) {
     this.renderUpdated = function () {
         this.beginRender ();
         
+        var scene = new bigshot.WebGLTexturedQuadScene (this.webGl);
+        
         for (var f in this.vrFaces) {
             if (this.vrFaces[f].isUpdated ()) {
-                this.vrFaces[f].render (this.renderer);
+                this.vrFaces[f].render (this.renderer, scene);
             }
         }
         
-        // White background.
-        /*renderer.ctx.setFillColor(1, 1, 1, 1);
-        renderer.drawBackground();
-        */
+        scene.render (this.webGl);
+
         this.endRender ();
     };
     
@@ -321,8 +296,8 @@ bigshot.VRPano = function (parameters) {
         if (this.dragStart != null) {
             var dx = e.clientX - this.dragStart.clientX;
             var dy = e.clientY - this.dragStart.clientY;
-            this.state.y -= dx / 100.0;
-            this.state.p -= dy / 100.0 ;
+            this.state.y -= dx;
+            this.state.p -= dy;
             this.render ();
             this.dragStart = e;
         }
@@ -346,6 +321,7 @@ bigshot.VRPano = function (parameters) {
     this.vrFaces[3] = new VRFace (this, "r", {x:1, y:1, z:-1}, 2.0, {x:0, y:0, z:1}, {x:0, y:-1, z:0});
     this.vrFaces[4] = new VRFace (this, "u", {x:-1, y:1, z:1}, 2.0, {x:1, y:0, z:0}, {x:0, y:0, z:-1});
     this.vrFaces[5] = new VRFace (this, "d", {x:-1, y:-1, z:-1}, 2.0, {x:1, y:0, z:0}, {x:0, y:0, z:1});
+    
     
     this.browser.registerListener (this.container, "mousedown", function (e) {
             that.dragMouseDown (e);
