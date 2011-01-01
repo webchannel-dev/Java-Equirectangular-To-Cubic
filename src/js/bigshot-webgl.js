@@ -160,10 +160,8 @@ bigshot.WebGL = function (canvas_) {
     }
     
     this.handleImageTextureLoaded = function (that, texture, image) {
-        //that.gl.pixelStorei(that.gl.UNPACK_FLIP_Y_WEBGL, true);
         if (image.width == 0 || image.height == 0) {
-            return;
-            //throw "Invalid image dimensions.";
+            throw new Error("Invalid image dimensions for image:" + image.src);
         }
         
         that.gl.bindTexture(that.gl.TEXTURE_2D, texture);        
@@ -175,11 +173,11 @@ bigshot.WebGL = function (canvas_) {
     }
 };
 
-bigshot.WebGLTexturedQuad = function (p, u, v, textureImage) {
+bigshot.WebGLTexturedQuad = function (p, u, v, texture) {
     this.p = p;
     this.u = u;
     this.v = v;
-    this.textureImage = textureImage;
+    this.texture = texture;
     
     this.render = function (webGl) {
         var vertexPositionBuffer = webGl.gl.createBuffer();
@@ -212,8 +210,6 @@ bigshot.WebGLTexturedQuad = function (p, u, v, textureImage) {
         ];
         webGl.gl.bufferData(webGl.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array (vertexIndexes), webGl.gl.STATIC_DRAW);
         
-        var texture = webGl.createImageTextureFromImage (this.textureImage);
-        
         webGl.gl.bindBuffer(webGl.gl.ARRAY_BUFFER, textureCoordBuffer);
         webGl.gl.vertexAttribPointer(webGl.shaderProgram.textureCoordAttribute, 2, webGl.gl.FLOAT, false, 0, 0);
         
@@ -221,7 +217,7 @@ bigshot.WebGLTexturedQuad = function (p, u, v, textureImage) {
         webGl.gl.vertexAttribPointer(webGl.shaderProgram.vertexPositionAttribute, 3, webGl.gl.FLOAT, false, 0, 0);
         
         webGl.gl.activeTexture(webGl.gl.TEXTURE0);
-        webGl.gl.bindTexture(webGl.gl.TEXTURE_2D, texture);
+        webGl.gl.bindTexture(webGl.gl.TEXTURE_2D, this.texture);
         webGl.gl.uniform1i(webGl.shaderProgram.samplerUniform, 0);
         
         webGl.gl.bindBuffer(webGl.gl.ELEMENT_ARRAY_BUFFER, vertexIndexBuffer);
@@ -231,7 +227,6 @@ bigshot.WebGLTexturedQuad = function (p, u, v, textureImage) {
         webGl.gl.deleteBuffer (vertexPositionBuffer);
         webGl.gl.deleteBuffer (vertexIndexBuffer);
         webGl.gl.deleteBuffer (textureCoordBuffer);
-        webGl.gl.deleteTexture (texture);
     };
 }
 

@@ -6,6 +6,29 @@
         <script src="../js/bigshot.js">/* */</script>
         <script src="../js/bigshot-webgl.js"></script>
         <script src="../js/vrpano.js"></script>
+        <script>
+            var bvr = null;
+
+function vrpano () {
+    bvr = new bigshot.VRPanorama ({
+            container : document.getElementById ("canvas"),
+            basePath : "../../temp/vr.bigshot",
+            fileSystemType : "archive"
+        });
+    bvr.render ();
+}
+
+var frame = 0;
+
+function redraw () {
+    bvr.render ();
+    //state.cube_rotate_x_rad = frame * 0.01;
+    ++frame;
+    if (frame < 100) {
+    }
+}
+        </script>
+            
     </head>
     <body onload="vrpano()">
         <canvas id="canvas" width="800" height="600">

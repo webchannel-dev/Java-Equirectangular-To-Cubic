@@ -30,14 +30,87 @@ bigshot.VRTextureInfo = function (divisions, tx, ty, face, textureImage) {
     this.textureImage = textureImage;
 }
 
+/**
+    * Creates a new cache instance.
+    *
+    * @class Tile cache for the {@link bigshot.TileLayer}.
+    * @constructor
+    */
+bigshot.TileTextureCache = function (onLoaded, parameters, _webGl) {
+    this.webGl = _webGl;
+    
+    
+    /**
+        * Maximum number of tiles in the cache.
+        * @private
+        * @type int
+        */
+    this.maxCacheSize = 512;
+    this.cachedImages = {};
+    this.requestedImages = {};
+    this.lastOnLoadFiredAt = 0;
+    this.imageRequests = 0;
+    this.lruMap = new bigshot.LRUMap ();
+    this.onLoaded = onLoaded;
+    this.browser = new bigshot.Browser ();
+    
+    this.getTexture = function (tileX, tileY, zoomLevel) {
+        var key = this.getImageKey (tileX, tileY, zoomLevel);
+        this.lruMap.access (key);
+        
+        if (this.cachedImages[key]) {
+            return this.cachedImages[key];
+        } else {
+            this.requestImage (tileX, tileY, zoomLevel);
+            return null;
+        }
+    };
+    
+    this.requestImage = function (tileX, tileY, zoomLevel) {
+        var key = this.getImageKey (tileX, tileY, zoomLevel);
+        if (!this.requestedImages[key]) {
+            this.imageRequests++;
+            var tile = document.createElement ("img");
+            var that = this;
+            this.browser.registerListener (tile, "load", function () {                        
+                    that.cachedImages[key] = that.webGl.createImageTextureFromImage (tile);
+                    delete that.requestedImages[key];
+                    that.imageRequests--;
+                    var now = new Date();
+                    if (that.imageRequests == 0 || now.getTime () > (that.lastOnLoadFiredAt + 50)) {
+                        that.purgeCache ();
+                        that.lastOnLoadFiredAt = now.getTime ();
+                        that.onLoaded ();
+                    }
+                }, false);
+            this.requestedImages[key] = tile;
+            tile.src = this.getImageFilename (tileX, tileY, zoomLevel);                    
+        }            
+    };
+    
+    this.purgeCache = function () {
+        for (var i = 0; i < 4; ++i) {
+            if (this.lruMap.getSize () > this.maxCacheSize) {
+                var leastUsed = this.lruMap.leastUsed ();
+                this.lruMap.remove (leastUsed);
+                this.webGl.deleteTexture (this.cachedImages[leastUsed]);
+                delete this.cachedImages[leastUsed];
+            }
+        }
+    };
+    
+    this.getImageKey = function (tileX, tileY, zoomLevel) {
+        return "I" + tileX + "_" + tileY + "_" + zoomLevel;
+    };
+    
+    this.getImageFilename = function (tileX, tileY, zoomLevel) {
+        var f = parameters.fileSystem.getImageFilename (tileX, tileY, zoomLevel);
+        return f;
+    };
+    
+    return this;
+};
 
-function alertObject (o) {
-    var b = "";
-    for (var k in o) {
-        b += k + ": " + o[k] + "\n";
-    }
-    alert (b);
-}
 
 function VRFace (owner, key, topLeft_, width_, u, v) {
     var that = this;
@@ -75,11 +148,11 @@ function VRFace (owner, key, topLeft_, width_, u, v) {
         }
     }
     
-    this.tileCache = new bigshot.ImageTileCache (function () { 
+    this.tileCache = new bigshot.TileTextureCache (function () { 
             that.updated = true;
             owner.renderUpdated ();
-        }, this.parameters);
-    this.tileCache.setMaxTiles (this.parameters.width, this.parameters.width);
+        }, this.parameters, this.owner.webGl);
+    this.tileCache.maxCacheSize = 4096;
     
     this.fullSize = this.parameters.width;
     
@@ -97,13 +170,13 @@ function VRFace (owner, key, topLeft_, width_, u, v) {
     this.generateFace = function (scene, topLeft, width, u, v, key, tx, ty, divisions) {
         width *= 1 + this.overlap / this.tileSize;
         
-        var textureImage = this.tileCache.getImage (tx, ty, -this.maxDivisions + divisions);
+        var texture = this.tileCache.getTexture (tx, ty, -this.maxDivisions + divisions);
         scene.addQuad (new bigshot.WebGLTexturedQuad (
-                    topLeft,
-                    pt3dMult (u, width),
-                    pt3dMult (v, width),
-                    textureImage
-                )
+                topLeft,
+                pt3dMult (u, width),
+                pt3dMult (v, width),
+                texture
+            )
         );
     }
     
@@ -163,8 +236,6 @@ function VRFace (owner, key, topLeft_, width_, u, v) {
     
     this.render = function (renderer, scene) {
         this.updated = false;
-        this.tileCache.resetUsed ();
-        
         this.generateSubdivisionFace (renderer, scene, this.topLeft, this.width, this.u, this.v, this.key, 0, 0, 0);
     }
     
@@ -211,7 +282,7 @@ function VRFace (owner, key, topLeft_, width_, u, v) {
     }
 }
 
-bigshot.VRPano = function (parameters) {
+bigshot.VRPanorama = function (parameters) {
     var that = this;
     
     this.parameters = parameters;
@@ -221,7 +292,8 @@ bigshot.VRPano = function (parameters) {
     
     this.state = {
         p : 0.0,
-        y : 0.0
+        y : 0.0,
+        fov : 60
     };
     
     this.webGl = new bigshot.WebGL (this.container);
@@ -233,11 +305,38 @@ bigshot.VRPano = function (parameters) {
         return this.parameters;
     }
     
+    this.setFov = function (fov) {
+        this.state.fov = fov;
+    }
+    
+    this.getFov = function () {
+        return this.state.fov;
+    }
+    
+    this.setPitch = function (p) {
+        this.state.p = p;
+    }
+    
+    this.setYaw = function (y) {
+        this.state.y = y;
+    }
+    
+    this.setYaw = function (y) {
+        this.state.y = y;
+    }
+    
+    this.getYaw = function () {
+        return this.state.y;
+    }
+    
+    this.getPitch = function () {
+        return this.state.p;
+    }
+    
     this.beginRender = function () {
         this.webGl.gl.viewport (0, 0, this.webGl.gl.viewportWidth, this.webGl.gl.viewportHeight);
-        this.webGl.gl.clear (this.webGl.gl.COLOR_BUFFER_BIT | this.webGl.gl.DEPTH_BUFFER_BIT);
         
-        this.webGl.perspective (60, this.webGl.gl.viewportWidth / this.webGl.gl.viewportHeight, 0.1, 100.0);
+        this.webGl.perspective (this.state.fov, this.webGl.gl.viewportWidth / this.webGl.gl.viewportHeight, 0.1, 100.0);
         this.webGl.mvReset ();
         
         this.webGl.mvTranslate ([0.0, 0.0, 0.0]);
@@ -279,7 +378,7 @@ bigshot.VRPano = function (parameters) {
         }
         
         scene.render (this.webGl);
-
+        
         this.endRender ();
     };
     
@@ -294,10 +393,11 @@ bigshot.VRPano = function (parameters) {
     
     this.dragMouseMove = function (e) {
         if (this.dragStart != null) {
+            var scale = this.state.fov / this.container.width;
             var dx = e.clientX - this.dragStart.clientX;
             var dy = e.clientY - this.dragStart.clientY;
-            this.state.y -= dx;
-            this.state.p -= dy;
+            this.state.y -= dx * scale;
+            this.state.p -= dy * scale;
             this.render ();
             this.dragStart = e;
         }
@@ -337,24 +437,4 @@ bigshot.VRPano = function (parameters) {
         }, false);
 }
 
-var bvr = null;
-
-function vrpano () {
-    bvr = new bigshot.VRPano ({
-            container : document.getElementById ("canvas"),
-            basePath : "../../temp/vr.bigshot",
-            fileSystemType : "archive"
-        });
-    bvr.render ();
-}
-
-var frame = 0;
-
-function redraw () {
-    bvr.render ();
-    //state.cube_rotate_x_rad = frame * 0.01;
-    ++frame;
-    if (frame < 100) {
-    }
-}
 
