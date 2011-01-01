@@ -1,41 +1,9 @@
-function pt3dMultAdd (p, m, a) {
-    return {
-        x : p.x * m + a.x,
-        y : p.y * m + a.y,
-        z : p.z * m + a.z
-    };
-}
-
-function pt3dMult (p, m) {
-    return {
-        x : p.x * m,
-        y : p.y * m,
-        z : p.z * m
-    };
-}
-
-function pt3dAdd (p, a) {
-    return {
-        x : p.x + a.x,
-        y : p.y + a.y,
-        z : p.z + a.z
-    };
-}
-
-bigshot.VRTextureInfo = function (divisions, tx, ty, face, textureImage) {
-    this.divisions = divisions;
-    this.tx = tx;
-    this.ty = ty;
-    this.face = face;
-    this.textureImage = textureImage;
-}
-
 /**
-    * Creates a new cache instance.
-    *
-    * @class Tile cache for the {@link bigshot.TileLayer}.
-    * @constructor
-    */
+ * Creates a new cache instance.
+ *
+ * @class Tile cache for the {@link bigshot.TileLayer}.
+ * @constructor
+ */
 bigshot.TileTextureCache = function (onLoaded, parameters, _webGl) {
     this.webGl = _webGl;
     
@@ -116,8 +84,8 @@ function VRFace (owner, key, topLeft_, width_, u, v) {
     var that = this;
     this.owner = owner;
     this.key = key;
-    this.topLeft = pt3dMult (topLeft_, 1);
-    this.width = width_ * 1;
+    this.topLeft = topLeft_;
+    this.width = width_;
     this.u = u;
     this.v = v;
     this.updated = false;
@@ -148,6 +116,23 @@ function VRFace (owner, key, topLeft_, width_, u, v) {
         }
     }
     
+        
+    this.pt3dMultAdd = function (p, m, a) {
+        return {
+            x : p.x * m + a.x,
+            y : p.y * m + a.y,
+            z : p.z * m + a.z
+        };
+    };
+    
+    this.pt3dMult = function (p, m) {
+        return {
+            x : p.x * m,
+            y : p.y * m,
+            z : p.z * m
+        };
+    };
+    
     this.tileCache = new bigshot.TileTextureCache (function () { 
             that.updated = true;
             owner.renderUpdated ();
@@ -173,8 +158,8 @@ function VRFace (owner, key, topLeft_, width_, u, v) {
         var texture = this.tileCache.getTexture (tx, ty, -this.maxDivisions + divisions);
         scene.addQuad (new bigshot.WebGLTexturedQuad (
                 topLeft,
-                pt3dMult (u, width),
-                pt3dMult (v, width),
+                this.pt3dMult (u, width),
+                this.pt3dMult (v, width),
                 texture
             )
         );
@@ -189,9 +174,9 @@ function VRFace (owner, key, topLeft_, width_, u, v) {
     }
     
     this.generateSubdivisionFace = function (renderer, scene, topLeft, width, u, v, key, divisions, tx, ty) {
-        var bottomLeft = pt3dMultAdd (v, width, topLeft);
-        var topRight = pt3dMultAdd (u, width, topLeft);
-        var bottomRight = pt3dMultAdd (u, width, bottomLeft);
+        var bottomLeft = this.pt3dMultAdd (v, width, topLeft);
+        var topRight = this.pt3dMultAdd (u, width, topLeft);
+        var bottomRight = this.pt3dMultAdd (u, width, bottomLeft);
         
         var numBehind = 0;
         if (this.isBehind (renderer, topLeft)) {
@@ -218,9 +203,9 @@ function VRFace (owner, key, topLeft_, width_, u, v) {
         dmax = Math.max (this.screenDistanceMax (renderer, bottomLeft, topLeft).d, dmax);
         
         if (divisions < this.minDivisions || ((dmax > (this.tileSize - this.overlap) || straddles) && divisions < this.maxDivisions)) {
-            var center = pt3dMultAdd ({x: u.x + v.x, y: u.y + v.y, z: u.z + v.z }, width / 2, topLeft);
-            var midTop = pt3dMultAdd (u, width / 2, topLeft);
-            var midLeft = pt3dMultAdd (v, width / 2, topLeft);
+            var center = this.pt3dMultAdd ({x: u.x + v.x, y: u.y + v.y, z: u.z + v.z }, width / 2, topLeft);
+            var midTop = this.pt3dMultAdd (u, width / 2, topLeft);
+            var midLeft = this.pt3dMultAdd (v, width / 2, topLeft);
             this.generateSubdivisionFace (renderer, scene, topLeft, width / 2, u, v, key, divisions + 1, tx * 2, ty * 2);
             this.generateSubdivisionFace (renderer, scene, midTop, width / 2, u, v, key, divisions + 1, tx * 2 + 1, ty * 2);
             this.generateSubdivisionFace (renderer, scene, midLeft, width / 2, u, v, key, divisions + 1, tx * 2, ty * 2 + 1);
