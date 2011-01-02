@@ -82,18 +82,6 @@
             <arg value="${package-dir}/bigshot-compressed.js"/>
             <arg value="${package-dir}/bigshot.js"/>
         </java>
-        <java fork="yes" jar="${basedir}/tools/yuicompressor-2.4.2.jar"
-            dir="${basedir}">
-            <arg value="-o"/>
-            <arg value="${package-dir}/bigshot-webgl-compressed.js"/>
-            <arg value="${package-dir}/bigshot-webgl.js"/>
-        </java>
-        <java fork="yes" jar="${basedir}/tools/yuicompressor-2.4.2.jar"
-            dir="${basedir}">
-            <arg value="-o"/>
-            <arg value="${package-dir}/bigshot-vrpanorama-compressed.js"/>
-            <arg value="${package-dir}/bigshot-vrpanorama.js"/>
-        </java>
         <zip destfile="${final}/bigshot-${version}.zip">
             <fileset dir="${package-dir}"/>
         </zip>
