@@ -238,6 +238,8 @@ bigshot.WebGLTexturedQuad = function (p, u, v, texture) {
      * Renders the quad using the given {@link bigshot.WebGL} instance.
      * Currently creates, fills, draws with and then deletes three buffers -
      * not very efficient, but works.
+     *
+     * @param {bigshot.WebGL} webGl the WebGL wrapper instance to use for rendering.
      */
     this.render = function (webGl) {
         var vertexPositionBuffer = webGl.gl.createBuffer();

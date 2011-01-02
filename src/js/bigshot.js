@@ -16,12 +16,15 @@
 if (!self["bigshot"]) {
     /**
      * @namespace Bigshot namespace.
-     * The two classes that are needed for zoomable images are:
+     *
+     * <h3>Zoomable Images</h3>
+     *
+     * <p>The two classes that are needed for zoomable images are:
      *
      * <ul>
      * <li>{@link bigshot.Image}: The main class for making zoomable images. See the class docs
      *     for a tutorial.
-     * <li>{@link bigshot.ImageParameters}: Parameters for zoomable images. See 
+     * <li>{@link bigshot.ImageParameters}: Parameters for zoomable images.
      * </ul>
      *
      * For hotspots, see:
@@ -31,6 +34,16 @@ if (!self["bigshot"]) {
      * <li>{@link bigshot.Hotspot}
      * <li>{@link bigshot.LabeledHotspot}
      * <li>{@link bigshot.LinkHotspot}
+     * </ul>
+     *
+     * <h3>VR Panoramas</h3>
+     *
+     * <p>The two classes that are needed for zoomable VR panoramas (requires WebGL) are:
+     *
+     * <ul>
+     * <li>{@link bigshot.VRPanorama}: The main class for making VR panoramas. See the class docs
+     *     for a tutorial.
+     * <li>{@link bigshot.ImageParameters}: Parameters for zoomable images. 
      * </ul>
      */
     bigshot = {};
@@ -895,10 +908,10 @@ if (!self["bigshot"]) {
      * Creates a new image parameter object and populates it with default values for
      * all values not explicitly given.
      *
-     * @class Image parameter object.
+     * @class ImageParameters parameter object.
      * You need not set any fields that can be read from the image descriptor that 
-     * MakeImagePyramid creates. See the {@link bigshot.Image} documentation
-     * for required parameters.
+     * MakeImagePyramid creates. See the {@link bigshot.Image} and {@link bigshot.VRPanorama}
+     * documentation for required parameters.
      *
      * <p>Usage:
      *
@@ -910,9 +923,15 @@ if (!self["bigshot"]) {
      *         container : document.getElementById ("bigshot_div")
      *         }));
      * 
-     * @class
+     * var bvr = new bigshot.VRPanorama (
+     *     new bigshot.ImageParameters ({
+     *         basePath : "/bigshot.php?file=myvr.bigshot",
+     *         fileSystemType : "archive",
+     *         container : document.getElementById ("bigshot_canvas")
+     *         }));
      * @param values named parameter map, see the fields below for parameter names and types.
      * @see bigshot.Image
+     * @see bigshot.VRPanorama
      */
     bigshot.ImageParameters = function (values) {
         /**
@@ -962,9 +981,10 @@ if (!self["bigshot"]) {
         this.height = 0;
         
         /**
-         * The div to use as a container for the image.
+         * For {@link bigshot.Image}, the {@code div} to use as a container for the image.
+         * For {@link bigshot.VRPanorama}, the {@code canvas} to render into.
          *
-         * @type HTMLDivElement
+         * @type HTMLDivElement or HTMLCanvasElement
          */
         this.container = null;
         

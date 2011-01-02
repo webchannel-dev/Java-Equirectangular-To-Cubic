@@ -39,7 +39,7 @@ bigshot.TileTextureCache = function (onLoaded, parameters, _webGl) {
      * @type int
      */
     this.maxCacheSize = 512;
-    this.cachedImages = {};
+    this.cachedTextures = {};
     this.requestedImages = {};
     this.lastOnLoadFiredAt = 0;
     this.imageRequests = 0;
@@ -93,13 +93,13 @@ bigshot.TileTextureCache = function (onLoaded, parameters, _webGl) {
         var key = this.getImageKey (tileX, tileY, zoomLevel);
         this.lruMap.access (key);
         
-        if (this.cachedImages[key]) {
-            return this.cachedImages[key];
+        if (this.cachedTextures[key]) {
+            return this.cachedTextures[key];
         } else {
             this.requestImage (tileX, tileY, zoomLevel);
             var partial = this.getPartialTexture (tileX, tileY, zoomLevel);
             if (partial) {
-                this.cachedImages[key] = partial;
+                this.cachedTextures[key] = partial;
             }
             return partial;
         }
@@ -112,7 +112,10 @@ bigshot.TileTextureCache = function (onLoaded, parameters, _webGl) {
             var tile = document.createElement ("img");
             var that = this;
             this.browser.registerListener (tile, "load", function () {                        
-                    that.cachedImages[key] = that.webGl.createImageTextureFromImage (tile);
+                    if (that.cachedTextures[key]) {
+                        that.webGl.gl.deleteTexture (that.cachedTextures[key]);
+                    }
+                    that.cachedTextures[key] = that.webGl.createImageTextureFromImage (tile);
                     delete that.requestedImages[key];
                     that.imageRequests--;
                     var now = new Date();
@@ -131,8 +134,8 @@ bigshot.TileTextureCache = function (onLoaded, parameters, _webGl) {
             if (this.lruMap.getSize () > this.maxCacheSize) {
                 var leastUsed = this.lruMap.leastUsed ();
                 this.lruMap.remove (leastUsed);
-                this.webGl.deleteTexture (this.cachedImages[leastUsed]);
-                delete this.cachedImages[leastUsed];
+                this.webGl.deleteTexture (this.cachedTextures[leastUsed]);
+                delete this.cachedTextures[leastUsed];
             }
         }
     };
@@ -336,6 +339,16 @@ bigshot.VRFace = function (owner, key, topLeft_, width_, u, v) {
  * Creates a new VR panorama in a canvas.
  * 
  * @class VRPanorama A cube-map VR panorama.
+ *
+ * @param {bigshot.ImageParameters} parameters the image parameters.
+ * @example
+ * var bvr = new bigshot.VRPanorama (
+ *     new bigshot.ImageParameters ({
+ *         basePath : "/bigshot.php?file=myvr.bigshot",
+ *         fileSystemType : "archive",
+ *         container : document.getElementById ("bigshot_canvas")
+ *         }));
+ * @see bigshot.ImageParameters
  */
 bigshot.VRPanorama = function (parameters) {
     var that = this;
@@ -345,12 +358,30 @@ bigshot.VRPanorama = function (parameters) {
     this.browser = new bigshot.Browser ();
     this.dragStart = null;
     
+    /**
+     * Current camera state.
+     * @private
+     */
     this.state = {
+        /**
+         * Pitch in degrees.
+         */
         p : 0.0,
+        
+        /**
+         * Yaw in degrees.
+         */
         y : 0.0,
+        
+        /**
+         * Field of view (horizontal) in degrees.
+         */
         fov : 60
     };
     
+    /**
+     * WebGL wrapper.
+     */
     this.webGl = new bigshot.WebGL (this.container);
     this.webGl.initShaders();
     this.webGl.gl.clearColor(0.0, 0.0, 0.0, 1.0);
