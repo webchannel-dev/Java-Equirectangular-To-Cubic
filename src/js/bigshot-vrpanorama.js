@@ -152,7 +152,12 @@ bigshot.TileTextureCache = function (onLoaded, parameters, _webGl) {
     return this;
 };
 
-
+/**
+ * Creates a new VR cube face.
+ *
+ * @class VRFace a VR cube face. The {@link bigshot.VRPanorama} instance holds
+ * six of these.
+ */
 bigshot.VRFace = function (owner, key, topLeft_, width_, u, v) {
     var that = this;
     this.owner = owner;
