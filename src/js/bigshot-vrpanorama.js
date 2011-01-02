@@ -23,6 +23,17 @@ bigshot.TileTextureCache = function (onLoaded, parameters, _webGl) {
     this.webGl = _webGl;
     
     /**
+     * Reduced-resolution preview of the full image.
+     * Loaded from the "poster" image created by 
+     * MakeImagePyramid
+     *
+     * @private
+     * @type HTMLImageElement
+     */
+    this.fullImage = document.createElement ("img");
+    this.fullImage.src = parameters.fileSystem.getFilename ("poster" + parameters.suffix);
+    
+    /**
      * Maximum number of tiles in the cache.
      * @private
      * @type int
@@ -32,9 +43,51 @@ bigshot.TileTextureCache = function (onLoaded, parameters, _webGl) {
     this.requestedImages = {};
     this.lastOnLoadFiredAt = 0;
     this.imageRequests = 0;
+    this.partialImageSize = parameters.tileSize / 8;
     this.lruMap = new bigshot.LRUMap ();
     this.onLoaded = onLoaded;
     this.browser = new bigshot.Browser ();
+    
+    this.getPartialTexture = function (tileX, tileY, zoomLevel) {
+        if (this.fullImage.complete) {
+            var canvas = document.createElement ("canvas");
+            if (!canvas["width"]) {
+                return null;
+            }
+            canvas.width = this.partialImageSize;
+            canvas.height = this.partialImageSize;
+            var ctx = canvas.getContext('2d'); 
+            
+            var posterScale = parameters.posterSize / Math.max (parameters.width, parameters.height);
+            
+            var posterWidth = Math.floor (posterScale * parameters.width);
+            var posterHeight = Math.floor (posterScale * parameters.height);
+            
+            var tileSizeAtZoom = posterScale * (parameters.tileSize - parameters.overlap) / Math.pow (2, zoomLevel);    
+            var sx = Math.floor (tileSizeAtZoom * tileX);
+            var sy = Math.floor (tileSizeAtZoom * tileY);
+            var sw = Math.floor (tileSizeAtZoom);
+            var sh = Math.floor (tileSizeAtZoom);
+            var dw = this.partialImageSize + 2;
+            var dh = this.partialImageSize + 2;
+            
+            if (sx + sw > posterWidth) {
+                sw = posterWidth - sx;
+                dw = this.partialImageSize * (sw / Math.floor (tileSizeAtZoom));
+            }
+            if (sy + sh > posterHeight) {
+                sh = posterHeight - sy;
+                dh = this.partialImageSize * (sh / Math.floor (tileSizeAtZoom));
+            }
+            
+            ctx.drawImage (this.fullImage, sx, sy, sw, sh, -1, -1, dw, dh);
+            
+            return this.webGl.createImageTextureFromImage (canvas);
+        } else {
+            return null;
+        }
+    };
+    
     
     this.getTexture = function (tileX, tileY, zoomLevel) {
         var key = this.getImageKey (tileX, tileY, zoomLevel);
@@ -44,7 +97,11 @@ bigshot.TileTextureCache = function (onLoaded, parameters, _webGl) {
             return this.cachedImages[key];
         } else {
             this.requestImage (tileX, tileY, zoomLevel);
-            return null;
+            var partial = this.getPartialTexture (tileX, tileY, zoomLevel);
+            if (partial) {
+                this.cachedImages[key] = partial;
+            }
+            return partial;
         }
     };
     
@@ -60,7 +117,6 @@ bigshot.TileTextureCache = function (onLoaded, parameters, _webGl) {
                     that.imageRequests--;
                     var now = new Date();
                     if (that.imageRequests == 0 || now.getTime () > (that.lastOnLoadFiredAt + 50)) {
-                        that.purgeCache ();
                         that.lastOnLoadFiredAt = now.getTime ();
                         that.onLoaded ();
                     }
@@ -229,6 +285,7 @@ bigshot.VRFace = function (owner, key, topLeft_, width_, u, v) {
     this.render = function (scene) {
         this.updated = false;
         this.generateSubdivisionFace (scene, this.topLeft, this.width, this.u, this.v, this.key, 0, 0, 0);
+        this.tileCache.purgeCache ();
     }
     
     
@@ -468,7 +525,6 @@ bigshot.VRPanorama = function (parameters) {
     }
     
     this.idleTick = function () {
-        console.log ("Tick..." + this.idleCounter + "/" + this.maxIdleCounter);
         if (this.maxIdleCounter < 0) {
             return;
         }
@@ -510,7 +566,22 @@ bigshot.VRPanorama = function (parameters) {
             });
     }
     
+    /**
+     * Integer acting as a "permit". When the smoothRotate function
+     * is called, the current value is incremented and saved. If the number changes
+     * that particular call to smoothRotate stops. This way we avoid
+     * having multiple smoothRotate rotations going in parallel.
+     */
     this.smoothrotatePermit = 0;
+    
+    /**
+     * Smoothly rotates the camera. If any of the dp or dy functions are null, stops
+     * any smooth rotation.
+     *
+     * @param {function()} dp function giving the pitch increment for the next frame
+     * @param {function()} dy function giving the yaw increment for the next frame
+     * @param {function()} [df] function giving the field of view (degrees) increment for the next frame
+     */
     this.smoothRotate = function (dp, dy, df) {
         ++this.smoothrotatePermit;
         var savedPermit = this.smoothrotatePermit;
@@ -612,6 +683,11 @@ bigshot.VRPanorama = function (parameters) {
         }
     };
     
+    /**
+     * Flag that indicates whether we are in full screen mode.
+     *
+     * @private
+     */
     this.isFullScreen = false;
     
     /**
@@ -719,6 +795,9 @@ bigshot.VRPanorama = function (parameters) {
         this.onresize ();
     };
     
+    /**
+     * Right-sizes the canvas container.
+     */
     this.onresize = function () {
         if (!this.isFullScreen) {
             if (this.sizeContainer) {
@@ -735,15 +814,31 @@ bigshot.VRPanorama = function (parameters) {
         this.renderAsap ();            
     };
     
+    /**
+     * Posts a render() call via a timeout. Use when the render call must be
+     * done as soon as possible, but can't be done in the current call context.
+     */
     this.renderAsap = function () {
         var that = this;
         setTimeout (function () {
-            that.render ();
+                that.render ();
             }, 1);
     }
     
+    /**
+     * An element to use as reference when resizing the canvas element.
+     * If non-null, any onresize() calls will result in the canvas being
+     * resized to the size of this element.
+     */
     this.sizeContainer = null;
     
+    /**
+     * Automatically resizes the canvas element to the size of the 
+     * given element on resize.
+     *
+     * @param {HTMLElement} sizeContainer the element to use. Set to {@code null}
+     * to disable.
+     */
     this.autoResizeContainer = function (sizeContainer) {
         this.sizeContainer = sizeContainer;
     }
@@ -784,8 +879,6 @@ bigshot.VRPanorama = function (parameters) {
     this.browser.registerListener (window, 'resize', function (e) {
             that.onresize ();
         }, false);
-    
-    
 }
 
 

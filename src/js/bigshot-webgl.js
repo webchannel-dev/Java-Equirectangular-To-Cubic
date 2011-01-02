@@ -170,7 +170,6 @@ bigshot.WebGL = function (canvas_) {
     
     this.createImageTextureFromImage = function (image) {
         var texture = this.gl.createTexture();
-        texture.image = image;
         this.handleImageTextureLoaded (this, texture, image);
         return texture;
     }
@@ -178,7 +177,6 @@ bigshot.WebGL = function (canvas_) {
     this.createImageTextureFromSource = function (source) {
         var image = new Image();
         var texture = this.gl.createTexture();
-        texture.image = image;
         
         var that = this;
         image.onload = function () {
@@ -191,10 +189,6 @@ bigshot.WebGL = function (canvas_) {
     }
     
     this.handleImageTextureLoaded = function (that, texture, image) {
-        if (image.width == 0 || image.height == 0) {
-            throw new Error("Invalid image dimensions for image:" + image.src);
-        }
-        
         that.gl.bindTexture(that.gl.TEXTURE_2D, texture);        
         that.gl.texImage2D(that.gl.TEXTURE_2D, 0, that.gl.RGBA, that.gl.RGBA, that.gl.UNSIGNED_BYTE, image);
         that.gl.texParameteri(that.gl.TEXTURE_2D, that.gl.TEXTURE_MAG_FILTER, that.gl.NEAREST);
@@ -223,12 +217,28 @@ bigshot.WebGL = function (canvas_) {
     }
 };
 
+/**
+ * Creates a textured quad object.
+ *
+ * @class WebGLTexturedQuad An abstraction for textured quads. Used in the
+ * {@link bigshot.WebGLTexturedQuadScene}.
+ *
+ * @param {point} p the top-left corner of the quad
+ * @param {vector} u vector pointing from p along the top edge of the quad
+ * @param {vector} v vector pointing from p along the left edge of the quad
+ * @param {WebGLTexture} the texture to use.
+ */
 bigshot.WebGLTexturedQuad = function (p, u, v, texture) {
     this.p = p;
     this.u = u;
     this.v = v;
     this.texture = texture;
     
+    /**
+     * Renders the quad using the given {@link bigshot.WebGL} instance.
+     * Currently creates, fills, draws with and then deletes three buffers -
+     * not very efficient, but works.
+     */
     this.render = function (webGl) {
         var vertexPositionBuffer = webGl.gl.createBuffer();
         webGl.gl.bindBuffer(webGl.gl.ARRAY_BUFFER, vertexPositionBuffer);
@@ -280,14 +290,30 @@ bigshot.WebGLTexturedQuad = function (p, u, v, texture) {
     };
 }
 
+/**
+ * Creates a textured quad scene.
+ *
+ * @param {bigshot.WebGL} webGl the webGl instance to use for rendering.
+ *
+ * @class WebGLTexturedQuadScene A "scene" consisting of a number of quads, all with
+ * a unique texture. Used by the {@link bigshot.VRPanorama} to render the VR cube.
+ *
+ * @see bigshot.WebGLTexturedQuad
+ */
 bigshot.WebGLTexturedQuadScene = function (webGl) {
     this.quads = new Array ();
     this.webGl = webGl;
     
+    /** 
+     * Adds a new quad to the scene.
+     */
     this.addQuad = function (quad) {
         this.quads.push (quad);
     }
     
+    /** 
+     * Renders all quads.
+     */
     this.render = function () {
         for (var i = 0; i < this.quads.length; ++i) {
             this.quads[i].render (this.webGl);

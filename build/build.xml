@@ -162,7 +162,11 @@
     
     <target name="host">
         <echo><![CDATA[Point your web browser at:
-http://localhost/src/test/test.html]]></echo>
+http://localhost/src/test/test.html
+    To test Bigshot
+http://localhost/src/test/vrpano.html
+    To test Bigshot VR Panorama 
+    (WebGL-capable web browser required)]]></echo>
         <java classname="minihttpd.MinimalHttpd"
             classpath="${temp}/classes/" fork="yes">
             <arg value="."/>
