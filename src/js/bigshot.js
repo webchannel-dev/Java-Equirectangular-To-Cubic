@@ -2298,11 +2298,19 @@ if (!self["bigshot"]) {
     };
     
     /**
-        * Creates a new VR cube face.
-        *
-        * @class VRFace a VR cube face. The {@link bigshot.VRPanorama} instance holds
-        * six of these.
-        */
+     * Creates a new VR cube face.
+     *
+     * @class VRFace a VR cube face. The {@link bigshot.VRPanorama} instance holds
+     * six of these.
+     *
+     * @param {bigshot.VRPanorama} owner the VR panorama this face is part of.
+     * @param {string} key the identifier for the face. "f" is front, "b" is back, "u" is
+     * up, "d" is down, "l" is left and "r" is right.
+     * @param {point} topLeft_ the top-left corner of the quad.
+     * @param {number} width_ the length of the sides of the face, expressed in multiples of u and v.
+     * @param {vector} u basis vector going from the top left corner along the top edge of the face
+     * @param {vector} v basis vector going from the top left corner along the left edge of the face
+     */
     bigshot.VRFace = function (owner, key, topLeft_, width_, u, v) {
         var that = this;
         this.owner = owner;
@@ -2339,7 +2347,13 @@ if (!self["bigshot"]) {
             }
         }
         
-        
+        /**
+         * Utility function to do a multiply-and-add of a 3d point.
+         * @param p {point} the point to multiply
+         * @param m {number} the number to multiply the elements of p with
+         * @param a {point} the point to add
+         * @return p * m + a
+         */
         this.pt3dMultAdd = function (p, m, a) {
             return {
                 x : p.x * m + a.x,
@@ -2348,6 +2362,12 @@ if (!self["bigshot"]) {
             };
         };
         
+        /**
+         * Utility function to do an element-wise multiply of a 3d point.
+         * @param p {point} the point to multiply
+         * @param m {number} the number to multiply the elements of p with
+         * @return p * m
+         */
         this.pt3dMult = function (p, m) {
             return {
                 x : p.x * m,
@@ -2356,6 +2376,9 @@ if (!self["bigshot"]) {
             };
         };
         
+        /**
+         * Texture cache.
+         */
         this.tileCache = new bigshot.TileTextureCache (function () { 
                 that.updated = true;
                 owner.renderUpdated ();
@@ -2363,7 +2386,6 @@ if (!self["bigshot"]) {
         this.tileCache.maxCacheSize = 4096;
         
         this.fullSize = this.parameters.width;
-        
         this.overlap = this.parameters.overlap;
         this.tileSize = this.parameters.tileSize;
         
@@ -2372,6 +2394,11 @@ if (!self["bigshot"]) {
         var singleTile = Math.log (this.tileSize - this.overlap) / Math.LN2;
         this.maxDivisions = Math.floor (fullZoom - singleTile);
         
+        /**
+         * Creates a textured quad.
+         *
+         * @private
+         */
         this.generateFace = function (scene, topLeft, width, u, v, key, tx, ty, divisions) {
             width *= this.tileSize / (this.tileSize - this.overlap);
             var texture = this.tileCache.getTexture (tx, ty, -this.maxDivisions + divisions);
@@ -2384,11 +2411,30 @@ if (!self["bigshot"]) {
             );
         }
         
+        /**
+         * Tests if the point is behind the observer. Since we're looking down
+         * negative z we just test if z > 0 after applying the world transform.
+         */
         this.isBehind = function (p) {
             var result = this.owner.webGl.transformToWorld ([p.x, p.y, p.z]);
             return result.e(3) > 0;
         }
         
+        /**
+         * Optionally subdivides a quad into fourn new quads, depending on the
+         * position and on-screen size of the quad.
+         *
+         * @private
+         * @param {bigshot.WebGLTexturedQuadScene} scene the scene to add quads to
+         * @param {point} topLeft the top left corner of this quad
+         * @param {number} width the sides of the quad, expressed in multiples of u and v
+         * @param {point} u the vector going along the top edge of the quad
+         * @param {point} v the vector going along the left edge of the quad
+         * @param {int} divisions the current number of divisions done (increases by one for each
+         * split-in-four).
+         * @param {int} tx the tile column this face is in
+         * @param {int} ty the tile row this face is in 
+         */
         this.generateSubdivisionFace = function (scene, topLeft, width, u, v, key, divisions, tx, ty) {
             var bottomLeft = this.pt3dMultAdd (v, width, topLeft);
             var topRight = this.pt3dMultAdd (u, width, topLeft);
@@ -2441,11 +2487,20 @@ if (!self["bigshot"]) {
             this.tileCache.purgeCache ();
         }
         
-        
+        /**
+         * Projects the given point into screen coordinates.
+         */
         this.projectPointToCanvas = function (p) {
             return this.owner.webGl.transformToScreen ([p.x, p.y, p.z]);
         }
         
+        /**
+         * Returns the on-screen distance of two points.
+         *
+         * @param {point} p0 the first point
+         * @param {point} p1 the second point
+         * @return {point} the x and y difference in pixel position
+         */
         this.screenDistance = function (p0, p1) {
             var p0t = this.projectPointToCanvas (p0);
             var p1t = this.projectPointToCanvas (p1);
@@ -2461,6 +2516,13 @@ if (!self["bigshot"]) {
             return r;
         }
         
+        /**
+         * Returns the on-screen distance of two points as euclidean distance.
+         *
+         * @param {point} p0 the first point
+         * @param {point} p1 the second point
+         * @return {point} the x and y difference in pixel position
+         */
         this.screenDistanceHyp = function (p0, p1) {
             var r = this.screenDistance (p0, p1);
             if (r == null) {
@@ -2471,6 +2533,14 @@ if (!self["bigshot"]) {
             return r;
         }
         
+        /**
+         * Returns the on-screen distance of two points as the maximum of
+         * x and y difference.
+         *
+         * @param {point} p0 the first point
+         * @param {point} p1 the second point
+         * @return {point} the x and y difference in pixel position
+         */
         this.screenDistanceMax = function (p0, p1) {
             var r = this.screenDistance (p0, p1);
             
@@ -2488,20 +2558,21 @@ if (!self["bigshot"]) {
     bigshot.WebGLDebug = false;
     
     /**
-        * Creates a new WebGL wrapper instance.
-        *
-        * @class WebGL WebGL wrapper for common bigshot.VRPanorama uses.
-        */
+     * Creates a new WebGL wrapper instance.
+     *
+     * @class WebGL WebGL wrapper for common {@link bigshot.VRPanorama} uses.
+     */
     bigshot.WebGL = function (canvas_) {
         
         this.canvas = canvas_;
         
-        this.gl = bigshot.WebGLDebug ?
+        this.gl = bigshot.WebGLDebug 
+            ?
             WebGLDebugUtils.makeDebugContext(this.canvas.getContext("experimental-webgl"))
-        :
-        this.canvas.getContext("experimental-webgl");
+            :
+            this.canvas.getContext("experimental-webgl");
         if (!this.gl) {
-            alert("Could not initialise WebGL.");
+            throw new Error("Could not initialise WebGL.");
             return;
         }    
         this.gl.viewportWidth = this.canvas.width;
@@ -2512,6 +2583,10 @@ if (!self["bigshot"]) {
             this.gl.viewportHeight = this.canvas.height;
         }
         
+        /**
+         * Fragment shader. Taken from the "Learning WebGL" lessons:
+         *     http://learningwebgl.com/blog/?p=571
+         */
         this.fragmentShader = 
             "#ifdef GL_ES\n" + 
             "    precision highp float;\n" + 
@@ -2525,6 +2600,10 @@ if (!self["bigshot"]) {
             "    gl_FragColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));\n" + 
             "}\n";
         
+        /**
+         * Vertex shader. Taken from the "Learning WebGL" lessons:
+         *     http://learningwebgl.com/blog/?p=571
+         */
         this.vertexShader = 
             "attribute vec3 aVertexPosition;\n" +
             "attribute vec2 aTextureCoord;\n" +
@@ -2617,11 +2696,20 @@ if (!self["bigshot"]) {
             this.mvMatrix = this.mvMatrix.x (matrix);
         }
         
+        /**
+         * Adds a translation to the world transform matrix.
+         */
         this.mvTranslate = function (vector) {
             var m = Matrix.Translation($V([vector[0], vector[1], vector[2]])).ensure4x4 ();
             this.mvMultiply (m);
         }
         
+        /**
+         * Adds a rotation to the world transform matrix.
+         *
+         * @param {number} the angle in degrees to rotate
+         * @param {vector} vector the rotation vector
+         */
         this.mvRotate = function (ang, vector) {
             var arad = ang * Math.PI / 180.0;
             var m = Matrix.Rotation(arad, $V([vector[0], vector[1], vector[2]])).ensure4x4 ();
@@ -2630,21 +2718,44 @@ if (!self["bigshot"]) {
         
         this.pMatrix = null;
         
+        /**
+         * Sets the perspective transformation matrix.
+         *
+         * @param {number} fovy vertical field of view
+         * @param {number} aspect viewport aspect ratio
+         * @param {number} znear near image plane
+         * @param {number} zfar far image plane
+         */
         this.perspective = function (fovy, aspect, znear, zfar) {
             this.pMatrix = makePerspective (fovy, aspect, znear, zfar);
         }
         
+        /**
+         * Sets the matrix parameters ("uniforms", since the variables are declared as uniform) in the shaders.
+         */
         this.setMatrixUniforms = function () {
             this.gl.uniformMatrix4fv(this.shaderProgram.pMatrixUniform, false, new Float32Array(this.pMatrix.flatten()));
             this.gl.uniformMatrix4fv(this.shaderProgram.mvMatrixUniform, false, new Float32Array(this.mvMatrix.flatten()));
         }
         
+        /**
+         * Creates a texture from an image.
+         *
+         * @param {HTMLImageElement or HTMLCanvasElement} image the image
+         * @return WebGLTexture
+         */
         this.createImageTextureFromImage = function (image) {
             var texture = this.gl.createTexture();
             this.handleImageTextureLoaded (this, texture, image);
             return texture;
         }
         
+        /**
+         * Creates a texture from a source url.
+         *
+         * @param {string} source the URL of the image
+         * @return WebGLTexture
+         */
         this.createImageTextureFromSource = function (source) {
             var image = new Image();
             var texture = this.gl.createTexture();
@@ -2659,21 +2770,39 @@ if (!self["bigshot"]) {
             return texture;
         }
         
+        /**
+         * Uploads the image data to the texture memory. Called when the texture image
+         * has finished loading.
+         *
+         * @private
+         */
         this.handleImageTextureLoaded = function (that, texture, image) {
             that.gl.bindTexture(that.gl.TEXTURE_2D, texture);        
             that.gl.texImage2D(that.gl.TEXTURE_2D, 0, that.gl.RGBA, that.gl.RGBA, that.gl.UNSIGNED_BYTE, image);
             that.gl.texParameteri(that.gl.TEXTURE_2D, that.gl.TEXTURE_MAG_FILTER, that.gl.NEAREST);
-            that.gl.texParameteri(that.gl.TEXTURE_2D, that.gl.TEXTURE_MIN_FILTER, that.gl.NEAREST);
-            
+            that.gl.texParameteri(that.gl.TEXTURE_2D, that.gl.TEXTURE_MIN_FILTER, that.gl.LINEAR_MIPMAP_LINEAR);
+            that.gl.generateMipmap(gl.TEXTURE_2D);
+
             that.gl.bindTexture(that.gl.TEXTURE_2D, null);      
         }
         
+        /**
+         * Transforms a vector to world coordinates.
+         *
+         * @param {vector} vector the vector to transform
+         */
         this.transformToWorld = function (vector) {
             var sylvesterVector = $V([vector[0], vector[1], vector[2], 1.0]);
             var world = this.mvMatrix.x (sylvesterVector);
             return world;
         }
         
+        /**
+         * Transforms a vector to screen coordinates.
+         *
+         * @param {vector} vector the vector to transform
+         * @return the transformed vector, or null if the vector is nearer than the near-z plane.
+         */
         this.transformToScreen = function (vector) {
             var world = this.transformToWorld (vector);
             var screen = this.pMatrix.x (world);
@@ -2689,16 +2818,16 @@ if (!self["bigshot"]) {
     };
     
     /**
-        * Creates a textured quad object.
-        *
-        * @class WebGLTexturedQuad An abstraction for textured quads. Used in the
-        * {@link bigshot.WebGLTexturedQuadScene}.
-        *
-        * @param {point} p the top-left corner of the quad
-        * @param {vector} u vector pointing from p along the top edge of the quad
-        * @param {vector} v vector pointing from p along the left edge of the quad
-        * @param {WebGLTexture} the texture to use.
-        */
+     * Creates a textured quad object.
+     *
+     * @class WebGLTexturedQuad An abstraction for textured quads. Used in the
+     * {@link bigshot.WebGLTexturedQuadScene}.
+     *
+     * @param {point} p the top-left corner of the quad
+     * @param {vector} u vector pointing from p along the top edge of the quad
+     * @param {vector} v vector pointing from p along the left edge of the quad
+     * @param {WebGLTexture} the texture to use.
+     */
     bigshot.WebGLTexturedQuad = function (p, u, v, texture) {
         this.p = p;
         this.u = u;
@@ -2706,12 +2835,12 @@ if (!self["bigshot"]) {
         this.texture = texture;
         
         /**
-            * Renders the quad using the given {@link bigshot.WebGL} instance.
-            * Currently creates, fills, draws with and then deletes three buffers -
-            * not very efficient, but works.
-            *
-            * @param {bigshot.WebGL} webGl the WebGL wrapper instance to use for rendering.
-            */
+         * Renders the quad using the given {@link bigshot.WebGL} instance.
+         * Currently creates, fills, draws with and then deletes three buffers -
+         * not very efficient, but works.
+         *
+         * @param {bigshot.WebGL} webGl the WebGL wrapper instance to use for rendering.
+         */
         this.render = function (webGl) {
             var vertexPositionBuffer = webGl.gl.createBuffer();
             webGl.gl.bindBuffer(webGl.gl.ARRAY_BUFFER, vertexPositionBuffer);
@@ -2764,29 +2893,29 @@ if (!self["bigshot"]) {
     }
     
     /**
-        * Creates a textured quad scene.
-        *
-        * @param {bigshot.WebGL} webGl the webGl instance to use for rendering.
-        *
-        * @class WebGLTexturedQuadScene A "scene" consisting of a number of quads, all with
-        * a unique texture. Used by the {@link bigshot.VRPanorama} to render the VR cube.
-        *
-        * @see bigshot.WebGLTexturedQuad
-        */
+     * Creates a textured quad scene.
+     *
+     * @param {bigshot.WebGL} webGl the webGl instance to use for rendering.
+     *
+     * @class WebGLTexturedQuadScene A "scene" consisting of a number of quads, all with
+     * a unique texture. Used by the {@link bigshot.VRPanorama} to render the VR cube.
+     *
+     * @see bigshot.WebGLTexturedQuad
+     */
     bigshot.WebGLTexturedQuadScene = function (webGl) {
         this.quads = new Array ();
         this.webGl = webGl;
         
         /** 
-            * Adds a new quad to the scene.
-            */
+         * Adds a new quad to the scene.
+         */
         this.addQuad = function (quad) {
             this.quads.push (quad);
         }
         
         /** 
-            * Renders all quads.
-            */
+         * Renders all quads.
+         */
         this.render = function () {
             for (var i = 0; i < this.quads.length; ++i) {
                 this.quads[i].render (this.webGl);
@@ -2795,20 +2924,20 @@ if (!self["bigshot"]) {
     };
     
     /**
-        * Creates a new VR panorama in a canvas.
-        * 
-        * @class VRPanorama A cube-map VR panorama.
-        *
-        * @param {bigshot.ImageParameters} parameters the image parameters.
-        * @example
-        * var bvr = new bigshot.VRPanorama (
-        *     new bigshot.ImageParameters ({
-        *         basePath : "/bigshot.php?file=myvr.bigshot",
-        *         fileSystemType : "archive",
-        *         container : document.getElementById ("bigshot_canvas")
-        *         }));
-        * @see bigshot.ImageParameters
-        */
+     * Creates a new VR panorama in a canvas. Requires WebGL support.
+     * 
+     * @class VRPanorama A cube-map VR panorama.
+     *
+     * @param {bigshot.ImageParameters} parameters the image parameters.
+     * @example
+     * var bvr = new bigshot.VRPanorama (
+     *     new bigshot.ImageParameters ({
+     *         basePath : "/bigshot.php?file=myvr.bigshot",
+     *         fileSystemType : "archive",
+     *         container : document.getElementById ("bigshot_canvas")
+     *         }));
+     * @see bigshot.ImageParameters
+     */
     bigshot.VRPanorama = function (parameters) {
         var that = this;
         
@@ -2818,29 +2947,29 @@ if (!self["bigshot"]) {
         this.dragStart = null;
         
         /**
-            * Current camera state.
-            * @private
-            */
+        * Current camera state.
+        * @private
+        */
         this.state = {
             /**
-                * Pitch in degrees.
-                */
+            * Pitch in degrees.
+            */
             p : 0.0,
             
             /**
-                * Yaw in degrees.
-                */
+            * Yaw in degrees.
+            */
             y : 0.0,
             
             /**
-                * Field of view (horizontal) in degrees.
-                */
+            * Field of view (horizontal) in degrees.
+            */
             fov : 60
         };
         
         /**
-            * WebGL wrapper.
-            */
+        * WebGL wrapper.
+        */
         this.webGl = new bigshot.WebGL (this.container);
         this.webGl.initShaders();
         this.webGl.gl.clearColor(0.0, 0.0, 0.0, 1.0);
@@ -2855,22 +2984,43 @@ if (!self["bigshot"]) {
             return this.parameters;
         }
         
+        /**
+         * Sets the field of view.
+         *
+         * @param {number} fov the vertical field of view, in degrees
+         */
         this.setFov = function (fov) {
             fov = Math.min (90, fov);
             fov = Math.max (2, fov);
             this.state.fov = fov;
         }
         
+        /**
+         * Gets the field of view.
+         *
+         * @return {number} the vertical field of view, in degrees
+         */
         this.getFov = function () {
             return this.state.fov;
         }
         
+        /**
+         * Sets the current camera pitch.
+         *
+         * @param {number} p the pitch, in degrees
+         */
         this.setPitch = function (p) {
             p = Math.min (90, p);
             p = Math.max (-90, p);
             this.state.p = p;
         }
         
+        /**
+         * Sets the current camera yaw. The yaw is normalized between
+         * 0 <= y < 360.
+         *
+         * @param {number} y the yaw, in degrees
+         */
         this.setYaw = function (y) {
             y %= 360;
             if (y < 0) {
@@ -2879,17 +3029,27 @@ if (!self["bigshot"]) {
             this.state.y = y;
         }
         
+        /**
+         * Gets the current camera yaw.
+         *
+         * @return {number} the yaw, in degrees
+         */
         this.getYaw = function () {
             return this.state.y;
         }
         
+        /**
+         * Gets the current camera pitch.
+         *
+         * @return {number} the pitch, in degrees
+         */
         this.getPitch = function () {
             return this.state.p;
         }
         
         /**
-            * Sets up transformation matrices etc.
-            */
+        * Sets up transformation matrices etc.
+        */
         this.beginRender = function () {
             this.webGl.gl.viewport (0, 0, this.webGl.gl.viewportWidth, this.webGl.gl.viewportHeight);
             
@@ -2903,14 +3063,14 @@ if (!self["bigshot"]) {
         }
         
         /**
-            * Performs per-render cleanup.
-            */
+        * Performs per-render cleanup.
+        */
         this.endRender = function () {
         }
         
         /**
-            * Renders the VR cube.
-            */
+        * Renders the VR cube.
+        */
         this.render = function () {
             this.beginRender ();
             
@@ -2926,8 +3086,8 @@ if (!self["bigshot"]) {
         }
         
         /**
-            * Render updated faces. Called as tiles are loaded from the server.
-            */
+        * Render updated faces. Called as tiles are loaded from the server.
+        */
         this.renderUpdated = function () {
             this.beginRender ();
             
@@ -2944,11 +3104,26 @@ if (!self["bigshot"]) {
             this.endRender ();
         };
         
+        /**
+         * When the mouse is pressed and dragged, the camera rotates
+         * proportionally to the length of the dragging.
+         */
         this.DRAG_GRAB = "grab";
+        
+        /**
+         * When the mouse is pressed and dragged, the camera continuously
+         * rotates with a speed that is proportional to the length of the 
+         * dragging.
+         */
         this.DRAG_PAN = "pan";
         
         this.dragMode = this.DRAG_GRAB;
         
+        /**
+         * Sets the mouse dragging mode.
+         *
+         * @param mode one of DRAG_GRAB or DRAG_PAN.
+         */
         this.setDragMode = function (mode) {
             this.dragMode = mode;
         }
@@ -3057,21 +3232,21 @@ if (!self["bigshot"]) {
         }
         
         /**
-            * Integer acting as a "permit". When the smoothRotate function
-            * is called, the current value is incremented and saved. If the number changes
-            * that particular call to smoothRotate stops. This way we avoid
-            * having multiple smoothRotate rotations going in parallel.
-            */
+        * Integer acting as a "permit". When the smoothRotate function
+        * is called, the current value is incremented and saved. If the number changes
+        * that particular call to smoothRotate stops. This way we avoid
+        * having multiple smoothRotate rotations going in parallel.
+        */
         this.smoothrotatePermit = 0;
         
         /**
-            * Smoothly rotates the camera. If any of the dp or dy functions are null, stops
-            * any smooth rotation.
-            *
-            * @param {function()} dp function giving the pitch increment for the next frame
-            * @param {function()} dy function giving the yaw increment for the next frame
-            * @param {function()} [df] function giving the field of view (degrees) increment for the next frame
-            */
+        * Smoothly rotates the camera. If any of the dp or dy functions are null, stops
+        * any smooth rotation.
+        *
+        * @param {function()} dp function giving the pitch increment for the next frame
+        * @param {function()} dy function giving the yaw increment for the next frame
+        * @param {function()} [df] function giving the field of view (degrees) increment for the next frame
+        */
         this.smoothRotate = function (dp, dy, df) {
             ++this.smoothrotatePermit;
             var savedPermit = this.smoothrotatePermit;
@@ -3095,9 +3270,9 @@ if (!self["bigshot"]) {
         }
         
         /**
-            * Helper function to consume events.
-            * @private
-            */
+        * Helper function to consume events.
+        * @private
+        */
         var consumeEvent = function (event) {
             if (event.preventDefault) {
                 event.preventDefault ();
@@ -3116,32 +3291,32 @@ if (!self["bigshot"]) {
             if (event.wheelDelta) { /* IE/Opera. */
                 delta = event.wheelDelta / 120;
                 /*
-                    * In Opera 9, delta differs in sign as compared to IE.
-                    */
+                 * In Opera 9, delta differs in sign as compared to IE.
+                 */
                 if (window.opera)
                     delta = -delta;
             } else if (event.detail) { /* Mozilla case. */
                 /*
-                    * In Mozilla, sign of delta is different than in IE.
-                    * Also, delta is multiple of 3.
-                    */
+                 * In Mozilla, sign of delta is different than in IE.
+                 * Also, delta is multiple of 3.
+                 */
                 delta = -event.detail;
             }
             
             /*
-                * If delta is nonzero, handle it.
-                * Basically, delta is now positive if wheel was scrolled up,
-                * and negative, if wheel was scrolled down.
-                */
+             * If delta is nonzero, handle it.
+             * Basically, delta is now positive if wheel was scrolled up,
+             * and negative, if wheel was scrolled down.
+             */
             if (delta) {
                 this.mouseWheelHandler (delta);
             }
             
             /*
-                * Prevent default actions caused by mouse wheel.
-                * That might be ugly, but we handle scrolls somehow
-                * anyway, so don't bother here..
-                */
+             * Prevent default actions caused by mouse wheel.
+             * That might be ugly, but we handle scrolls somehow
+             * anyway, so don't bother here..
+             */
             if (event.preventDefault) {
                 event.preventDefault ();
             }
@@ -3174,10 +3349,10 @@ if (!self["bigshot"]) {
         };
         
         /**
-            * Flag that indicates whether we are in full screen mode.
-            *
-            * @private
-            */
+         * Flag that indicates whether we are in full screen mode.
+         *
+         * @private
+         */
         this.isFullScreen = false;
         
         /**
@@ -3286,8 +3461,8 @@ if (!self["bigshot"]) {
         };
         
         /**
-            * Right-sizes the canvas container.
-            */
+         * Right-sizes the canvas container.
+         */
         this.onresize = function () {
             if (!this.isFullScreen) {
                 if (this.sizeContainer) {
@@ -3305,9 +3480,9 @@ if (!self["bigshot"]) {
         };
         
         /**
-            * Posts a render() call via a timeout. Use when the render call must be
-            * done as soon as possible, but can't be done in the current call context.
-            */
+         * Posts a render() call via a timeout. Use when the render call must be
+         * done as soon as possible, but can't be done in the current call context.
+         */
         this.renderAsap = function () {
             var that = this;
             setTimeout (function () {
@@ -3316,19 +3491,19 @@ if (!self["bigshot"]) {
         }
         
         /**
-            * An element to use as reference when resizing the canvas element.
-            * If non-null, any onresize() calls will result in the canvas being
-            * resized to the size of this element.
-            */
+         * An element to use as reference when resizing the canvas element.
+         * If non-null, any onresize() calls will result in the canvas being
+         * resized to the size of this element.
+         */
         this.sizeContainer = null;
         
         /**
-            * Automatically resizes the canvas element to the size of the 
-            * given element on resize.
-            *
-            * @param {HTMLElement} sizeContainer the element to use. Set to {@code null}
-            * to disable.
-            */
+         * Automatically resizes the canvas element to the size of the 
+         * given element on resize.
+         *
+         * @param {HTMLElement} sizeContainer the element to use. Set to {@code null}
+         * to disable.
+         */
         this.autoResizeContainer = function (sizeContainer) {
             this.sizeContainer = sizeContainer;
         }
