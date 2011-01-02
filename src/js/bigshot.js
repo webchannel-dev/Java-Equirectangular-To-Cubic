@@ -2157,4 +2157,1217 @@ if (!self["bigshot"]) {
             }
         }
     }
+    
+    /**
+ * Creates a new cache instance.
+ *
+ * @class Tile cache for a {@link bigshot.VRFace}.
+ * @constructor
+ */
+    bigshot.TileTextureCache = function (onLoaded, parameters, _webGl) {
+        this.webGl = _webGl;
+        
+        /**
+            * Reduced-resolution preview of the full image.
+            * Loaded from the "poster" image created by 
+            * MakeImagePyramid
+            *
+            * @private
+            * @type HTMLImageElement
+            */
+        this.fullImage = document.createElement ("img");
+        this.fullImage.src = parameters.fileSystem.getFilename ("poster" + parameters.suffix);
+        
+        /**
+            * Maximum number of tiles in the cache.
+            * @private
+            * @type int
+            */
+        this.maxCacheSize = 512;
+        this.cachedTextures = {};
+        this.requestedImages = {};
+        this.lastOnLoadFiredAt = 0;
+        this.imageRequests = 0;
+        this.partialImageSize = parameters.tileSize / 8;
+        this.lruMap = new bigshot.LRUMap ();
+        this.onLoaded = onLoaded;
+        this.browser = new bigshot.Browser ();
+        
+        this.getPartialTexture = function (tileX, tileY, zoomLevel) {
+            if (this.fullImage.complete) {
+                var canvas = document.createElement ("canvas");
+                if (!canvas["width"]) {
+                    return null;
+                }
+                canvas.width = this.partialImageSize;
+                canvas.height = this.partialImageSize;
+                var ctx = canvas.getContext('2d'); 
+                
+                var posterScale = parameters.posterSize / Math.max (parameters.width, parameters.height);
+                
+                var posterWidth = Math.floor (posterScale * parameters.width);
+                var posterHeight = Math.floor (posterScale * parameters.height);
+                
+                var tileSizeAtZoom = posterScale * (parameters.tileSize - parameters.overlap) / Math.pow (2, zoomLevel);    
+                var sx = Math.floor (tileSizeAtZoom * tileX);
+                var sy = Math.floor (tileSizeAtZoom * tileY);
+                var sw = Math.floor (tileSizeAtZoom);
+                var sh = Math.floor (tileSizeAtZoom);
+                var dw = this.partialImageSize + 2;
+                var dh = this.partialImageSize + 2;
+                
+                if (sx + sw > posterWidth) {
+                    sw = posterWidth - sx;
+                    dw = this.partialImageSize * (sw / Math.floor (tileSizeAtZoom));
+                }
+                if (sy + sh > posterHeight) {
+                    sh = posterHeight - sy;
+                    dh = this.partialImageSize * (sh / Math.floor (tileSizeAtZoom));
+                }
+                
+                ctx.drawImage (this.fullImage, sx, sy, sw, sh, -1, -1, dw, dh);
+                
+                return this.webGl.createImageTextureFromImage (canvas);
+            } else {
+                return null;
+            }
+        };
+        
+        
+        this.getTexture = function (tileX, tileY, zoomLevel) {
+            var key = this.getImageKey (tileX, tileY, zoomLevel);
+            this.lruMap.access (key);
+            
+            if (this.cachedTextures[key]) {
+                return this.cachedTextures[key];
+            } else {
+                this.requestImage (tileX, tileY, zoomLevel);
+                var partial = this.getPartialTexture (tileX, tileY, zoomLevel);
+                if (partial) {
+                    this.cachedTextures[key] = partial;
+                }
+                return partial;
+            }
+        };
+        
+        this.requestImage = function (tileX, tileY, zoomLevel) {
+            var key = this.getImageKey (tileX, tileY, zoomLevel);
+            if (!this.requestedImages[key]) {
+                this.imageRequests++;
+                var tile = document.createElement ("img");
+                var that = this;
+                this.browser.registerListener (tile, "load", function () {                        
+                        if (that.cachedTextures[key]) {
+                            that.webGl.gl.deleteTexture (that.cachedTextures[key]);
+                        }
+                        that.cachedTextures[key] = that.webGl.createImageTextureFromImage (tile);
+                        delete that.requestedImages[key];
+                        that.imageRequests--;
+                        var now = new Date();
+                        if (that.imageRequests == 0 || now.getTime () > (that.lastOnLoadFiredAt + 50)) {
+                            that.lastOnLoadFiredAt = now.getTime ();
+                            that.onLoaded ();
+                        }
+                    }, false);
+                this.requestedImages[key] = tile;
+                tile.src = this.getImageFilename (tileX, tileY, zoomLevel);                    
+            }            
+        };
+        
+        this.purgeCache = function () {
+            for (var i = 0; i < 4; ++i) {
+                if (this.lruMap.getSize () > this.maxCacheSize) {
+                    var leastUsed = this.lruMap.leastUsed ();
+                    this.lruMap.remove (leastUsed);
+                    this.webGl.deleteTexture (this.cachedTextures[leastUsed]);
+                    delete this.cachedTextures[leastUsed];
+                }
+            }
+        };
+        
+        this.getImageKey = function (tileX, tileY, zoomLevel) {
+            return "I" + tileX + "_" + tileY + "_" + zoomLevel;
+        };
+        
+        this.getImageFilename = function (tileX, tileY, zoomLevel) {
+            var f = parameters.fileSystem.getImageFilename (tileX, tileY, zoomLevel);
+            return f;
+        };
+        
+        return this;
+    };
+    
+    /**
+        * Creates a new VR cube face.
+        *
+        * @class VRFace a VR cube face. The {@link bigshot.VRPanorama} instance holds
+        * six of these.
+        */
+    bigshot.VRFace = function (owner, key, topLeft_, width_, u, v) {
+        var that = this;
+        this.owner = owner;
+        this.key = key;
+        this.topLeft = topLeft_;
+        this.width = width_;
+        this.u = u;
+        this.v = v;
+        this.updated = false;
+        this.parameters = new Object ();
+        
+        for (var k in this.owner.getParameters ()) {
+            this.parameters[k] = this.owner.getParameters ()[k];
+        }
+        
+        bigshot.setupFileSystem (this.parameters);
+        this.parameters.fileSystem.setPrefix ("face_" + key + "/");
+        
+        this.browser = new bigshot.Browser ();
+        var req = this.browser.createXMLHttpRequest ();
+        
+        req.open("GET", this.parameters.fileSystem.getFilename ("descriptor"), false);   
+        req.send(null);  
+        if(req.status == 200) {
+            var substrings = req.responseText.split (":");
+            for (var i = 0; i < substrings.length; i += 2) {
+                if (!this.parameters[substrings[i]]) {
+                    if (substrings[i] == "suffix") {
+                        this.parameters[substrings[i]] = substrings[i + 1];
+                    } else {
+                        this.parameters[substrings[i]] = parseInt (substrings[i + 1]);
+                    }
+                }
+            }
+        }
+        
+        
+        this.pt3dMultAdd = function (p, m, a) {
+            return {
+                x : p.x * m + a.x,
+                y : p.y * m + a.y,
+                z : p.z * m + a.z
+            };
+        };
+        
+        this.pt3dMult = function (p, m) {
+            return {
+                x : p.x * m,
+                y : p.y * m,
+                z : p.z * m
+            };
+        };
+        
+        this.tileCache = new bigshot.TileTextureCache (function () { 
+                that.updated = true;
+                owner.renderUpdated ();
+            }, this.parameters, this.owner.webGl);
+        this.tileCache.maxCacheSize = 4096;
+        
+        this.fullSize = this.parameters.width;
+        
+        this.overlap = this.parameters.overlap;
+        this.tileSize = this.parameters.tileSize;
+        
+        this.minDivisions = 0;
+        var fullZoom = Math.log (this.fullSize - this.overlap) / Math.LN2;
+        var singleTile = Math.log (this.tileSize - this.overlap) / Math.LN2;
+        this.maxDivisions = Math.floor (fullZoom - singleTile);
+        
+        this.generateFace = function (scene, topLeft, width, u, v, key, tx, ty, divisions) {
+            width *= this.tileSize / (this.tileSize - this.overlap);
+            var texture = this.tileCache.getTexture (tx, ty, -this.maxDivisions + divisions);
+            scene.addQuad (new bigshot.WebGLTexturedQuad (
+                    topLeft,
+                    this.pt3dMult (u, width),
+                    this.pt3dMult (v, width),
+                    texture
+                )
+            );
+        }
+        
+        this.isBehind = function (p) {
+            var result = this.owner.webGl.transformToWorld ([p.x, p.y, p.z]);
+            return result.e(3) > 0;
+        }
+        
+        this.generateSubdivisionFace = function (scene, topLeft, width, u, v, key, divisions, tx, ty) {
+            var bottomLeft = this.pt3dMultAdd (v, width, topLeft);
+            var topRight = this.pt3dMultAdd (u, width, topLeft);
+            var bottomRight = this.pt3dMultAdd (u, width, bottomLeft);
+            
+            var numBehind = 0;
+            if (this.isBehind (topLeft)) {
+                numBehind++;
+            }
+            if (this.isBehind (bottomLeft)) {
+                numBehind++;
+            }
+            if (this.isBehind (topRight)) {
+                numBehind++;
+            }
+            if (this.isBehind (bottomRight)) {
+                numBehind++;
+            }
+            
+            if (numBehind == 4) {
+                return;
+            }
+            var straddles = numBehind > 0;
+            
+            var dmax = this.screenDistanceMax (topLeft, topRight).d;
+            dmax = Math.max (this.screenDistanceMax (topRight, bottomRight).d, dmax);
+            dmax = Math.max (this.screenDistanceMax (bottomRight, bottomLeft).d, dmax);
+            dmax = Math.max (this.screenDistanceMax (bottomLeft, topLeft).d, dmax);
+            
+            if (divisions < this.minDivisions || ((dmax > (this.tileSize - this.overlap) || straddles) && divisions < this.maxDivisions)) {
+                var center = this.pt3dMultAdd ({x: u.x + v.x, y: u.y + v.y, z: u.z + v.z }, width / 2, topLeft);
+                var midTop = this.pt3dMultAdd (u, width / 2, topLeft);
+                var midLeft = this.pt3dMultAdd (v, width / 2, topLeft);
+                this.generateSubdivisionFace (scene, topLeft, width / 2, u, v, key, divisions + 1, tx * 2, ty * 2);
+                this.generateSubdivisionFace (scene, midTop, width / 2, u, v, key, divisions + 1, tx * 2 + 1, ty * 2);
+                this.generateSubdivisionFace (scene, midLeft, width / 2, u, v, key, divisions + 1, tx * 2, ty * 2 + 1);
+                this.generateSubdivisionFace (scene, center, width / 2, u, v, key, divisions + 1, tx * 2 + 1, ty * 2 + 1);
+            } else {
+                this.generateFace (scene, topLeft, width, u, v, key, tx, ty, divisions);
+            }
+        }
+        
+        this.isUpdated = function () {
+            return this.updated;
+        };
+        
+        this.render = function (scene) {
+            this.updated = false;
+            this.generateSubdivisionFace (scene, this.topLeft, this.width, this.u, this.v, this.key, 0, 0, 0);
+            this.tileCache.purgeCache ();
+        }
+        
+        
+        this.projectPointToCanvas = function (p) {
+            return this.owner.webGl.transformToScreen ([p.x, p.y, p.z]);
+        }
+        
+        this.screenDistance = function (p0, p1) {
+            var p0t = this.projectPointToCanvas (p0);
+            var p1t = this.projectPointToCanvas (p1);
+            
+            if (p0t == null || p1t == null) {
+                return null;
+            }
+            
+            var r = {
+                x : p0t.x - p1t.x,
+                y : p0t.y - p1t.y
+            };
+            return r;
+        }
+        
+        this.screenDistanceHyp = function (p0, p1) {
+            var r = this.screenDistance (p0, p1);
+            if (r == null) {
+                return {x: 0, y:0, d: 100000};
+            }
+            
+            r.d = Math.sqrt (r.x * r.x + r.y * r.y);
+            return r;
+        }
+        
+        this.screenDistanceMax = function (p0, p1) {
+            var r = this.screenDistance (p0, p1);
+            
+            if (r == null) {
+                return {x: 0, y:0, d: 100000};
+            }
+            
+            var ax = Math.abs (r.x);
+            var ay = Math.abs (r.y);
+            r.d = ax > ay ? ax : ay;
+            return r;
+        }
+    }
+    
+    bigshot.WebGLDebug = false;
+    
+    /**
+        * Creates a new WebGL wrapper instance.
+        *
+        * @class WebGL WebGL wrapper for common bigshot.VRPanorama uses.
+        */
+    bigshot.WebGL = function (canvas_) {
+        
+        this.canvas = canvas_;
+        
+        this.gl = bigshot.WebGLDebug ?
+            WebGLDebugUtils.makeDebugContext(this.canvas.getContext("experimental-webgl"))
+        :
+        this.canvas.getContext("experimental-webgl");
+        if (!this.gl) {
+            alert("Could not initialise WebGL.");
+            return;
+        }    
+        this.gl.viewportWidth = this.canvas.width;
+        this.gl.viewportHeight = this.canvas.height;
+        
+        this.onresize = function () {
+            this.gl.viewportWidth = this.canvas.width;
+            this.gl.viewportHeight = this.canvas.height;
+        }
+        
+        this.fragmentShader = 
+            "#ifdef GL_ES\n" + 
+            "    precision highp float;\n" + 
+            "#endif\n" + 
+            "\n" + 
+            "varying vec2 vTextureCoord;\n" + 
+            "\n" + 
+            "uniform sampler2D uSampler;\n" + 
+            "\n" + 
+            "void main(void) {\n" + 
+            "    gl_FragColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));\n" + 
+            "}\n";
+        
+        this.vertexShader = 
+            "attribute vec3 aVertexPosition;\n" +
+            "attribute vec2 aTextureCoord;\n" +
+            "\n" +
+            "uniform mat4 uMVMatrix;\n" +
+            "uniform mat4 uPMatrix;\n" +
+            "\n" +
+            "varying vec2 vTextureCoord;\n" +
+            "\n" +
+            "void main(void) {\n" +
+            "    gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);\n" +
+            "    vTextureCoord = aTextureCoord;\n" +
+            "}";
+        
+        this.createShader = function (source, type) {
+            var shader = this.gl.createShader (type);
+            this.gl.shaderSource (shader, source);
+            this.gl.compileShader (shader);
+            
+            if (!this.gl.getShaderParameter (shader, this.gl.COMPILE_STATUS)) {
+                alert (this.gl.getShaderInfoLog (shader));
+                return null;
+            }
+            
+            return shader;
+        };
+        
+        this.createFragmentShader = function (source) {
+            return this.createShader (source, this.gl.FRAGMENT_SHADER);
+        };
+        
+        this.createVertexShader = function (source) {
+            return this.createShader (source, this.gl.VERTEX_SHADER);
+        };
+        
+        this.shaderProgram = null;
+        
+        this.initShaders = function () {
+            this.shaderProgram = this.gl.createProgram ();
+            this.gl.attachShader (this.shaderProgram, this.createVertexShader (this.vertexShader));
+            this.gl.attachShader (this.shaderProgram, this.createFragmentShader (this.fragmentShader));
+            this.gl.linkProgram (this.shaderProgram);
+            
+            if (!this.gl.getProgramParameter (this.shaderProgram, this.gl.LINK_STATUS)) {
+                alert ("Could not initialise shaders");
+                return;
+            }
+            
+            this.gl.useProgram (this.shaderProgram);
+            
+            this.shaderProgram.vertexPositionAttribute = this.gl.getAttribLocation (this.shaderProgram, "aVertexPosition");
+            this.gl.enableVertexAttribArray (this.shaderProgram.vertexPositionAttribute);
+            
+            this.shaderProgram.textureCoordAttribute = this.gl.getAttribLocation (this.shaderProgram, "aTextureCoord");
+            this.gl.enableVertexAttribArray (this.shaderProgram.textureCoordAttribute);
+            
+            this.shaderProgram.pMatrixUniform = this.gl.getUniformLocation(this.shaderProgram, "uPMatrix");
+            this.shaderProgram.mvMatrixUniform = this.gl.getUniformLocation(this.shaderProgram, "uMVMatrix");
+            this.shaderProgram.samplerUniform = this.gl.getUniformLocation(this.shaderProgram, "uSampler");
+        };
+        
+        
+        this.mvMatrix = null;
+        this.mvMatrixStack = [];
+        
+        this.mvPushMatrix = function (matrix) {
+            if (matrix) {
+                this.mvMatrixStack.push (matrix.dup());
+                this.mvMatrix = matrix.dup();
+                return mvMatrix;
+            } else {
+                this.mvMatrixStack.push (this.mvMatrix.dup());
+                return mvMatrix;
+            }
+        }
+        
+        this.mvPopMatrix = function () {
+            if (this.mvMatrixStack.length == 0) {
+                throw "Invalid popMatrix!";
+            }
+            this.mvMatrix = this.mvMatrixStack.pop();
+            return mvMatrix;
+        }
+        
+        this.mvReset = function () {
+            this.mvMatrix = Matrix.I(4);
+        }
+        
+        this.mvMultiply = function (matrix) {
+            this.mvMatrix = this.mvMatrix.x (matrix);
+        }
+        
+        this.mvTranslate = function (vector) {
+            var m = Matrix.Translation($V([vector[0], vector[1], vector[2]])).ensure4x4 ();
+            this.mvMultiply (m);
+        }
+        
+        this.mvRotate = function (ang, vector) {
+            var arad = ang * Math.PI / 180.0;
+            var m = Matrix.Rotation(arad, $V([vector[0], vector[1], vector[2]])).ensure4x4 ();
+            this.mvMultiply (m);
+        }
+        
+        this.pMatrix = null;
+        
+        this.perspective = function (fovy, aspect, znear, zfar) {
+            this.pMatrix = makePerspective (fovy, aspect, znear, zfar);
+        }
+        
+        this.setMatrixUniforms = function () {
+            this.gl.uniformMatrix4fv(this.shaderProgram.pMatrixUniform, false, new Float32Array(this.pMatrix.flatten()));
+            this.gl.uniformMatrix4fv(this.shaderProgram.mvMatrixUniform, false, new Float32Array(this.mvMatrix.flatten()));
+        }
+        
+        this.createImageTextureFromImage = function (image) {
+            var texture = this.gl.createTexture();
+            this.handleImageTextureLoaded (this, texture, image);
+            return texture;
+        }
+        
+        this.createImageTextureFromSource = function (source) {
+            var image = new Image();
+            var texture = this.gl.createTexture();
+            
+            var that = this;
+            image.onload = function () {
+                that.handleImageTextureLoaded (that, texture, image);
+            }
+            
+            image.src = source;
+            
+            return texture;
+        }
+        
+        this.handleImageTextureLoaded = function (that, texture, image) {
+            that.gl.bindTexture(that.gl.TEXTURE_2D, texture);        
+            that.gl.texImage2D(that.gl.TEXTURE_2D, 0, that.gl.RGBA, that.gl.RGBA, that.gl.UNSIGNED_BYTE, image);
+            that.gl.texParameteri(that.gl.TEXTURE_2D, that.gl.TEXTURE_MAG_FILTER, that.gl.NEAREST);
+            that.gl.texParameteri(that.gl.TEXTURE_2D, that.gl.TEXTURE_MIN_FILTER, that.gl.NEAREST);
+            
+            that.gl.bindTexture(that.gl.TEXTURE_2D, null);      
+        }
+        
+        this.transformToWorld = function (vector) {
+            var sylvesterVector = $V([vector[0], vector[1], vector[2], 1.0]);
+            var world = this.mvMatrix.x (sylvesterVector);
+            return world;
+        }
+        
+        this.transformToScreen = function (vector) {
+            var world = this.transformToWorld (vector);
+            var screen = this.pMatrix.x (world);
+            if (Math.abs (screen.e(4)) < Sylvester.precision) {
+                return null;
+            }
+            var r = {
+                x: this.gl.viewportWidth  * screen.e(1) / screen.e(4) + this.gl.viewportWidth / 2, 
+                y: this.gl.viewportHeight * screen.e(2) / screen.e(4) + this.gl.viewportHeight / 2
+            };
+            return r;
+        }
+    };
+    
+    /**
+        * Creates a textured quad object.
+        *
+        * @class WebGLTexturedQuad An abstraction for textured quads. Used in the
+        * {@link bigshot.WebGLTexturedQuadScene}.
+        *
+        * @param {point} p the top-left corner of the quad
+        * @param {vector} u vector pointing from p along the top edge of the quad
+        * @param {vector} v vector pointing from p along the left edge of the quad
+        * @param {WebGLTexture} the texture to use.
+        */
+    bigshot.WebGLTexturedQuad = function (p, u, v, texture) {
+        this.p = p;
+        this.u = u;
+        this.v = v;
+        this.texture = texture;
+        
+        /**
+            * Renders the quad using the given {@link bigshot.WebGL} instance.
+            * Currently creates, fills, draws with and then deletes three buffers -
+            * not very efficient, but works.
+            *
+            * @param {bigshot.WebGL} webGl the WebGL wrapper instance to use for rendering.
+            */
+        this.render = function (webGl) {
+            var vertexPositionBuffer = webGl.gl.createBuffer();
+            webGl.gl.bindBuffer(webGl.gl.ARRAY_BUFFER, vertexPositionBuffer);
+            var vertices = [
+                this.p.x, this.p.y,  this.p.z,
+                this.p.x + this.u.x, this.p.y + this.u.y,  this.p.z + this.u.z,
+                this.p.x + this.u.x + this.v.x, this.p.y + this.u.y + this.v.y,  this.p.z + this.u.z + this.v.z,
+                this.p.x + this.v.x, this.p.y + this.v.y,  this.p.z + this.v.z
+            ];
+            webGl.gl.bufferData(webGl.gl.ARRAY_BUFFER, new Float32Array (vertices), webGl.gl.STATIC_DRAW);
+            
+            
+            var textureCoordBuffer = webGl.gl.createBuffer();
+            webGl.gl.bindBuffer(webGl.gl.ARRAY_BUFFER, textureCoordBuffer);
+            var textureCoords = [
+                // Front face
+                0.0,  0.0,
+                1.0,  0.0,
+                1.0,  1.0,
+                0.0,  1.0
+            ];
+            webGl.gl.bufferData(webGl.gl.ARRAY_BUFFER, new Float32Array (textureCoords), webGl.gl.STATIC_DRAW);
+            
+            var vertexIndexBuffer = webGl.gl.createBuffer();
+            webGl.gl.bindBuffer(webGl.gl.ELEMENT_ARRAY_BUFFER, vertexIndexBuffer);            
+            var vertexIndexes = [
+                0, 2, 1,
+                0, 3, 2
+            ];
+            webGl.gl.bufferData(webGl.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array (vertexIndexes), webGl.gl.STATIC_DRAW);
+            
+            webGl.gl.bindBuffer(webGl.gl.ARRAY_BUFFER, textureCoordBuffer);
+            webGl.gl.vertexAttribPointer(webGl.shaderProgram.textureCoordAttribute, 2, webGl.gl.FLOAT, false, 0, 0);
+            
+            webGl.gl.bindBuffer(webGl.gl.ARRAY_BUFFER, vertexPositionBuffer);
+            webGl.gl.vertexAttribPointer(webGl.shaderProgram.vertexPositionAttribute, 3, webGl.gl.FLOAT, false, 0, 0);
+            
+            webGl.gl.activeTexture(webGl.gl.TEXTURE0);
+            webGl.gl.bindTexture(webGl.gl.TEXTURE_2D, this.texture);
+            webGl.gl.uniform1i(webGl.shaderProgram.samplerUniform, 0);
+            
+            webGl.gl.bindBuffer(webGl.gl.ELEMENT_ARRAY_BUFFER, vertexIndexBuffer);
+            webGl.setMatrixUniforms();
+            webGl.gl.drawElements(webGl.gl.TRIANGLES, 6, webGl.gl.UNSIGNED_SHORT, 0);
+            
+            webGl.gl.deleteBuffer (vertexPositionBuffer);
+            webGl.gl.deleteBuffer (vertexIndexBuffer);
+            webGl.gl.deleteBuffer (textureCoordBuffer);
+        };
+    }
+    
+    /**
+        * Creates a textured quad scene.
+        *
+        * @param {bigshot.WebGL} webGl the webGl instance to use for rendering.
+        *
+        * @class WebGLTexturedQuadScene A "scene" consisting of a number of quads, all with
+        * a unique texture. Used by the {@link bigshot.VRPanorama} to render the VR cube.
+        *
+        * @see bigshot.WebGLTexturedQuad
+        */
+    bigshot.WebGLTexturedQuadScene = function (webGl) {
+        this.quads = new Array ();
+        this.webGl = webGl;
+        
+        /** 
+            * Adds a new quad to the scene.
+            */
+        this.addQuad = function (quad) {
+            this.quads.push (quad);
+        }
+        
+        /** 
+            * Renders all quads.
+            */
+        this.render = function () {
+            for (var i = 0; i < this.quads.length; ++i) {
+                this.quads[i].render (this.webGl);
+            }
+        };
+    };
+    
+    /**
+        * Creates a new VR panorama in a canvas.
+        * 
+        * @class VRPanorama A cube-map VR panorama.
+        *
+        * @param {bigshot.ImageParameters} parameters the image parameters.
+        * @example
+        * var bvr = new bigshot.VRPanorama (
+        *     new bigshot.ImageParameters ({
+        *         basePath : "/bigshot.php?file=myvr.bigshot",
+        *         fileSystemType : "archive",
+        *         container : document.getElementById ("bigshot_canvas")
+        *         }));
+        * @see bigshot.ImageParameters
+        */
+    bigshot.VRPanorama = function (parameters) {
+        var that = this;
+        
+        this.parameters = parameters;
+        this.container = parameters.container;
+        this.browser = new bigshot.Browser ();
+        this.dragStart = null;
+        
+        /**
+            * Current camera state.
+            * @private
+            */
+        this.state = {
+            /**
+                * Pitch in degrees.
+                */
+            p : 0.0,
+            
+            /**
+                * Yaw in degrees.
+                */
+            y : 0.0,
+            
+            /**
+                * Field of view (horizontal) in degrees.
+                */
+            fov : 60
+        };
+        
+        /**
+            * WebGL wrapper.
+            */
+        this.webGl = new bigshot.WebGL (this.container);
+        this.webGl.initShaders();
+        this.webGl.gl.clearColor(0.0, 0.0, 0.0, 1.0);
+        this.webGl.gl.blendFunc (this.webGl.gl.ONE, this.webGl.gl.ZERO);
+        this.webGl.gl.enable (this.webGl.gl.BLEND);
+        this.webGl.gl.disable(this.webGl.gl.DEPTH_TEST);
+        
+        
+        this.webGl.gl.clearDepth(1.0);
+        
+        this.getParameters = function () {
+            return this.parameters;
+        }
+        
+        this.setFov = function (fov) {
+            fov = Math.min (90, fov);
+            fov = Math.max (2, fov);
+            this.state.fov = fov;
+        }
+        
+        this.getFov = function () {
+            return this.state.fov;
+        }
+        
+        this.setPitch = function (p) {
+            p = Math.min (90, p);
+            p = Math.max (-90, p);
+            this.state.p = p;
+        }
+        
+        this.setYaw = function (y) {
+            y %= 360;
+            if (y < 0) {
+                y += 360;
+            }
+            this.state.y = y;
+        }
+        
+        this.getYaw = function () {
+            return this.state.y;
+        }
+        
+        this.getPitch = function () {
+            return this.state.p;
+        }
+        
+        /**
+            * Sets up transformation matrices etc.
+            */
+        this.beginRender = function () {
+            this.webGl.gl.viewport (0, 0, this.webGl.gl.viewportWidth, this.webGl.gl.viewportHeight);
+            
+            this.webGl.perspective (this.state.fov, this.webGl.gl.viewportWidth / this.webGl.gl.viewportHeight, 0.1, 100.0);
+            this.webGl.mvReset ();
+            
+            this.webGl.mvTranslate ([0.0, 0.0, 0.0]);
+            
+            this.webGl.mvRotate (this.state.p, [1, 0, 0]);
+            this.webGl.mvRotate (this.state.y, [0, 1, 0]);
+        }
+        
+        /**
+            * Performs per-render cleanup.
+            */
+        this.endRender = function () {
+        }
+        
+        /**
+            * Renders the VR cube.
+            */
+        this.render = function () {
+            this.beginRender ();
+            
+            var scene = new bigshot.WebGLTexturedQuadScene (this.webGl);
+            
+            for (var f in this.vrFaces) {
+                this.vrFaces[f].render (scene);
+            }
+            
+            scene.render (this.webGl);
+            
+            this.endRender ();
+        }
+        
+        /**
+            * Render updated faces. Called as tiles are loaded from the server.
+            */
+        this.renderUpdated = function () {
+            this.beginRender ();
+            
+            var scene = new bigshot.WebGLTexturedQuadScene (this.webGl);
+            
+            for (var f in this.vrFaces) {
+                if (this.vrFaces[f].isUpdated ()) {
+                    this.vrFaces[f].render (scene);
+                }
+            }
+            
+            scene.render (this.webGl);
+            
+            this.endRender ();
+        };
+        
+        this.DRAG_GRAB = "grab";
+        this.DRAG_PAN = "pan";
+        
+        this.dragMode = this.DRAG_GRAB;
+        
+        this.setDragMode = function (mode) {
+            this.dragMode = mode;
+        }
+        
+        this.dragMouseDown = function (e) {
+            this.dragStart = e;
+        }
+        
+        this.dragMouseUp = function (e) {
+            this.dragStart = null;
+            this.smoothRotate ();
+        }
+        
+        this.dragMouseMove = function (e) {
+            if (this.dragStart != null) {
+                if (this.dragMode == this.DRAG_GRAB) {
+                    this.smoothRotate ();
+                    var scale = this.state.fov / this.container.width;
+                    var dx = e.clientX - this.dragStart.clientX;
+                    var dy = e.clientY - this.dragStart.clientY;
+                    this.state.y -= dx * scale;
+                    this.state.p -= dy * scale;
+                    this.render ();
+                    this.dragStart = e;
+                } else {
+                    var scale = 0.2 * this.state.fov / this.container.width;
+                    var dx = e.clientX - this.dragStart.clientX;
+                    var dy = e.clientY - this.dragStart.clientY;
+                    this.smoothRotate (
+                        function () {
+                            return dy * scale;
+                        }, function () {
+                            return dx * scale;
+                        });
+                }
+            }
+        }
+        
+        this.ease = function (current, target, speed) {
+            var easingFrom = speed * 10;
+            var snapFrom = speed / 20;
+            var ignoreFrom = speed / 1000;
+            
+            var distance = current - target;
+            if (distance > easingFrom) {
+                distance = -speed;
+            } else if (distance < -easingFrom) {
+                distance = speed;
+            } else if (Math.abs (distance) < snapFrom) {
+                distance = -distance;
+            } else if (Math.abs (distance) < ignoreFrom) {
+                distance = 0;
+            } else {
+                distance = -distance * speed * (Math.abs (distance) / easingFrom);
+            }
+            return distance;
+        }
+        
+        this.idleCounter = 0;
+        this.maxIdleCounter = -1;
+        
+        this.resetIdle = function () {
+            this.idleCounter = 0;
+        }
+        
+        this.idleTick = function () {
+            if (this.maxIdleCounter < 0) {
+                return;
+            }
+            ++this.idleCounter;
+            if (this.idleCounter == this.maxIdleCounter) {
+                this.autoRotate ();
+            }
+            var that = this;
+            setTimeout (function () {
+                    that.idleTick ();
+                }, 1000);
+        }
+        
+        this.autoRotateWhenIdle = function (delay) {
+            this.maxIdleCounter = delay;
+            this.idleCounter = 0;
+            if (delay < 0) {
+                return;
+            } else if (this.maxIdleCounter > 0) {            
+                var that = this;
+                setTimeout (function () {
+                        that.idleTick ();
+                    }, 1000);
+            }
+        }
+        
+        this.autoRotate = function () {
+            var that = this;
+            var scale = this.state.fov / this.container.width;
+            
+            var speed = scale;
+            this.smoothRotate (
+                function () {
+                    return that.ease (that.getPitch (), 0.0, speed);
+                }, function () {
+                    return speed;
+                }, function () {
+                    return that.ease (that.getFov (), 60.0, 0.1);
+                });
+        }
+        
+        /**
+            * Integer acting as a "permit". When the smoothRotate function
+            * is called, the current value is incremented and saved. If the number changes
+            * that particular call to smoothRotate stops. This way we avoid
+            * having multiple smoothRotate rotations going in parallel.
+            */
+        this.smoothrotatePermit = 0;
+        
+        /**
+            * Smoothly rotates the camera. If any of the dp or dy functions are null, stops
+            * any smooth rotation.
+            *
+            * @param {function()} dp function giving the pitch increment for the next frame
+            * @param {function()} dy function giving the yaw increment for the next frame
+            * @param {function()} [df] function giving the field of view (degrees) increment for the next frame
+            */
+        this.smoothRotate = function (dp, dy, df) {
+            ++this.smoothrotatePermit;
+            var savedPermit = this.smoothrotatePermit;
+            if (!dp || !dy) {            
+                return;
+            }
+            
+            var that = this;
+            var stepper = function () {
+                if (that.smoothrotatePermit == savedPermit) {
+                    that.setYaw (that.getYaw () + dy());
+                    that.setPitch (that.getPitch () + dp());
+                    if (df) {
+                        that.setFov (that.getFov () + df());
+                    }
+                    that.render ();
+                    window.setTimeout (stepper, 5);
+                }
+            };
+            stepper ();
+        }
+        
+        /**
+            * Helper function to consume events.
+            * @private
+            */
+        var consumeEvent = function (event) {
+            if (event.preventDefault) {
+                event.preventDefault ();
+            }
+            return false;
+        };
+        
+        /**
+        * Translates mouse wheel events.
+        * @private
+        */
+        this.mouseWheel = function (event){
+            var delta = 0;
+            if (!event) /* For IE. */
+                event = window.event;
+            if (event.wheelDelta) { /* IE/Opera. */
+                delta = event.wheelDelta / 120;
+                /*
+                    * In Opera 9, delta differs in sign as compared to IE.
+                    */
+                if (window.opera)
+                    delta = -delta;
+            } else if (event.detail) { /* Mozilla case. */
+                /*
+                    * In Mozilla, sign of delta is different than in IE.
+                    * Also, delta is multiple of 3.
+                    */
+                delta = -event.detail;
+            }
+            
+            /*
+                * If delta is nonzero, handle it.
+                * Basically, delta is now positive if wheel was scrolled up,
+                * and negative, if wheel was scrolled down.
+                */
+            if (delta) {
+                this.mouseWheelHandler (delta);
+            }
+            
+            /*
+                * Prevent default actions caused by mouse wheel.
+                * That might be ugly, but we handle scrolls somehow
+                * anyway, so don't bother here..
+                */
+            if (event.preventDefault) {
+                event.preventDefault ();
+            }
+            event.returnValue = false;
+        };
+        
+        this.mouseWheelHandler = function (delta) {
+            var that = this;
+            var target = null;
+            if (delta > 0) {
+                if (this.getFov () > 5) {
+                    target = this.getFov () * 0.9;
+                }
+            }
+            if (delta < 0) {
+                if (this.getFov () < 90) {
+                    target = this.getFov () / 0.9;
+                }
+            }
+            if (target != null) {
+                this.smoothRotate (
+                    function () {
+                        return 0;
+                    }, function () {
+                        return 0;
+                    }, function () {
+                        return target - that.getFov ();
+                    });        
+            }
+        };
+        
+        /**
+            * Flag that indicates whether we are in full screen mode.
+            *
+            * @private
+            */
+        this.isFullScreen = false;
+        
+        /**
+        * Maximizes the image to cover the browser viewport.
+        * The container div is removed from its parent node upon entering 
+        * full screen mode. When leaving full screen mode, the container
+        * is appended to its old parent node. To avoid rearranging the
+        * nodes, wrap the container in an extra div.
+        *
+        * <p>For unknown reasons (probably security), browsers will
+        * not let you open a window that covers the entire screen.
+        * Even when specifying "fullscreen=yes", all you get is a window
+        * that has a title bar and only covers the desktop (not any task
+        * bars or the like). For now, this is the best that I can do,
+        * but should the situation change I'll update this to be
+        * full-screen<i>-ier</i>.
+        * @public
+        */
+        this.fullScreen = function (onClose) {
+            if (this.isFullScreen) {
+                return;
+            }
+            this.isFullScreen = true;
+            
+            var div = document.createElement ("div");
+            div.style.position = "fixed";
+            div.style.top = "0px";
+            div.style.left = "0px";
+            div.style.width = "100%";
+            div.style.height = "100%";
+            div.style.zIndex = "9998";
+            
+            var savedParent = this.container.parentNode;
+            var savedSize = {
+                width : this.container.style.width,
+                height : this.container.style.height
+            };
+            this.container.style.width = "100%";
+            this.container.style.height = "100%";
+            savedParent.removeChild (this.container);
+            div.appendChild (this.container);
+            
+            var message = document.createElement ("div");
+            message.style.position = "absolute";
+            message.style.fontSize = "16pt";
+            message.style.top = "128px";
+            message.style.width = "100%";
+            message.style.color = "white";
+            message.style.padding = "16px";
+            message.style.zIndex = "9999";
+            message.style.textAlign = "center";
+            message.style.opacity = "0.75";
+            message.innerHTML = "<span style='border-radius: 16px; -moz-border-radius: 16px; padding: 16px; padding-left: 32px; padding-right: 32px; background:black'>Press Esc to exit full screen mode.</span>";
+            
+            div.appendChild (message);
+            document.body.appendChild (div);
+            
+            var that = this;
+            this.exitFullScreenHandler = function () {
+                if (message.parentNode) {
+                    try {
+                        div.removeChild (message);
+                    } catch (x) {
+                    }
+                }
+                that.browser.unregisterListener (document, "keydown", escHandler);
+                if (!that.sizeContainer) {
+                    that.container.style.width = savedSize.width;
+                    that.container.style.height = savedSize.height;
+                }
+                savedParent.appendChild (that.container);
+                document.body.removeChild (div);
+                that.isFullScreen = false;
+                that.onresize ();
+                if (onClose) {
+                    onClose ();
+                }
+            };
+            
+            var escHandler = function (e) {
+                if (e.keyCode == 27) {
+                    that.exitFullScreenHandler ();
+                }
+            };
+            this.browser.registerListener (document, "keydown", escHandler, false);
+            
+            setTimeout (function () {
+                    var opacity = 0.75;
+                    var iter = function () {
+                        opacity -= 0.02;
+                        if (message.parentNode) {
+                            if (opacity <= 0) {
+                                try {
+                                    div.removeChild (message);
+                                } catch (x) {}
+                            } else {
+                                message.style.opacity = opacity;
+                                setTimeout (iter, 20);
+                            }
+                        }
+                    };
+                    setTimeout (iter, 20);
+                }, 3500);
+            
+            this.onresize ();
+        };
+        
+        /**
+            * Right-sizes the canvas container.
+            */
+        this.onresize = function () {
+            if (!this.isFullScreen) {
+                if (this.sizeContainer) {
+                    var s = this.browser.getElementSize (this.sizeContainer);
+                    this.container.width = s.w;
+                    this.container.height = s.h;
+                }
+            } else {
+                var s = this.browser.getElementSize (this.container);
+                this.container.width = s.w;
+                this.container.height = s.h;
+            }
+            this.webGl.onresize ();
+            this.renderAsap ();            
+        };
+        
+        /**
+            * Posts a render() call via a timeout. Use when the render call must be
+            * done as soon as possible, but can't be done in the current call context.
+            */
+        this.renderAsap = function () {
+            var that = this;
+            setTimeout (function () {
+                    that.render ();
+                }, 1);
+        }
+        
+        /**
+            * An element to use as reference when resizing the canvas element.
+            * If non-null, any onresize() calls will result in the canvas being
+            * resized to the size of this element.
+            */
+        this.sizeContainer = null;
+        
+        /**
+            * Automatically resizes the canvas element to the size of the 
+            * given element on resize.
+            *
+            * @param {HTMLElement} sizeContainer the element to use. Set to {@code null}
+            * to disable.
+            */
+        this.autoResizeContainer = function (sizeContainer) {
+            this.sizeContainer = sizeContainer;
+        }
+        
+        this.vrFaces = new Array ();
+        this.vrFaces[0] = new bigshot.VRFace (this, "f", {x:-1, y:1, z:-1}, 2.0, {x:1, y:0, z:0}, {x:0, y:-1, z:0});
+        this.vrFaces[1] = new bigshot.VRFace (this, "b", {x:1, y:1, z:1}, 2.0, {x:-1, y:0, z:0}, {x:0, y:-1, z:0});
+        this.vrFaces[2] = new bigshot.VRFace (this, "l", {x:-1, y:1, z:1}, 2.0, {x:0, y:0, z:-1}, {x:0, y:-1, z:0});
+        this.vrFaces[3] = new bigshot.VRFace (this, "r", {x:1, y:1, z:-1}, 2.0, {x:0, y:0, z:1}, {x:0, y:-1, z:0});
+        this.vrFaces[4] = new bigshot.VRFace (this, "u", {x:-1, y:1, z:1}, 2.0, {x:1, y:0, z:0}, {x:0, y:0, z:-1});
+        this.vrFaces[5] = new bigshot.VRFace (this, "d", {x:-1, y:-1, z:-1}, 2.0, {x:1, y:0, z:0}, {x:0, y:0, z:1});
+        
+        this.browser.registerListener (this.container, "mousedown", function (e) {
+                that.resetIdle ();
+                that.dragMouseDown (e);
+                return consumeEvent (e);
+            }, false);
+        this.browser.registerListener (this.container, "mouseup", function (e) {
+                that.resetIdle ();
+                that.dragMouseUp (e);
+                return consumeEvent (e);
+            }, false);
+        this.browser.registerListener (this.container, 'mousemove', function (e) {
+                that.resetIdle ();
+                that.dragMouseMove (e);
+                return consumeEvent (e);
+            }, false);
+        this.browser.registerListener (parameters.container, "DOMMouseScroll", function (e) {
+                that.resetIdle ();
+                that.mouseWheel (e);
+                return consumeEvent (e);
+            }, false);
+        this.browser.registerListener (parameters.container, "mousewheel", function (e) {
+                that.resetIdle ();
+                that.mouseWheel (e);
+                return consumeEvent (e);
+            }, false);
+        this.browser.registerListener (window, 'resize', function (e) {
+                that.onresize ();
+            }, false);
+    }
 }
