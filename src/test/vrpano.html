@@ -1,5 +1,8 @@
 <html>
     <head>
+        <title>
+            Test of Bigshot VRPanorama
+        </title>
         <script src="../js/webgl/webgl-debug.js"></script>
         <script src="../js/webgl/sylvester.js"></script>
         <script src="../js/webgl/glUtils.js"></script>
@@ -36,15 +39,13 @@
             
     </head>
     <body onload="vrpano()">
-        <div style="background:blue; height:600px; width:100%;" id="container">
+        <div style="background:black; height:600px; width:100%;" id="container">
             <canvas id="canvas" width="800" height="600">
                 Sorry, this demo requires a web browser which supports HTML5 canvas!
             </canvas>
         </div>
-        <div id="div">aaa</div>
-        <a href="#" onclick="redraw()">redraw</a>
-        <a href="#" onclick="autorotate()">autorotate</a>
-        <a href="#" onclick="fullScreen()">fullscreen</a>
-        
+        <a href="#" onclick="redraw()"><button type="button">Redraw</button></a>
+        <a href="#" onclick="autorotate()"><button type="button">Autorotate</button></a>
+        <a href="#" onclick="fullScreen()"><button type="button">Fullscreen</button></a>
     </body>
 </html>

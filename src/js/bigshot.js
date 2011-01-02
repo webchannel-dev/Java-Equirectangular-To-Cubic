@@ -2303,6 +2303,8 @@ if (!self["bigshot"]) {
      * @class VRFace a VR cube face. The {@link bigshot.VRPanorama} instance holds
      * six of these.
      *
+     * @private
+     *
      * @param {bigshot.VRPanorama} owner the VR panorama this face is part of.
      * @param {string} key the identifier for the face. "f" is front, "b" is back, "u" is
      * up, "d" is down, "l" is left and "r" is right.
@@ -2349,6 +2351,8 @@ if (!self["bigshot"]) {
         
         /**
          * Utility function to do a multiply-and-add of a 3d point.
+         *
+         * @private
          * @param p {point} the point to multiply
          * @param m {number} the number to multiply the elements of p with
          * @param a {point} the point to add
@@ -2364,6 +2368,8 @@ if (!self["bigshot"]) {
         
         /**
          * Utility function to do an element-wise multiply of a 3d point.
+         *
+         * @private
          * @param p {point} the point to multiply
          * @param m {number} the number to multiply the elements of p with
          * @return p * m
@@ -2378,6 +2384,8 @@ if (!self["bigshot"]) {
         
         /**
          * Texture cache.
+         *
+         * @private
          */
         this.tileCache = new bigshot.TileTextureCache (function () { 
                 that.updated = true;
@@ -2399,7 +2407,7 @@ if (!self["bigshot"]) {
          *
          * @private
          */
-        this.generateFace = function (scene, topLeft, width, u, v, key, tx, ty, divisions) {
+        this.generateFace = function (scene, topLeft, width, tx, ty, divisions) {
             width *= this.tileSize / (this.tileSize - this.overlap);
             var texture = this.tileCache.getTexture (tx, ty, -this.maxDivisions + divisions);
             scene.addQuad (new bigshot.WebGLTexturedQuad (
@@ -2414,6 +2422,8 @@ if (!self["bigshot"]) {
         /**
          * Tests if the point is behind the observer. Since we're looking down
          * negative z we just test if z > 0 after applying the world transform.
+         *
+         * @private
          */
         this.isBehind = function (p) {
             var result = this.owner.webGl.transformToWorld ([p.x, p.y, p.z]);
@@ -2428,17 +2438,15 @@ if (!self["bigshot"]) {
          * @param {bigshot.WebGLTexturedQuadScene} scene the scene to add quads to
          * @param {point} topLeft the top left corner of this quad
          * @param {number} width the sides of the quad, expressed in multiples of u and v
-         * @param {point} u the vector going along the top edge of the quad
-         * @param {point} v the vector going along the left edge of the quad
          * @param {int} divisions the current number of divisions done (increases by one for each
          * split-in-four).
          * @param {int} tx the tile column this face is in
          * @param {int} ty the tile row this face is in 
          */
-        this.generateSubdivisionFace = function (scene, topLeft, width, u, v, key, divisions, tx, ty) {
-            var bottomLeft = this.pt3dMultAdd (v, width, topLeft);
-            var topRight = this.pt3dMultAdd (u, width, topLeft);
-            var bottomRight = this.pt3dMultAdd (u, width, bottomLeft);
+        this.generateSubdivisionFace = function (scene, topLeft, width, divisions, tx, ty) {
+            var bottomLeft = this.pt3dMultAdd (this.v, width, topLeft);
+            var topRight = this.pt3dMultAdd (this.u, width, topLeft);
+            var bottomRight = this.pt3dMultAdd (this.u, width, bottomLeft);
             
             var numBehind = 0;
             if (this.isBehind (topLeft)) {
@@ -2465,25 +2473,43 @@ if (!self["bigshot"]) {
             dmax = Math.max (this.screenDistanceMax (bottomLeft, topLeft).d, dmax);
             
             if (divisions < this.minDivisions || ((dmax > (this.tileSize - this.overlap) || straddles) && divisions < this.maxDivisions)) {
-                var center = this.pt3dMultAdd ({x: u.x + v.x, y: u.y + v.y, z: u.z + v.z }, width / 2, topLeft);
-                var midTop = this.pt3dMultAdd (u, width / 2, topLeft);
-                var midLeft = this.pt3dMultAdd (v, width / 2, topLeft);
-                this.generateSubdivisionFace (scene, topLeft, width / 2, u, v, key, divisions + 1, tx * 2, ty * 2);
-                this.generateSubdivisionFace (scene, midTop, width / 2, u, v, key, divisions + 1, tx * 2 + 1, ty * 2);
-                this.generateSubdivisionFace (scene, midLeft, width / 2, u, v, key, divisions + 1, tx * 2, ty * 2 + 1);
-                this.generateSubdivisionFace (scene, center, width / 2, u, v, key, divisions + 1, tx * 2 + 1, ty * 2 + 1);
+                var center = this.pt3dMultAdd ({x: this.u.x + this.v.x, y: this.u.y + this.v.y, z: this.u.z + this.v.z }, width / 2, topLeft);
+                var midTop = this.pt3dMultAdd (this.u, width / 2, topLeft);
+                var midLeft = this.pt3dMultAdd (this.v, width / 2, topLeft);
+                this.generateSubdivisionFace (scene, topLeft, width / 2, divisions + 1, tx * 2, ty * 2);
+                this.generateSubdivisionFace (scene, midTop, width / 2, divisions + 1, tx * 2 + 1, ty * 2);
+                this.generateSubdivisionFace (scene, midLeft, width / 2, divisions + 1, tx * 2, ty * 2 + 1);
+                this.generateSubdivisionFace (scene, center, width / 2, divisions + 1, tx * 2 + 1, ty * 2 + 1);
             } else {
-                this.generateFace (scene, topLeft, width, u, v, key, tx, ty, divisions);
+                this.generateFace (scene, topLeft, width, tx, ty, divisions);
             }
         }
         
+        /**
+         * Tests if the face has had any updated texture
+         * notifications from the tile cache.
+         *
+         * @public
+         */
         this.isUpdated = function () {
             return this.updated;
         };
         
+        /**
+         * Renders this face into a scene.
+         * 
+         * @public
+         * @param {bigshot.WebGLTexturedQuadScene} scene the scene to render into
+         */
         this.render = function (scene) {
             this.updated = false;
-            this.generateSubdivisionFace (scene, this.topLeft, this.width, this.u, this.v, this.key, 0, 0, 0);
+            this.generateSubdivisionFace (scene, this.topLeft, this.width, 0, 0, 0);
+        }
+        
+        /**
+         * Performs post-render cleanup.
+         */
+        this.endRender = function () {
             this.tileCache.purgeCache ();
         }
         
@@ -2780,8 +2806,8 @@ if (!self["bigshot"]) {
             that.gl.bindTexture(that.gl.TEXTURE_2D, texture);        
             that.gl.texImage2D(that.gl.TEXTURE_2D, 0, that.gl.RGBA, that.gl.RGBA, that.gl.UNSIGNED_BYTE, image);
             that.gl.texParameteri(that.gl.TEXTURE_2D, that.gl.TEXTURE_MAG_FILTER, that.gl.NEAREST);
-            that.gl.texParameteri(that.gl.TEXTURE_2D, that.gl.TEXTURE_MIN_FILTER, that.gl.LINEAR_MIPMAP_LINEAR);
-            that.gl.generateMipmap(gl.TEXTURE_2D);
+            that.gl.texParameteri(that.gl.TEXTURE_2D, that.gl.TEXTURE_MIN_FILTER, that.gl.NEAREST);
+            //that.gl.generateMipmap(that.gl.TEXTURE_2D);
 
             that.gl.bindTexture(that.gl.TEXTURE_2D, null);      
         }
@@ -3063,9 +3089,12 @@ if (!self["bigshot"]) {
         }
         
         /**
-        * Performs per-render cleanup.
-        */
+         * Performs per-render cleanup.
+         */
         this.endRender = function () {
+            for (var f in this.vrFaces) {
+                this.vrFaces[f].endRender ();
+            }
         }
         
         /**
@@ -3141,7 +3170,7 @@ if (!self["bigshot"]) {
             if (this.dragStart != null) {
                 if (this.dragMode == this.DRAG_GRAB) {
                     this.smoothRotate ();
-                    var scale = this.state.fov / this.container.width;
+                    var scale = this.state.fov / this.container.height;
                     var dx = e.clientX - this.dragStart.clientX;
                     var dy = e.clientY - this.dragStart.clientY;
                     this.state.y -= dx * scale;
@@ -3149,7 +3178,7 @@ if (!self["bigshot"]) {
                     this.render ();
                     this.dragStart = e;
                 } else {
-                    var scale = 0.2 * this.state.fov / this.container.width;
+                    var scale = 0.2 * this.state.fov / this.container.height;
                     var dx = e.clientX - this.dragStart.clientX;
                     var dy = e.clientY - this.dragStart.clientY;
                     this.smoothRotate (
