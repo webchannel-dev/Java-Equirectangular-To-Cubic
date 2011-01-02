@@ -13,6 +13,9 @@
  * See the License for the specific language governing permissions and 
  * limitations under the License. 
  */
+
+bigshot.WebGLDebug = false;
+
 /**
  * Creates a new WebGL wrapper instance.
  *
@@ -22,13 +25,21 @@ bigshot.WebGL = function (canvas_) {
     
     this.canvas = canvas_;
     
-    this.gl = /*WebGLDebugUtils.makeDebugContext(*/this.canvas.getContext("experimental-webgl")/*);*/
+    this.gl = bigshot.WebGLDebug ?
+        WebGLDebugUtils.makeDebugContext(this.canvas.getContext("experimental-webgl"))
+        :
+        this.canvas.getContext("experimental-webgl");
     if (!this.gl) {
         alert("Could not initialise WebGL.");
         return;
     }    
     this.gl.viewportWidth = this.canvas.width;
     this.gl.viewportHeight = this.canvas.height;
+    
+    this.onresize = function () {
+        this.gl.viewportWidth = this.canvas.width;
+        this.gl.viewportHeight = this.canvas.height;
+    }
     
     this.fragmentShader = 
         "#ifdef GL_ES\n" + 
@@ -187,7 +198,7 @@ bigshot.WebGL = function (canvas_) {
         that.gl.bindTexture(that.gl.TEXTURE_2D, texture);        
         that.gl.texImage2D(that.gl.TEXTURE_2D, 0, that.gl.RGBA, that.gl.RGBA, that.gl.UNSIGNED_BYTE, image);
         that.gl.texParameteri(that.gl.TEXTURE_2D, that.gl.TEXTURE_MAG_FILTER, that.gl.NEAREST);
-        that.gl.texParameteri(that.gl.TEXTURE_2D, that.gl.TEXTURE_MIN_FILTER, that.gl.LINEAR);
+        that.gl.texParameteri(that.gl.TEXTURE_2D, that.gl.TEXTURE_MIN_FILTER, that.gl.NEAREST);
         
         that.gl.bindTexture(that.gl.TEXTURE_2D, null);      
     }

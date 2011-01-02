@@ -151,11 +151,11 @@
             <arg value="--format"/>
             <arg value="archive"/>
             <arg value="--face-size"/>
-            <arg value="2040"/>
+            <arg value="2032"/>
             <arg value="--tile-size"/>
-            <arg value="255"/>
+            <arg value="254"/>
             <arg value="--overlap"/>
-            <arg value="1"/>
+            <arg value="2"/>
             <jvmarg value="-Xmx768M"/>
         </java>
     </target>

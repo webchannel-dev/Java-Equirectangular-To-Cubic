@@ -164,7 +164,7 @@ bigshot.VRFace = function (owner, key, topLeft_, width_, u, v) {
     this.maxDivisions = Math.floor (fullZoom - singleTile);
     
     this.generateFace = function (scene, topLeft, width, u, v, key, tx, ty, divisions) {
-        width *= 1 + this.overlap / this.tileSize;
+        width *= this.tileSize / (this.tileSize - this.overlap);
         var texture = this.tileCache.getTexture (tx, ty, -this.maxDivisions + divisions);
         scene.addQuad (new bigshot.WebGLTexturedQuad (
                 topLeft,
@@ -175,27 +175,27 @@ bigshot.VRFace = function (owner, key, topLeft_, width_, u, v) {
         );
     }
     
-    this.isBehind = function (renderer, p) {
+    this.isBehind = function (p) {
         var result = this.owner.webGl.transformToWorld ([p.x, p.y, p.z]);
         return result.e(3) > 0;
     }
     
-    this.generateSubdivisionFace = function (renderer, scene, topLeft, width, u, v, key, divisions, tx, ty) {
+    this.generateSubdivisionFace = function (scene, topLeft, width, u, v, key, divisions, tx, ty) {
         var bottomLeft = this.pt3dMultAdd (v, width, topLeft);
         var topRight = this.pt3dMultAdd (u, width, topLeft);
         var bottomRight = this.pt3dMultAdd (u, width, bottomLeft);
         
         var numBehind = 0;
-        if (this.isBehind (renderer, topLeft)) {
+        if (this.isBehind (topLeft)) {
             numBehind++;
         }
-        if (this.isBehind (renderer, bottomLeft)) {
+        if (this.isBehind (bottomLeft)) {
             numBehind++;
         }
-        if (this.isBehind (renderer, topRight)) {
+        if (this.isBehind (topRight)) {
             numBehind++;
         }
-        if (this.isBehind (renderer, bottomRight)) {
+        if (this.isBehind (bottomRight)) {
             numBehind++;
         }
         
@@ -204,19 +204,19 @@ bigshot.VRFace = function (owner, key, topLeft_, width_, u, v) {
         }
         var straddles = numBehind > 0;
         
-        var dmax = this.screenDistanceMax (renderer, topLeft, topRight).d;
-        dmax = Math.max (this.screenDistanceMax (renderer, topRight, bottomRight).d, dmax);
-        dmax = Math.max (this.screenDistanceMax (renderer, bottomRight, bottomLeft).d, dmax);
-        dmax = Math.max (this.screenDistanceMax (renderer, bottomLeft, topLeft).d, dmax);
+        var dmax = this.screenDistanceMax (topLeft, topRight).d;
+        dmax = Math.max (this.screenDistanceMax (topRight, bottomRight).d, dmax);
+        dmax = Math.max (this.screenDistanceMax (bottomRight, bottomLeft).d, dmax);
+        dmax = Math.max (this.screenDistanceMax (bottomLeft, topLeft).d, dmax);
         
         if (divisions < this.minDivisions || ((dmax > (this.tileSize - this.overlap) || straddles) && divisions < this.maxDivisions)) {
             var center = this.pt3dMultAdd ({x: u.x + v.x, y: u.y + v.y, z: u.z + v.z }, width / 2, topLeft);
             var midTop = this.pt3dMultAdd (u, width / 2, topLeft);
             var midLeft = this.pt3dMultAdd (v, width / 2, topLeft);
-            this.generateSubdivisionFace (renderer, scene, topLeft, width / 2, u, v, key, divisions + 1, tx * 2, ty * 2);
-            this.generateSubdivisionFace (renderer, scene, midTop, width / 2, u, v, key, divisions + 1, tx * 2 + 1, ty * 2);
-            this.generateSubdivisionFace (renderer, scene, midLeft, width / 2, u, v, key, divisions + 1, tx * 2, ty * 2 + 1);
-            this.generateSubdivisionFace (renderer, scene, center, width / 2, u, v, key, divisions + 1, tx * 2 + 1, ty * 2 + 1);
+            this.generateSubdivisionFace (scene, topLeft, width / 2, u, v, key, divisions + 1, tx * 2, ty * 2);
+            this.generateSubdivisionFace (scene, midTop, width / 2, u, v, key, divisions + 1, tx * 2 + 1, ty * 2);
+            this.generateSubdivisionFace (scene, midLeft, width / 2, u, v, key, divisions + 1, tx * 2, ty * 2 + 1);
+            this.generateSubdivisionFace (scene, center, width / 2, u, v, key, divisions + 1, tx * 2 + 1, ty * 2 + 1);
         } else {
             this.generateFace (scene, topLeft, width, u, v, key, tx, ty, divisions);
         }
@@ -226,19 +226,19 @@ bigshot.VRFace = function (owner, key, topLeft_, width_, u, v) {
         return this.updated;
     };
     
-    this.render = function (renderer, scene) {
+    this.render = function (scene) {
         this.updated = false;
-        this.generateSubdivisionFace (renderer, scene, this.topLeft, this.width, this.u, this.v, this.key, 0, 0, 0);
+        this.generateSubdivisionFace (scene, this.topLeft, this.width, this.u, this.v, this.key, 0, 0, 0);
     }
     
     
-    this.projectPointToCanvas = function (renderer, p) {
+    this.projectPointToCanvas = function (p) {
         return this.owner.webGl.transformToScreen ([p.x, p.y, p.z]);
     }
     
-    this.screenDistance = function (renderer, p0, p1) {
-        var p0t = this.projectPointToCanvas (renderer, p0);
-        var p1t = this.projectPointToCanvas (renderer, p1);
+    this.screenDistance = function (p0, p1) {
+        var p0t = this.projectPointToCanvas (p0);
+        var p1t = this.projectPointToCanvas (p1);
         
         if (p0t == null || p1t == null) {
             return null;
@@ -251,8 +251,8 @@ bigshot.VRFace = function (owner, key, topLeft_, width_, u, v) {
         return r;
     }
     
-    this.screenDistanceHyp = function (renderer, p0, p1) {
-        var r = this.screenDistance (renderer, p0, p1);
+    this.screenDistanceHyp = function (p0, p1) {
+        var r = this.screenDistance (p0, p1);
         if (r == null) {
             return {x: 0, y:0, d: 100000};
         }
@@ -261,8 +261,8 @@ bigshot.VRFace = function (owner, key, topLeft_, width_, u, v) {
         return r;
     }
     
-    this.screenDistanceMax = function (renderer, p0, p1) {
-        var r = this.screenDistance (renderer, p0, p1);
+    this.screenDistanceMax = function (p0, p1) {
+        var r = this.screenDistance (p0, p1);
         
         if (r == null) {
             return {x: 0, y:0, d: 100000};
@@ -296,7 +296,12 @@ bigshot.VRPanorama = function (parameters) {
     
     this.webGl = new bigshot.WebGL (this.container);
     this.webGl.initShaders();
-    this.webGl.gl.clearColor(0.0, 1.0, 0.0, 1.0);
+    this.webGl.gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    this.webGl.gl.blendFunc (this.webGl.gl.ONE, this.webGl.gl.ZERO);
+    this.webGl.gl.enable (this.webGl.gl.BLEND);
+    this.webGl.gl.disable(this.webGl.gl.DEPTH_TEST);
+    
+    
     this.webGl.gl.clearDepth(1.0);
     
     this.getParameters = function () {
@@ -348,8 +353,6 @@ bigshot.VRPanorama = function (parameters) {
         
         this.webGl.mvRotate (this.state.p, [1, 0, 0]);
         this.webGl.mvRotate (this.state.y, [0, 1, 0]);
-        
-        this.webGl.transformToScreen ([-1, -1, -1]);
     }
     
     /**
@@ -367,7 +370,7 @@ bigshot.VRPanorama = function (parameters) {
         var scene = new bigshot.WebGLTexturedQuadScene (this.webGl);
         
         for (var f in this.vrFaces) {
-            this.vrFaces[f].render (this.renderer, scene);
+            this.vrFaces[f].render (scene);
         }
         
         scene.render (this.webGl);
@@ -385,7 +388,7 @@ bigshot.VRPanorama = function (parameters) {
         
         for (var f in this.vrFaces) {
             if (this.vrFaces[f].isUpdated ()) {
-                this.vrFaces[f].render (this.renderer, scene);
+                this.vrFaces[f].render (scene);
             }
         }
         
@@ -397,8 +400,11 @@ bigshot.VRPanorama = function (parameters) {
     this.DRAG_GRAB = "grab";
     this.DRAG_PAN = "pan";
     
-    this.dragMode = this.DRAG_PAN;
+    this.dragMode = this.DRAG_GRAB;
     
+    this.setDragMode = function (mode) {
+        this.dragMode = mode;
+    }
     
     this.dragMouseDown = function (e) {
         this.dragStart = e;
@@ -412,6 +418,7 @@ bigshot.VRPanorama = function (parameters) {
     this.dragMouseMove = function (e) {
         if (this.dragStart != null) {
             if (this.dragMode == this.DRAG_GRAB) {
+                this.smoothRotate ();
                 var scale = this.state.fov / this.container.width;
                 var dx = e.clientX - this.dragStart.clientX;
                 var dy = e.clientY - this.dragStart.clientY;
@@ -428,7 +435,7 @@ bigshot.VRPanorama = function (parameters) {
                         return dy * scale;
                     }, function () {
                         return dx * scale;
-                    });                
+                    });
             }
         }
     }
@@ -453,7 +460,42 @@ bigshot.VRPanorama = function (parameters) {
         return distance;
     }
     
-    this.autorotate = function () {
+    this.idleCounter = 0;
+    this.maxIdleCounter = -1;
+    
+    this.resetIdle = function () {
+        this.idleCounter = 0;
+    }
+    
+    this.idleTick = function () {
+        console.log ("Tick..." + this.idleCounter + "/" + this.maxIdleCounter);
+        if (this.maxIdleCounter < 0) {
+            return;
+        }
+        ++this.idleCounter;
+        if (this.idleCounter == this.maxIdleCounter) {
+            this.autoRotate ();
+        }
+        var that = this;
+        setTimeout (function () {
+                that.idleTick ();
+            }, 1000);
+    }
+    
+    this.autoRotateWhenIdle = function (delay) {
+        this.maxIdleCounter = delay;
+        this.idleCounter = 0;
+        if (delay < 0) {
+            return;
+        } else if (this.maxIdleCounter > 0) {            
+            var that = this;
+            setTimeout (function () {
+                    that.idleTick ();
+                }, 1000);
+        }
+    }
+    
+    this.autoRotate = function () {
         var that = this;
         var scale = this.state.fov / this.container.width;
         
@@ -546,19 +588,165 @@ bigshot.VRPanorama = function (parameters) {
     };
     
     this.mouseWheelHandler = function (delta) {
+        var that = this;
+        var target = null;
         if (delta > 0) {
             if (this.getFov () > 5) {
-                this.setFov (this.getFov () * 0.8);
+                target = this.getFov () * 0.9;
             }
         }
         if (delta < 0) {
             if (this.getFov () < 90) {
-                this.setFov (this.getFov () / 0.8);
+                target = this.getFov () / 0.9;
             }
         }
-        this.render ();
+        if (target != null) {
+            this.smoothRotate (
+                function () {
+                    return 0;
+                }, function () {
+                    return 0;
+                }, function () {
+                    return target - that.getFov ();
+                });        
+        }
     };
     
+    this.isFullScreen = false;
+    
+    /**
+    * Maximizes the image to cover the browser viewport.
+    * The container div is removed from its parent node upon entering 
+    * full screen mode. When leaving full screen mode, the container
+    * is appended to its old parent node. To avoid rearranging the
+    * nodes, wrap the container in an extra div.
+    *
+    * <p>For unknown reasons (probably security), browsers will
+    * not let you open a window that covers the entire screen.
+    * Even when specifying "fullscreen=yes", all you get is a window
+    * that has a title bar and only covers the desktop (not any task
+    * bars or the like). For now, this is the best that I can do,
+    * but should the situation change I'll update this to be
+    * full-screen<i>-ier</i>.
+    * @public
+    */
+    this.fullScreen = function (onClose) {
+        if (this.isFullScreen) {
+            return;
+        }
+        this.isFullScreen = true;
+        
+        var div = document.createElement ("div");
+        div.style.position = "fixed";
+        div.style.top = "0px";
+        div.style.left = "0px";
+        div.style.width = "100%";
+        div.style.height = "100%";
+        div.style.zIndex = "9998";
+        
+        var savedParent = this.container.parentNode;
+        var savedSize = {
+            width : this.container.style.width,
+            height : this.container.style.height
+        };
+        this.container.style.width = "100%";
+        this.container.style.height = "100%";
+        savedParent.removeChild (this.container);
+        div.appendChild (this.container);
+        
+        var message = document.createElement ("div");
+        message.style.position = "absolute";
+        message.style.fontSize = "16pt";
+        message.style.top = "128px";
+        message.style.width = "100%";
+        message.style.color = "white";
+        message.style.padding = "16px";
+        message.style.zIndex = "9999";
+        message.style.textAlign = "center";
+        message.style.opacity = "0.75";
+        message.innerHTML = "<span style='border-radius: 16px; -moz-border-radius: 16px; padding: 16px; padding-left: 32px; padding-right: 32px; background:black'>Press Esc to exit full screen mode.</span>";
+        
+        div.appendChild (message);
+        document.body.appendChild (div);
+        
+        var that = this;
+        this.exitFullScreenHandler = function () {
+            if (message.parentNode) {
+                try {
+                    div.removeChild (message);
+                } catch (x) {
+                }
+            }
+            that.browser.unregisterListener (document, "keydown", escHandler);
+            if (!that.sizeContainer) {
+                that.container.style.width = savedSize.width;
+                that.container.style.height = savedSize.height;
+            }
+            savedParent.appendChild (that.container);
+            document.body.removeChild (div);
+            that.isFullScreen = false;
+            that.onresize ();
+            if (onClose) {
+                onClose ();
+            }
+        };
+        
+        var escHandler = function (e) {
+            if (e.keyCode == 27) {
+                that.exitFullScreenHandler ();
+            }
+        };
+        this.browser.registerListener (document, "keydown", escHandler, false);
+        
+        setTimeout (function () {
+                var opacity = 0.75;
+                var iter = function () {
+                    opacity -= 0.02;
+                    if (message.parentNode) {
+                        if (opacity <= 0) {
+                            try {
+                                div.removeChild (message);
+                            } catch (x) {}
+                        } else {
+                            message.style.opacity = opacity;
+                            setTimeout (iter, 20);
+                        }
+                    }
+                };
+                setTimeout (iter, 20);
+            }, 3500);
+        
+        this.onresize ();
+    };
+    
+    this.onresize = function () {
+        if (!this.isFullScreen) {
+            if (this.sizeContainer) {
+                var s = this.browser.getElementSize (this.sizeContainer);
+                this.container.width = s.w;
+                this.container.height = s.h;
+            }
+        } else {
+            var s = this.browser.getElementSize (this.container);
+            this.container.width = s.w;
+            this.container.height = s.h;
+        }
+        this.webGl.onresize ();
+        this.renderAsap ();            
+    };
+    
+    this.renderAsap = function () {
+        var that = this;
+        setTimeout (function () {
+            that.render ();
+            }, 1);
+    }
+    
+    this.sizeContainer = null;
+    
+    this.autoResizeContainer = function (sizeContainer) {
+        this.sizeContainer = sizeContainer;
+    }
     
     this.vrFaces = new Array ();
     this.vrFaces[0] = new bigshot.VRFace (this, "f", {x:-1, y:1, z:-1}, 2.0, {x:1, y:0, z:0}, {x:0, y:-1, z:0});
@@ -568,27 +756,35 @@ bigshot.VRPanorama = function (parameters) {
     this.vrFaces[4] = new bigshot.VRFace (this, "u", {x:-1, y:1, z:1}, 2.0, {x:1, y:0, z:0}, {x:0, y:0, z:-1});
     this.vrFaces[5] = new bigshot.VRFace (this, "d", {x:-1, y:-1, z:-1}, 2.0, {x:1, y:0, z:0}, {x:0, y:0, z:1});
     
-    
     this.browser.registerListener (this.container, "mousedown", function (e) {
+            that.resetIdle ();
             that.dragMouseDown (e);
             return consumeEvent (e);
         }, false);
     this.browser.registerListener (this.container, "mouseup", function (e) {
+            that.resetIdle ();
             that.dragMouseUp (e);
             return consumeEvent (e);
         }, false);
     this.browser.registerListener (this.container, 'mousemove', function (e) {
+            that.resetIdle ();
             that.dragMouseMove (e);
             return consumeEvent (e);
         }, false);
     this.browser.registerListener (parameters.container, "DOMMouseScroll", function (e) {
+            that.resetIdle ();
             that.mouseWheel (e);
             return consumeEvent (e);
         }, false);
     this.browser.registerListener (parameters.container, "mousewheel", function (e) {
+            that.resetIdle ();
             that.mouseWheel (e);
             return consumeEvent (e);
         }, false);
+    this.browser.registerListener (window, 'resize', function (e) {
+            that.onresize ();
+        }, false);
+    
     
 }
 
