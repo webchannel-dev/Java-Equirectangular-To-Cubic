@@ -22,10 +22,9 @@
             
             function redraw () {
                 bvr.render ();
-                //state.cube_rotate_x_rad = frame * 0.01;
-                ++frame;
-                if (frame < 100) {
-                }
+            }
+            function autorotate () {
+                bvr.autorotate ();
             }
         </script>
             
@@ -36,5 +35,7 @@
         </canvas>
         <div id="div">aaa</div>
         <a href="#" onclick="redraw()">redraw</a>
+        <a href="#" onclick="autorotate()">autorotate</a>
+        
     </body>
 </html>

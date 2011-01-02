@@ -53,7 +53,7 @@
             dir="${basedir}">
             <arg value="${jsdoc-path}/app/run.js"/>
             <!-- <arg value="-a"/> -->
-            <arg value="-t=${jsdoc-path}/templates\jsdoc"/>
+            <arg value="-t=${jsdoc-path}/templates/jsdoc"/>
             <arg value="-d=${package-dir}/doc/js"/>
             <arg value="${src}/js/"/>
         </java>
@@ -81,6 +81,18 @@
             <arg value="-o"/>
             <arg value="${package-dir}/bigshot-compressed.js"/>
             <arg value="${package-dir}/bigshot.js"/>
+        </java>
+        <java fork="yes" jar="${basedir}/tools/yuicompressor-2.4.2.jar"
+            dir="${basedir}">
+            <arg value="-o"/>
+            <arg value="${package-dir}/bigshot-webgl-compressed.js"/>
+            <arg value="${package-dir}/bigshot-webgl.js"/>
+        </java>
+        <java fork="yes" jar="${basedir}/tools/yuicompressor-2.4.2.jar"
+            dir="${basedir}">
+            <arg value="-o"/>
+            <arg value="${package-dir}/bigshot-vrpanorama-compressed.js"/>
+            <arg value="${package-dir}/bigshot-vrpanorama.js"/>
         </java>
         <zip destfile="${final}/bigshot-${version}.zip">
             <fileset dir="${package-dir}"/>
@@ -136,16 +148,14 @@
             <arg value="facemap"/>
             <arg value="--levels"/>
             <arg value="12"/>
-            <arg value="--folder-layout"/>
-            <arg value="dzi"/>
             <arg value="--format"/>
             <arg value="archive"/>
             <arg value="--face-size"/>
-            <arg value="2048"/>
+            <arg value="2040"/>
             <arg value="--tile-size"/>
-            <arg value="256"/>
+            <arg value="255"/>
             <arg value="--overlap"/>
-            <arg value="0"/>
+            <arg value="1"/>
             <jvmarg value="-Xmx768M"/>
         </java>
     </target>

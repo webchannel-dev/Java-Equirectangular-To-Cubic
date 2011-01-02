@@ -272,6 +272,19 @@ if (!self["bigshot"]) {
                 sb += k + ":" + o[k] + "\n";
             }
             alert (sb);
+        },
+        
+        /**
+         * Utility function to show an object's fields in the console log.
+         *
+         * @param {Object} o the object
+         */
+        logr : function (o) {
+            var sb = "";
+            for (var k in o) {
+                sb += k + ":" + o[k] + "\n";
+            }
+            console.log (sb);
         }
     };
     

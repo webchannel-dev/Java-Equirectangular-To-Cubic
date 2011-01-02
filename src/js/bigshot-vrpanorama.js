@@ -1,18 +1,32 @@
+/*
+ * Copyright 2010 Leo Sutic <leo.sutic@gmail.com>
+ *  
+ * Licensed under the Apache License, Version 2.0 (the "License"); 
+ * you may not use this file except in compliance with the License. 
+ * You may obtain a copy of the License at 
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0 
+ *     
+ * Unless required by applicable law or agreed to in writing, software 
+ * distributed under the License is distributed on an "AS IS" BASIS, 
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
+ * See the License for the specific language governing permissions and 
+ * limitations under the License. 
+ */
 /**
  * Creates a new cache instance.
  *
- * @class Tile cache for the {@link bigshot.TileLayer}.
+ * @class Tile cache for a {@link bigshot.VRFace}.
  * @constructor
  */
 bigshot.TileTextureCache = function (onLoaded, parameters, _webGl) {
     this.webGl = _webGl;
     
-    
     /**
-        * Maximum number of tiles in the cache.
-        * @private
-        * @type int
-        */
+     * Maximum number of tiles in the cache.
+     * @private
+     * @type int
+     */
     this.maxCacheSize = 512;
     this.cachedImages = {};
     this.requestedImages = {};
@@ -80,7 +94,7 @@ bigshot.TileTextureCache = function (onLoaded, parameters, _webGl) {
 };
 
 
-function VRFace (owner, key, topLeft_, width_, u, v) {
+bigshot.VRFace = function (owner, key, topLeft_, width_, u, v) {
     var that = this;
     this.owner = owner;
     this.key = key;
@@ -116,7 +130,7 @@ function VRFace (owner, key, topLeft_, width_, u, v) {
         }
     }
     
-        
+    
     this.pt3dMultAdd = function (p, m, a) {
         return {
             x : p.x * m + a.x,
@@ -147,14 +161,10 @@ function VRFace (owner, key, topLeft_, width_, u, v) {
     this.minDivisions = 0;
     var fullZoom = Math.log (this.fullSize - this.overlap) / Math.LN2;
     var singleTile = Math.log (this.tileSize - this.overlap) / Math.LN2;
-    this.maxDivisions = fullZoom - singleTile;
-    
-    this.minDivisions = 2;
-    this.maxDivisions = 3;
+    this.maxDivisions = Math.floor (fullZoom - singleTile);
     
     this.generateFace = function (scene, topLeft, width, u, v, key, tx, ty, divisions) {
         width *= 1 + this.overlap / this.tileSize;
-        
         var texture = this.tileCache.getTexture (tx, ty, -this.maxDivisions + divisions);
         scene.addQuad (new bigshot.WebGLTexturedQuad (
                 topLeft,
@@ -166,11 +176,8 @@ function VRFace (owner, key, topLeft_, width_, u, v) {
     }
     
     this.isBehind = function (renderer, p) {
-        return false;
-        /* FIXME
-        var tp = renderer.transform.transformPoint (p);
-        return tp.z > -0.1;
-        */
+        var result = this.owner.webGl.transformToWorld ([p.x, p.y, p.z]);
+        return result.e(3) > 0;
     }
     
     this.generateSubdivisionFace = function (renderer, scene, topLeft, width, u, v, key, divisions, tx, ty) {
@@ -226,40 +233,41 @@ function VRFace (owner, key, topLeft_, width_, u, v) {
     
     
     this.projectPointToCanvas = function (renderer, p) {
-        var tp = renderer.transform.transformPoint (p);
-        if (tp.z > -0.01) {
-            tp.z = -0.01;
-        }
-        return renderer.projectPointToCanvas (tp);
+        return this.owner.webGl.transformToScreen ([p.x, p.y, p.z]);
     }
     
     this.screenDistance = function (renderer, p0, p1) {
-        var r = {
-            x : 64,
-            y : 64
-        };
-        return r;
-        /* FIXME
-        
         var p0t = this.projectPointToCanvas (renderer, p0);
         var p1t = this.projectPointToCanvas (renderer, p1);
+        
+        if (p0t == null || p1t == null) {
+            return null;
+        }
         
         var r = {
             x : p0t.x - p1t.x,
             y : p0t.y - p1t.y
         };
         return r;
-        */
     }
     
     this.screenDistanceHyp = function (renderer, p0, p1) {
         var r = this.screenDistance (renderer, p0, p1);
+        if (r == null) {
+            return {x: 0, y:0, d: 100000};
+        }
+        
         r.d = Math.sqrt (r.x * r.x + r.y * r.y);
         return r;
     }
     
     this.screenDistanceMax = function (renderer, p0, p1) {
         var r = this.screenDistance (renderer, p0, p1);
+        
+        if (r == null) {
+            return {x: 0, y:0, d: 100000};
+        }
+        
         var ax = Math.abs (r.x);
         var ay = Math.abs (r.y);
         r.d = ax > ay ? ax : ay;
@@ -267,6 +275,11 @@ function VRFace (owner, key, topLeft_, width_, u, v) {
     }
 }
 
+/**
+ * Creates a new VR panorama in a canvas.
+ * 
+ * @class VRPanorama A cube-map VR panorama.
+ */
 bigshot.VRPanorama = function (parameters) {
     var that = this;
     
@@ -291,6 +304,8 @@ bigshot.VRPanorama = function (parameters) {
     }
     
     this.setFov = function (fov) {
+        fov = Math.min (90, fov);
+        fov = Math.max (2, fov);
         this.state.fov = fov;
     }
     
@@ -299,14 +314,16 @@ bigshot.VRPanorama = function (parameters) {
     }
     
     this.setPitch = function (p) {
+        p = Math.min (90, p);
+        p = Math.max (-90, p);
         this.state.p = p;
     }
     
     this.setYaw = function (y) {
-        this.state.y = y;
-    }
-    
-    this.setYaw = function (y) {
+        y %= 360;
+        if (y < 0) {
+            y += 360;
+        }
         this.state.y = y;
     }
     
@@ -318,6 +335,9 @@ bigshot.VRPanorama = function (parameters) {
         return this.state.p;
     }
     
+    /**
+     * Sets up transformation matrices etc.
+     */
     this.beginRender = function () {
         this.webGl.gl.viewport (0, 0, this.webGl.gl.viewportWidth, this.webGl.gl.viewportHeight);
         
@@ -328,11 +348,19 @@ bigshot.VRPanorama = function (parameters) {
         
         this.webGl.mvRotate (this.state.p, [1, 0, 0]);
         this.webGl.mvRotate (this.state.y, [0, 1, 0]);
+        
+        this.webGl.transformToScreen ([-1, -1, -1]);
     }
     
+    /**
+     * Performs per-render cleanup.
+     */
     this.endRender = function () {
     }
     
+    /**
+     * Renders the VR cube.
+     */
     this.render = function () {
         this.beginRender ();
         
@@ -344,13 +372,12 @@ bigshot.VRPanorama = function (parameters) {
         
         scene.render (this.webGl);
         
-        // White background.
-        /*renderer.ctx.setFillColor(1, 1, 1, 1);
-        renderer.drawBackground();
-        */
         this.endRender ();
     }
     
+    /**
+     * Render updated faces. Called as tiles are loaded from the server.
+     */
     this.renderUpdated = function () {
         this.beginRender ();
         
@@ -367,6 +394,11 @@ bigshot.VRPanorama = function (parameters) {
         this.endRender ();
     };
     
+    this.DRAG_GRAB = "grab";
+    this.DRAG_PAN = "pan";
+    
+    this.dragMode = this.DRAG_PAN;
+    
     
     this.dragMouseDown = function (e) {
         this.dragStart = e;
@@ -374,19 +406,90 @@ bigshot.VRPanorama = function (parameters) {
     
     this.dragMouseUp = function (e) {
         this.dragStart = null;
+        this.smoothRotate ();
     }
     
     this.dragMouseMove = function (e) {
         if (this.dragStart != null) {
-            var scale = this.state.fov / this.container.width;
-            var dx = e.clientX - this.dragStart.clientX;
-            var dy = e.clientY - this.dragStart.clientY;
-            this.state.y -= dx * scale;
-            this.state.p -= dy * scale;
-            this.render ();
-            this.dragStart = e;
+            if (this.dragMode == this.DRAG_GRAB) {
+                var scale = this.state.fov / this.container.width;
+                var dx = e.clientX - this.dragStart.clientX;
+                var dy = e.clientY - this.dragStart.clientY;
+                this.state.y -= dx * scale;
+                this.state.p -= dy * scale;
+                this.render ();
+                this.dragStart = e;
+            } else {
+                var scale = 0.2 * this.state.fov / this.container.width;
+                var dx = e.clientX - this.dragStart.clientX;
+                var dy = e.clientY - this.dragStart.clientY;
+                this.smoothRotate (
+                    function () {
+                        return dy * scale;
+                    }, function () {
+                        return dx * scale;
+                    });                
+            }
         }
-    }    
+    }
+    
+    this.ease = function (current, target, speed) {
+        var easingFrom = speed * 10;
+        var snapFrom = speed / 20;
+        var ignoreFrom = speed / 1000;
+        
+        var distance = current - target;
+        if (distance > easingFrom) {
+            distance = -speed;
+        } else if (distance < -easingFrom) {
+            distance = speed;
+        } else if (Math.abs (distance) < snapFrom) {
+            distance = -distance;
+        } else if (Math.abs (distance) < ignoreFrom) {
+            distance = 0;
+        } else {
+            distance = -distance * speed * (Math.abs (distance) / easingFrom);
+        }
+        return distance;
+    }
+    
+    this.autorotate = function () {
+        var that = this;
+        var scale = this.state.fov / this.container.width;
+        
+        var speed = scale;
+        this.smoothRotate (
+            function () {
+                return that.ease (that.getPitch (), 0.0, speed);
+            }, function () {
+                return speed;
+            }, function () {
+                return that.ease (that.getFov (), 60.0, 0.1);
+            });
+    }
+    
+    this.smoothrotatePermit = 0;
+    this.smoothRotate = function (dp, dy, df) {
+        ++this.smoothrotatePermit;
+        var savedPermit = this.smoothrotatePermit;
+        if (!dp || !dy) {            
+            return;
+        }
+        
+        var that = this;
+        var stepper = function () {
+            if (that.smoothrotatePermit == savedPermit) {
+                that.setYaw (that.getYaw () + dy());
+                that.setPitch (that.getPitch () + dp());
+                if (df) {
+                    that.setFov (that.getFov () + df());
+                }
+                that.render ();
+                window.setTimeout (stepper, 5);
+            }
+        };
+        stepper ();
+    }
     
     /**
      * Helper function to consume events.
@@ -399,13 +502,71 @@ bigshot.VRPanorama = function (parameters) {
         return false;
     };
     
+    /**
+    * Translates mouse wheel events.
+    * @private
+    */
+    this.mouseWheel = function (event){
+        var delta = 0;
+        if (!event) /* For IE. */
+            event = window.event;
+        if (event.wheelDelta) { /* IE/Opera. */
+            delta = event.wheelDelta / 120;
+            /*
+                * In Opera 9, delta differs in sign as compared to IE.
+                */
+            if (window.opera)
+                delta = -delta;
+        } else if (event.detail) { /* Mozilla case. */
+            /*
+             * In Mozilla, sign of delta is different than in IE.
+             * Also, delta is multiple of 3.
+             */
+            delta = -event.detail;
+        }
+        
+        /*
+         * If delta is nonzero, handle it.
+         * Basically, delta is now positive if wheel was scrolled up,
+         * and negative, if wheel was scrolled down.
+         */
+        if (delta) {
+            this.mouseWheelHandler (delta);
+        }
+        
+        /*
+         * Prevent default actions caused by mouse wheel.
+         * That might be ugly, but we handle scrolls somehow
+         * anyway, so don't bother here..
+         */
+        if (event.preventDefault) {
+            event.preventDefault ();
+        }
+        event.returnValue = false;
+    };
+    
+    this.mouseWheelHandler = function (delta) {
+        if (delta > 0) {
+            if (this.getFov () > 5) {
+                this.setFov (this.getFov () * 0.8);
+            }
+        }
+        if (delta < 0) {
+            if (this.getFov () < 90) {
+                this.setFov (this.getFov () / 0.8);
+            }
+        }
+        this.render ();
+    };
+    
+    
     this.vrFaces = new Array ();
-    this.vrFaces[0] = new VRFace (this, "f", {x:-1, y:1, z:-1}, 2.0, {x:1, y:0, z:0}, {x:0, y:-1, z:0});
-    this.vrFaces[1] = new VRFace (this, "b", {x:1, y:1, z:1}, 2.0, {x:-1, y:0, z:0}, {x:0, y:-1, z:0});
-    this.vrFaces[2] = new VRFace (this, "l", {x:-1, y:1, z:1}, 2.0, {x:0, y:0, z:-1}, {x:0, y:-1, z:0});
-    this.vrFaces[3] = new VRFace (this, "r", {x:1, y:1, z:-1}, 2.0, {x:0, y:0, z:1}, {x:0, y:-1, z:0});
-    this.vrFaces[4] = new VRFace (this, "u", {x:-1, y:1, z:1}, 2.0, {x:1, y:0, z:0}, {x:0, y:0, z:-1});
-    this.vrFaces[5] = new VRFace (this, "d", {x:-1, y:-1, z:-1}, 2.0, {x:1, y:0, z:0}, {x:0, y:0, z:1});
+    this.vrFaces[0] = new bigshot.VRFace (this, "f", {x:-1, y:1, z:-1}, 2.0, {x:1, y:0, z:0}, {x:0, y:-1, z:0});
+    this.vrFaces[1] = new bigshot.VRFace (this, "b", {x:1, y:1, z:1}, 2.0, {x:-1, y:0, z:0}, {x:0, y:-1, z:0});
+    this.vrFaces[2] = new bigshot.VRFace (this, "l", {x:-1, y:1, z:1}, 2.0, {x:0, y:0, z:-1}, {x:0, y:-1, z:0});
+    this.vrFaces[3] = new bigshot.VRFace (this, "r", {x:1, y:1, z:-1}, 2.0, {x:0, y:0, z:1}, {x:0, y:-1, z:0});
+    this.vrFaces[4] = new bigshot.VRFace (this, "u", {x:-1, y:1, z:1}, 2.0, {x:1, y:0, z:0}, {x:0, y:0, z:-1});
+    this.vrFaces[5] = new bigshot.VRFace (this, "d", {x:-1, y:-1, z:-1}, 2.0, {x:1, y:0, z:0}, {x:0, y:0, z:1});
     
     
     this.browser.registerListener (this.container, "mousedown", function (e) {
@@ -420,6 +581,15 @@ bigshot.VRPanorama = function (parameters) {
             that.dragMouseMove (e);
             return consumeEvent (e);
         }, false);
+    this.browser.registerListener (parameters.container, "DOMMouseScroll", function (e) {
+            that.mouseWheel (e);
+            return consumeEvent (e);
+        }, false);
+    this.browser.registerListener (parameters.container, "mousewheel", function (e) {
+            that.mouseWheel (e);
+            return consumeEvent (e);
+        }, false);
+    
 }
 
 

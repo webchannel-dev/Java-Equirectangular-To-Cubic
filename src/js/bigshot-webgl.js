@@ -1,3 +1,23 @@
+/*
+ * Copyright 2010 Leo Sutic <leo.sutic@gmail.com>
+ *  
+ * Licensed under the Apache License, Version 2.0 (the "License"); 
+ * you may not use this file except in compliance with the License. 
+ * You may obtain a copy of the License at 
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0 
+ *     
+ * Unless required by applicable law or agreed to in writing, software 
+ * distributed under the License is distributed on an "AS IS" BASIS, 
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
+ * See the License for the specific language governing permissions and 
+ * limitations under the License. 
+ */
+/**
+ * Creates a new WebGL wrapper instance.
+ *
+ * @class WebGL WebGL wrapper for common bigshot.VRPanorama uses.
+ */
 bigshot.WebGL = function (canvas_) {
     
     this.canvas = canvas_;
@@ -167,9 +187,28 @@ bigshot.WebGL = function (canvas_) {
         that.gl.bindTexture(that.gl.TEXTURE_2D, texture);        
         that.gl.texImage2D(that.gl.TEXTURE_2D, 0, that.gl.RGBA, that.gl.RGBA, that.gl.UNSIGNED_BYTE, image);
         that.gl.texParameteri(that.gl.TEXTURE_2D, that.gl.TEXTURE_MAG_FILTER, that.gl.NEAREST);
-        that.gl.texParameteri(that.gl.TEXTURE_2D, that.gl.TEXTURE_MIN_FILTER, that.gl.NEAREST);
+        that.gl.texParameteri(that.gl.TEXTURE_2D, that.gl.TEXTURE_MIN_FILTER, that.gl.LINEAR);
         
         that.gl.bindTexture(that.gl.TEXTURE_2D, null);      
+    }
+    
+    this.transformToWorld = function (vector) {
+        var sylvesterVector = $V([vector[0], vector[1], vector[2], 1.0]);
+        var world = this.mvMatrix.x (sylvesterVector);
+        return world;
+    }
+    
+    this.transformToScreen = function (vector) {
+        var world = this.transformToWorld (vector);
+        var screen = this.pMatrix.x (world);
+        if (Math.abs (screen.e(4)) < Sylvester.precision) {
+            return null;
+        }
+        var r = {
+            x: this.gl.viewportWidth  * screen.e(1) / screen.e(4) + this.gl.viewportWidth / 2, 
+            y: this.gl.viewportHeight * screen.e(2) / screen.e(4) + this.gl.viewportHeight / 2
+        };
+        return r;
     }
 };
 
