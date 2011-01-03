@@ -1052,8 +1052,8 @@ if (!self["bigshot"]) {
         
         /**
          * The file system type. Used to create a filesystem instance unless
-         * the fileSystem field is set. Possible values are <code>"archive"</code> 
-         * or <code>"folder"</code>.
+         * the fileSystem field is set. Possible values are <code>"archive"</code>, 
+         * <code>"folder"</code> or <code>"dzi"</code>.
          *
          * @type String
          * @default "folder"
@@ -1137,7 +1137,7 @@ if (!self["bigshot"]) {
         var browser = new bigshot.Browser ();
         var req = browser.createXMLHttpRequest ();
         
-        parameters.merge (parameters.fileSystem.getDescriptor ());
+        parameters.merge (parameters.fileSystem.getDescriptor (), false);
         
         this.flying = 0;
         this.container = parameters.container;
@@ -2042,10 +2042,41 @@ if (!self["bigshot"]) {
      * @class Abstract filesystem definition.
      */
     bigshot.FileSystem = function () {
+        /**
+         * Returns the URL filename for the given filesystem entry.
+         *
+         * @param {String} name the entry name
+         */
         this.getFilename = function (name) {};
+        
+        /**
+         * Returns the entry filename for the given tile.
+         * 
+         * @param {int} tileX the column of the tile
+         * @param {int} tileY the row of the tile
+         * @param {int} zoomLevel the zoom level
+         */
         this.getImageFilename = function (tileX, tileY, zoomLevel) {};
+        
+        /**
+         * Sets an optional prefix that is prepended, along with a forward
+         * slash ("/"), to all names.
+         *
+         * @param {String} prefix the prefix
+         */
         this.setPrefix = function (prefix) {};
+        
+        /**
+         * Returns an image descriptor object from the descriptor file.
+         *
+         * @return a descriptor object
+         */
         this.getDescriptor = function () {};
+        
+        /**
+         * Returns the poster entry filename. For Bigshot images this is
+         * typically "poster.jpg", but for other filesystems it can be different.
+         */
         this.getPosterFilename = function () {};
     };
     
@@ -2288,8 +2319,11 @@ if (!self["bigshot"]) {
     /**
      * Creates a new cache instance.
      *
-     * @class Tile cache for a {@link bigshot.VRFace}.
-     * @constructor
+     * @class Tile texture cache for a {@link bigshot.VRFace}.
+     * @param {function()} onLoaded function that is called whenever a texture tile has been
+     * loaded.
+     * @param {bigshot.ImageParameters} image parameters
+     * @param {bigshot.WebGL} _webGl WebGL instance to use
      */
     bigshot.TileTextureCache = function (onLoaded, parameters, _webGl) {
         this.webGl = _webGl;
@@ -2462,7 +2496,7 @@ if (!self["bigshot"]) {
      * six of these.
      *
      * @param {bigshot.VRPanorama} owner the VR panorama this face is part of.
-     * @param {string} key the identifier for the face. "f" is front, "b" is back, "u" is
+     * @param {String} key the identifier for the face. "f" is front, "b" is back, "u" is
      * up, "d" is down, "l" is left and "r" is right.
      * @param {point} topLeft_ the top-left corner of the quad.
      * @param {number} width_ the length of the sides of the face, expressed in multiples of u and v.
@@ -2489,7 +2523,7 @@ if (!self["bigshot"]) {
         
         this.browser = new bigshot.Browser ();
         
-        this.parameters.merge (this.parameters.fileSystem.getDescriptor ());
+        this.parameters.merge (this.parameters.fileSystem.getDescriptor (), false);
         
         /**
          * Utility function to do a multiply-and-add of a 3d point.
@@ -2689,6 +2723,14 @@ if (!self["bigshot"]) {
             return this.VISIBLE_SOME;
         }
         
+        /**
+         * Quick and dirty computation of the on-screen distance in pixels
+         * between two 2d points. We use the max of the x and y differences.
+         * In case a point is null (that is, it's not on the screen), we 
+         * return an arbitrarily high integer.
+         *
+         * @private
+         */
         this.screenDistance = function (p0, p1) {
             if (p0 == null || p1 == null) {
                 return 1000000;
@@ -2983,7 +3025,7 @@ if (!self["bigshot"]) {
         /**
          * Creates a texture from a source url.
          *
-         * @param {string} source the URL of the image
+         * @param {String} source the URL of the image
          * @return WebGLTexture
          */
         this.createImageTextureFromSource = function (source) {

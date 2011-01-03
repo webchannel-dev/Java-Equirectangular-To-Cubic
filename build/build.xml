@@ -52,7 +52,7 @@
         <java fork="yes" jar="${jsdoc-path}/jsrun.jar"
             dir="${basedir}">
             <arg value="${jsdoc-path}/app/run.js"/>
-            <!-- <arg value="-a"/> -->
+            <!-- <arg value="-h"/> -->
             <arg value="-t=${jsdoc-path}/templates/jsdoc"/>
             <arg value="-d=${package-dir}/doc/js"/>
             <arg value="${src}/js/"/>
@@ -60,6 +60,16 @@
         <copy todir="${package-dir}/doc/js">
             <fileset dir="${doc}/jsdoc-files/"/>
         </copy>
+    </target>
+    
+    <target name="docs-help">
+        <mkdir dir="${package-dir}/doc/js"/>
+        <property name="jsdoc-path" value="${ant.home}/../jsdoc-toolkit"/>
+        <java fork="yes" jar="${jsdoc-path}/jsrun.jar"
+            dir="${basedir}">
+            <arg value="${jsdoc-path}/app/run.js"/>
+            <arg value="-h"/>
+        </java>
     </target>
     
     <target name="package">
