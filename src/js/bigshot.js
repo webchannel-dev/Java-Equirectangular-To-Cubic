@@ -703,7 +703,7 @@ if (!self["bigshot"]) {
           * @type HTMLImageElement
           */
         this.fullImage = document.createElement ("img");
-        this.fullImage.src = parameters.fileSystem.getFilename ("poster" + parameters.suffix);
+        this.fullImage.src = parameters.fileSystem.getPosterFilename ();
         
         /**
          * Maximum number of tiles in the cache.
@@ -1102,6 +1102,14 @@ if (!self["bigshot"]) {
                 this[k] = values[k];
             }
         }
+        
+        this.merge = function (values, overwrite) {
+            for (var k in values) {
+                if (overwrite || !this[k]) {
+                    this[k] = values[k];
+                }
+            }
+        }
         return this;        
     };
     
@@ -1129,20 +1137,7 @@ if (!self["bigshot"]) {
         var browser = new bigshot.Browser ();
         var req = browser.createXMLHttpRequest ();
         
-        req.open("GET", parameters.fileSystem.getFilename ("descriptor"), false);   
-        req.send(null);  
-        if(req.status == 200) {
-            var substrings = req.responseText.split (":");
-            for (var i = 0; i < substrings.length; i += 2) {
-                if (!parameters[substrings[i]]) {
-                    if (substrings[i] == "suffix") {
-                        parameters[substrings[i]] = substrings[i + 1];
-                    } else {
-                        parameters[substrings[i]] = parseInt (substrings[i + 1]);
-                    }
-                }
-            }
-        }
+        parameters.merge (parameters.fileSystem.getDescriptor ());
         
         this.flying = 0;
         this.container = parameters.container;
@@ -2049,6 +2044,9 @@ if (!self["bigshot"]) {
     bigshot.FileSystem = function () {
         this.getFilename = function (name) {};
         this.getImageFilename = function (tileX, tileY, zoomLevel) {};
+        this.setPrefix = function (prefix) {};
+        this.getDescriptor = function () {};
+        this.getPosterFilename = function () {};
     };
     
     /**
@@ -2061,17 +2059,110 @@ if (!self["bigshot"]) {
      */
     bigshot.FolderFileSystem = function (parameters) {
         this.prefix = "";
+        this.suffix = "";
+        
+        this.getDescriptor = function () {
+            this.browser = new bigshot.Browser ();
+            var req = this.browser.createXMLHttpRequest ();
+            
+            req.open("GET", this.getFilename ("descriptor"), false);   
+            req.send(null); 
+            var descriptor = {};
+            if(req.status == 200) {
+                var substrings = req.responseText.split (":");
+                for (var i = 0; i < substrings.length; i += 2) {
+                    if (substrings[i] == "suffix") {
+                        descriptor[substrings[i]] = substrings[i + 1];
+                    } else {
+                        descriptor[substrings[i]] = parseInt (substrings[i + 1]);
+                    }
+                }
+                this.suffix = descriptor.suffix;
+                return descriptor;
+            } else {
+                throw new Error ("Unable to find descriptor.");
+            }
+        }
+        
+        this.getPosterFilename = function () {
+            return "poster" + this.suffix;
+        }
         
         this.setPrefix = function (prefix) {
             this.prefix = prefix;
         }        
         
         this.getFilename = function (name) {
-            return parameters.basePath + "/" + this.prefix + name;
+            return parameters.basePath + "/" + this.prefix + "/" + name;
         };
         
         this.getImageFilename = function (tileX, tileY, zoomLevel) {
-            var key = (-zoomLevel) + "/" + tileX + "_" + tileY + parameters.suffix;
+            var key = (-zoomLevel) + "/" + tileX + "_" + tileY + this.suffix;
+            return this.getFilename (key);
+        };
+    };
+    
+    /**
+     * Creates a new instance of a Deep Zoom Image folder-based filesystem adapter.
+     *
+     * @augments bigshot.FileSystem
+     * @class Folder-based filesystem.
+     * @param {bigshot.ImageParameters} parameters the associated image parameters
+     * @constructor
+     */
+    bigshot.DeepZoomImageFileSystem = function (parameters) {
+        this.prefix = "";
+        this.suffix = "";
+        
+        this.DZ_NAMESPACE = "http://schemas.microsoft.com/deepzoom/2009";
+        this.fullZoomLevel = 0;
+        this.posterName = "";
+        
+        this.getDescriptor = function () {
+            this.browser = new bigshot.Browser ();
+            var req = this.browser.createXMLHttpRequest ();
+            
+            req.open("GET", parameters.basePath + "/" + this.prefix + ".xml", false);   
+            req.send(null); 
+            var descriptor = {};
+            if(req.status == 200) {
+                var xml = req.responseXML;
+                var image = xml.getElementsByTagName ("Image")[0];
+                var size = xml.getElementsByTagName ("Size")[0];
+                descriptor.width = parseInt (size.getAttribute ("Width"));
+                descriptor.height = parseInt (size.getAttribute ("Height"));
+                descriptor.tileSize = parseInt (image.getAttribute ("TileSize"));
+                descriptor.overlap = parseInt (image.getAttribute ("Overlap"));
+                descriptor.suffix = "." + image.getAttribute ("Format")
+                descriptor.posterSize = descriptor.tileSize;
+                
+                this.suffix = descriptor.suffix;
+                this.fullZoomLevel = Math.ceil (Math.log (Math.max (descriptor.width, descriptor.height)) / Math.LN2);
+                
+                descriptor.minZoom = -this.fullZoomLevel;
+                var posterZoomLevel = Math.ceil (Math.log (descriptor.tileSize) / Math.LN2);
+                this.posterName = this.getImageFilename (0, 0, posterZoomLevel - this.fullZoomLevel)
+                return descriptor;
+            } else {
+                throw new Error ("Unable to find descriptor.");
+            }
+        }
+        
+        this.setPrefix = function (prefix) {
+            this.prefix = prefix;
+        };
+        
+        this.getPosterFilename = function () {
+            return this.posterName;
+        };
+        
+        this.getFilename = function (name) {
+            return parameters.basePath + "/" + this.prefix + "/" + name;
+        };
+        
+        this.getImageFilename = function (tileX, tileY, zoomLevel) {
+            var dziZoomLevel = this.fullZoomLevel + zoomLevel;
+            var key = dziZoomLevel + "/" + tileX + "_" + tileY + this.suffix;
             return this.getFilename (key);
         };
     };
@@ -2089,9 +2180,37 @@ if (!self["bigshot"]) {
         this.offset = 0;
         this.index = {};
         this.prefix = "";
+        this.suffix = "";
+        
+        this.getDescriptor = function () {
+            this.browser = new bigshot.Browser ();
+            var req = this.browser.createXMLHttpRequest ();
+            
+            req.open("GET", this.getFilename ("descriptor"), false);   
+            req.send(null); 
+            var descriptor = {};
+            if(req.status == 200) {
+                var substrings = req.responseText.split (":");
+                for (var i = 0; i < substrings.length; i += 2) {
+                    if (substrings[i] == "suffix") {
+                        descriptor[substrings[i]] = substrings[i + 1];
+                    } else {
+                        descriptor[substrings[i]] = parseInt (substrings[i + 1]);
+                    }
+                }
+                this.suffix = descriptor.suffix;
+                return descriptor;
+            } else {
+                throw new Error ("Unable to find descriptor.");
+            }
+        }
+        
+        this.getPosterFilename = function () {
+            return "poster" + this.suffix;
+        }
         
         this.getFilename = function (name) {
-            name = this.prefix + name;
+            name = this.prefix + "/" + name;
             if (!this.index[name]) {
                 console.log ("Can't find " + name);
             }
@@ -2107,7 +2226,7 @@ if (!self["bigshot"]) {
         };
         
         this.getImageFilename = function (tileX, tileY, zoomLevel) {
-            var key = (-zoomLevel) + "/" + tileX + "_" + tileY + parameters.suffix;
+            var key = (-zoomLevel) + "/" + tileX + "_" + tileY + this.suffix;
             return this.getFilename (key);
         };
         
@@ -2158,6 +2277,8 @@ if (!self["bigshot"]) {
         if (!parameters.fileSystem) {
             if (parameters.fileSystemType == "archive") {
                 parameters.fileSystem = new bigshot.ArchiveFileSystem (parameters);
+            } else if (parameters.fileSystemType == "dzi") {
+                parameters.fileSystem = new bigshot.DeepZoomImageFileSystem (parameters);
             } else {
                 parameters.fileSystem = new bigshot.FolderFileSystem (parameters);
             }
@@ -2182,7 +2303,7 @@ if (!self["bigshot"]) {
             * @type HTMLImageElement
             */
         this.fullImage = document.createElement ("img");
-        this.fullImage.src = parameters.fileSystem.getFilename ("poster" + parameters.suffix);
+        this.fullImage.src = parameters.fileSystem.getPosterFilename ();
         
         /**
             * Maximum number of tiles in the cache.
@@ -2306,7 +2427,7 @@ if (!self["bigshot"]) {
     /**
      * Creates a new VR cube face.
      *
-     * @class bigshot.VRFace a VR cube face. The {@link bigshot.VRPanorama} instance holds
+     * @class a VR cube face. The {@link bigshot.VRPanorama} instance holds
      * six of these.
      *
      * @param {bigshot.VRPanorama} owner the VR panorama this face is part of.
@@ -2333,25 +2454,11 @@ if (!self["bigshot"]) {
         }
         
         bigshot.setupFileSystem (this.parameters);
-        this.parameters.fileSystem.setPrefix ("face_" + key + "/");
+        this.parameters.fileSystem.setPrefix ("face_" + key);
         
         this.browser = new bigshot.Browser ();
-        var req = this.browser.createXMLHttpRequest ();
         
-        req.open("GET", this.parameters.fileSystem.getFilename ("descriptor"), false);   
-        req.send(null);  
-        if(req.status == 200) {
-            var substrings = req.responseText.split (":");
-            for (var i = 0; i < substrings.length; i += 2) {
-                if (!this.parameters[substrings[i]]) {
-                    if (substrings[i] == "suffix") {
-                        this.parameters[substrings[i]] = substrings[i + 1];
-                    } else {
-                        this.parameters[substrings[i]] = parseInt (substrings[i + 1]);
-                    }
-                }
-            }
-        }
+        this.parameters.merge (this.parameters.fileSystem.getDescriptor ());
         
         /**
          * Utility function to do a multiply-and-add of a 3d point.
@@ -2590,7 +2697,7 @@ if (!self["bigshot"]) {
     /**
      * Creates a new WebGL wrapper instance.
      *
-     * @class WebGL WebGL wrapper for common {@link bigshot.VRPanorama} uses.
+     * @class WebGL wrapper for common {@link bigshot.VRPanorama} uses.
      */
     bigshot.WebGL = function (canvas_) {
         
@@ -2850,7 +2957,7 @@ if (!self["bigshot"]) {
     /**
      * Creates a textured quad object.
      *
-     * @class WebGLTexturedQuad An abstraction for textured quads. Used in the
+     * @class An abstraction for textured quads. Used in the
      * {@link bigshot.WebGLTexturedQuadScene}.
      *
      * @param {point} p the top-left corner of the quad
@@ -2927,7 +3034,7 @@ if (!self["bigshot"]) {
      *
      * @param {bigshot.WebGL} webGl the webGl instance to use for rendering.
      *
-     * @class WebGLTexturedQuadScene A "scene" consisting of a number of quads, all with
+     * @class A "scene" consisting of a number of quads, all with
      * a unique texture. Used by the {@link bigshot.VRPanorama} to render the VR cube.
      *
      * @see bigshot.WebGLTexturedQuad
@@ -2956,7 +3063,7 @@ if (!self["bigshot"]) {
     /**
      * Creates a new VR panorama in a canvas. Requires WebGL support.
      * 
-     * @class VRPanorama A cube-map VR panorama.
+     * @class A cube-map VR panorama.
      *
      * @param {bigshot.ImageParameters} parameters the image parameters.
      * @example
@@ -3251,7 +3358,7 @@ if (!self["bigshot"]) {
         
         this.autoRotate = function () {
             var that = this;
-            var scale = this.state.fov / this.container.height;
+            var scale = this.state.fov / 400;
             
             var speed = scale;
             this.smoothRotate (
