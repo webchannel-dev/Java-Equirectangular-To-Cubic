@@ -21,7 +21,7 @@
     <property name="final" value="final/"/>
     <property name="version" value="1.0"/>
     <property name="package-dir" value="${final}/bigshot"/>
-    
+    <property name="site-dir" value="${basedir}/../site/"/>
     
     <target name="clean">
         <mkdir dir="${temp}/"/>
@@ -130,14 +130,16 @@
     <target name="build-vr">
         <java fork="yes" jar="${package-dir}/bigshot.jar"
             dir="${basedir}">
-            <arg value="C:\Archive\Photos\2010\201012\20101225\201012252355-DSC_9737-DSC_9772-1.jpg"/>
+            <arg value="${basedir}/test/vr-sample.jpg"/>
             <arg value="${temp}/vr.bigshot"/>
             <arg value="--transform"/>
             <arg value="facemap"/>
             <arg value="--levels"/>
             <arg value="12"/>
-            <arg value="--format"/>
+            <!--
+            <arg value="- -format"/>
             <arg value="archive"/>
+            -->
             <arg value="--face-size"/>
             <arg value="2032"/>
             <arg value="--tile-size"/>
@@ -166,18 +168,31 @@ http://localhost/src/test/vrpano.html
         <antcall target="build"/>
         <antcall target="package"/>
         <antcall target="build-image"/>
+        <antcall target="build-vr"/>
         <antcall target="host"/>
     </target>
     
     <target name="help">
         <echo><![CDATA[Targets:
-clean: Cleans the build environment.
-build: Compiles all sources (the image pyramid generator 
-       and the minimal HTTPd server).
-build-image: builds the image pyramid for the test page
-host: starts the minimal httpd so we can access the test 
-      page
-demo: Compiles the sources, builds the test image pyramid,
-      and starts the HTTP server.]]></echo>
+clean: 
+    Cleans the build environment.
+
+build: 
+    Compiles all sources (the image pyramid generator 
+    and the minimal HTTPd server).
+
+build-image: 
+    builds the image pyramid for the test page
+
+build-vr: 
+    builds the image pyramid(s) for the vr test page
+
+host: 
+    starts the minimal httpd so we can access the test 
+    page
+
+demo: 
+    Compiles the sources, builds the test image pyramids,
+    and starts the HTTP server.]]></echo>
     </target>
 </project>

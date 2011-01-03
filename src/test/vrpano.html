@@ -13,8 +13,7 @@
             function vrpano () {
                 bvr = new bigshot.VRPanorama ({
                         container : document.getElementById ("canvas"),
-                        basePath : "../../temp/vr.bigshot",
-                        fileSystemType : "archive"
+                        basePath : "../../temp/vr.bigshot"
                     });
                 bvr.autoRotateWhenIdle (3);
                 bvr.autoResizeContainer (document.getElementById ("container"));
@@ -29,7 +28,7 @@
             }
             
             function autorotate () {
-                bvr.autorotate ();
+                bvr.autoRotate ();
             }
             
             function fullScreen () {

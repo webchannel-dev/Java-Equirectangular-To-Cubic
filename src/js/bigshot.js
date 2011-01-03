@@ -2060,8 +2060,14 @@ if (!self["bigshot"]) {
      * @constructor
      */
     bigshot.FolderFileSystem = function (parameters) {
+        this.prefix = "";
+        
+        this.setPrefix = function (prefix) {
+            this.prefix = prefix;
+        }        
+        
         this.getFilename = function (name) {
-            return parameters.basePath + "/" + name;
+            return parameters.basePath + "/" + this.prefix + name;
         };
         
         this.getImageFilename = function (tileX, tileY, zoomLevel) {
@@ -2300,10 +2306,8 @@ if (!self["bigshot"]) {
     /**
      * Creates a new VR cube face.
      *
-     * @class VRFace a VR cube face. The {@link bigshot.VRPanorama} instance holds
+     * @class bigshot.VRFace a VR cube face. The {@link bigshot.VRPanorama} instance holds
      * six of these.
-     *
-     * @private
      *
      * @param {bigshot.VRPanorama} owner the VR panorama this face is part of.
      * @param {string} key the identifier for the face. "f" is front, "b" is back, "u" is
@@ -2595,8 +2599,8 @@ if (!self["bigshot"]) {
         this.gl = bigshot.WebGLDebug 
             ?
             WebGLDebugUtils.makeDebugContext(this.canvas.getContext("experimental-webgl"))
-            :
-            this.canvas.getContext("experimental-webgl");
+        :
+        this.canvas.getContext("experimental-webgl");
         if (!this.gl) {
             throw new Error("Could not initialise WebGL.");
             return;
@@ -2808,7 +2812,7 @@ if (!self["bigshot"]) {
             that.gl.texParameteri(that.gl.TEXTURE_2D, that.gl.TEXTURE_MAG_FILTER, that.gl.NEAREST);
             that.gl.texParameteri(that.gl.TEXTURE_2D, that.gl.TEXTURE_MIN_FILTER, that.gl.NEAREST);
             //that.gl.generateMipmap(that.gl.TEXTURE_2D);
-
+            
             that.gl.bindTexture(that.gl.TEXTURE_2D, null);      
         }
         
@@ -2988,9 +2992,9 @@ if (!self["bigshot"]) {
             y : 0.0,
             
             /**
-            * Field of view (horizontal) in degrees.
+            * Field of view (vertical) in degrees.
             */
-            fov : 60
+            fov : 45
         };
         
         /**
@@ -3247,7 +3251,7 @@ if (!self["bigshot"]) {
         
         this.autoRotate = function () {
             var that = this;
-            var scale = this.state.fov / this.container.width;
+            var scale = this.state.fov / this.container.height;
             
             var speed = scale;
             this.smoothRotate (
@@ -3256,7 +3260,7 @@ if (!self["bigshot"]) {
                 }, function () {
                     return speed;
                 }, function () {
-                    return that.ease (that.getFov (), 60.0, 0.1);
+                    return that.ease (that.getFov (), 45.0, 0.1);
                 });
         }
         
