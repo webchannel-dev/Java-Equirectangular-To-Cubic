@@ -78,6 +78,8 @@ public class EquirectangularToCubic {
     public static File[] transformToFaces (File imageName, File outputBase, int outputSize) throws Exception {
         int[] inputSize = imageSize (imageName);
         
+        System.out.println ("Transforming to " + outputSize + "x" + outputSize + " cube map faces.");
+        
         File[] files = new File[]{
             new File (outputBase, "face_f"),
             new File (outputBase, "face_r"),

@@ -60,6 +60,7 @@ if (!self["bigshot"]) {
          * Removes all children from an element.
          * 
          * @public
+         * @param {HTMLElement} element the element whose children are to be removed.
          */
         this.removeAllChildren = function (element) {
             if (element.children.length > 0) {
@@ -69,6 +70,10 @@ if (!self["bigshot"]) {
             }
         };
         
+        /**
+         * Thunk to implement a faked "mouseenter" event.
+         * @private
+         */
         this.mouseEnter = function (_fn) {
             var isAChildOf = this.isAChildOf;
             return function(_evt)
@@ -89,6 +94,14 @@ if (!self["bigshot"]) {
             return _child === _parent;
         };
         
+        /**
+         * Unregisters a listener from an element.
+         *
+         * @param {HTMLElement} elem the element
+         * @param {String} eventName the event name ("click", "mouseover", etc.)
+         * @param {function(e)} fn the callback function to detach
+         * @param {boolean} useCapture specifies if we should unregister a listener from the capture chain.
+         */
         this.unregisterListener = function (elem, eventName, fn, useCapture) {
             if (typeof (elem.removeEventListener) != 'undefined') {
                 elem.removeEventListener (eventName, fn, useCapture);
@@ -97,6 +110,16 @@ if (!self["bigshot"]) {
             }
         };
         
+        /**
+         * Registers a listener to an element.
+         *
+         * @param {HTMLElement} elem the element
+         * @param {String} eventName the event name ("click", "mouseover", etc.)
+         * @param {function(e)} fn the callback function to attach
+         * @param {boolean} useCapture specifies if we want to initiate capture.
+         * See <a href="https://developer.mozilla.org/en/DOM/element.addEventListener">element.addEventListener</a>
+         * on MDN for an explanation.
+         */
         this.registerListener = function (_elem, _evtName, _fn, _useCapture) {
             if (typeof _elem.addEventListener != 'undefined')
             {
@@ -117,6 +140,11 @@ if (!self["bigshot"]) {
             }
         };
         
+        /**
+         * Stops an event from bubbling.
+         *
+         * @param {Event} eventObject the event object
+         */
         this.stopEventBubbling = function (eventObject) {
             if (eventObject) {
                 if (eventObject.stopPropagation) {
@@ -127,6 +155,18 @@ if (!self["bigshot"]) {
             }
         };
         
+        /**
+         * Creates a callback function that simply stops the event from bubbling.
+         *
+         * @example
+         * var browser = new bigshot.Browser ();
+         * browser.registerListener (element, 
+         *     "mousedown", 
+         *     browser.stopEventBubblingHandler (), 
+         *     false);
+         * @type function(event)
+         * @return a new function that can be used to stop an event from bubbling
+         */
         this.stopEventBubblingHandler = function () {
             var that = this;
             return function (event) {
@@ -135,12 +175,23 @@ if (!self["bigshot"]) {
             };
         }
         
+        /**
+         * Stops bubbling for all mouse events on the element.
+         *
+         * @param {HTMLElement} element the element
+         */
         this.stopMouseEventBubbling = function (element) {
             this.registerListener (element, "mousedown", this.stopEventBubblingHandler (), false);
             this.registerListener (element, "mouseup", this.stopEventBubblingHandler (), false);
             this.registerListener (element, "mousemove", this.stopEventBubblingHandler (), false);
         };
         
+        /**
+         * Returns the size in pixels of the element
+         *
+         * @param {HTMLElement} obj the element
+         * @return a size object with two integer members, w and h, for width and height respectively.
+         */
         this.getElementSize = function (obj) {
             var size = new Object();
             if (obj.clientWidth) {
@@ -152,6 +203,13 @@ if (!self["bigshot"]) {
             return size;
         };
         
+        /**
+         * Returns the position in pixels of the element relative
+         * to the top left corner of the document.
+         *
+         * @param {HTMLElement} obj the element
+         * @return a position object with two integer members, x and y.
+         */
         this.getElementPosition = function (obj) {
             var position = new Object();
             position.x = 0;
@@ -179,6 +237,12 @@ if (!self["bigshot"]) {
             return position;
         };
         
+        /**
+         * Creates an XMLHttpRequest object.
+         *
+         * @type XMLHttpRequest
+         * @return a XMLHttpRequest object.
+         */
         this.createXMLHttpRequest = function  () {
             try { 
                 return new ActiveXObject("Msxml2.XMLHTTP"); 
@@ -834,6 +898,13 @@ if (!self["bigshot"]) {
             }            
         };
         
+        /**
+         * Removes the least-recently used objects from the cache,
+         * if the size of the cache exceeds the maximum cache size.
+         * A maximum of four objects will be removed per call.
+         *
+         * @private
+         */
         this.purgeCache = function () {
             for (var i = 0; i < 4; ++i) {
                 if (this.lruMap.getSize () > this.maxCacheSize) {
@@ -2074,8 +2145,9 @@ if (!self["bigshot"]) {
         this.getDescriptor = function () {};
         
         /**
-         * Returns the poster entry filename. For Bigshot images this is
-         * typically "poster.jpg", but for other filesystems it can be different.
+         * Returns the poster URL filename. For Bigshot images this is
+         * typically the URL corresponding to the entry "poster.jpg", 
+         * but for other filesystems it can be different.
          */
         this.getPosterFilename = function () {};
     };
@@ -2089,7 +2161,7 @@ if (!self["bigshot"]) {
      * @constructor
      */
     bigshot.FolderFileSystem = function (parameters) {
-        this.prefix = "";
+        this.prefix = null;
         this.suffix = "";
         
         this.getDescriptor = function () {
@@ -2116,15 +2188,23 @@ if (!self["bigshot"]) {
         }
         
         this.getPosterFilename = function () {
-            return "poster" + this.suffix;
+            return this.getFilename ("poster" + this.suffix);
         }
         
         this.setPrefix = function (prefix) {
             this.prefix = prefix;
-        }        
+        }
+        
+        this.getPrefix = function () {
+            if (this.prefix) {
+                return this.prefix + "/";
+            } else {
+                return "";
+            }
+        }
         
         this.getFilename = function (name) {
-            return parameters.basePath + "/" + this.prefix + "/" + name;
+            return parameters.basePath + "/" + this.getPrefix () + name;
         };
         
         this.getImageFilename = function (tileX, tileY, zoomLevel) {
@@ -2153,7 +2233,7 @@ if (!self["bigshot"]) {
             this.browser = new bigshot.Browser ();
             var req = this.browser.createXMLHttpRequest ();
             
-            req.open("GET", parameters.basePath + "/" + this.prefix + ".xml", false);   
+            req.open("GET", parameters.basePath + this.prefix + ".xml", false);   
             req.send(null); 
             var descriptor = {};
             if(req.status == 200) {
@@ -2172,7 +2252,7 @@ if (!self["bigshot"]) {
                 
                 descriptor.minZoom = -this.fullZoomLevel;
                 var posterZoomLevel = Math.ceil (Math.log (descriptor.tileSize) / Math.LN2);
-                this.posterName = this.getImageFilename (0, 0, posterZoomLevel - this.fullZoomLevel)
+                this.posterName = this.getImageFilename (0, 0, posterZoomLevel - this.fullZoomLevel);
                 return descriptor;
             } else {
                 throw new Error ("Unable to find descriptor.");
@@ -2188,7 +2268,7 @@ if (!self["bigshot"]) {
         };
         
         this.getFilename = function (name) {
-            return parameters.basePath + "/" + this.prefix + "/" + name;
+            return parameters.basePath + this.prefix + "/" + name;
         };
         
         this.getImageFilename = function (tileX, tileY, zoomLevel) {
@@ -2237,7 +2317,7 @@ if (!self["bigshot"]) {
         }
         
         this.getPosterFilename = function () {
-            return "poster" + this.suffix;
+            return this.getFilename ("poster" + this.suffix);
         }
         
         this.getFilename = function (name) {
@@ -2727,12 +2807,14 @@ if (!self["bigshot"]) {
          * Quick and dirty computation of the on-screen distance in pixels
          * between two 2d points. We use the max of the x and y differences.
          * In case a point is null (that is, it's not on the screen), we 
-         * return an arbitrarily high integer.
+         * return an arbitrarily high number.
          *
          * @private
          */
         this.screenDistance = function (p0, p1) {
             if (p0 == null || p1 == null) {
+                // arbitrarily high number, because I don't really
+                // want to use Inf or NaN unless I must.
                 return 1000000;
             }
             return Math.max (Math.abs (p0.x - p1.x), Math.abs (p0.y - p1.y));
@@ -3203,17 +3285,100 @@ if (!self["bigshot"]) {
     };
     
     /**
-     * Creates a new VR panorama in a canvas. Requires WebGL support.
+     * Creates a new VR panorama in a canvas. <b>Requires WebGL support.</b>
      * 
+     * <h2 id="integration-with-saladoplayer">Integration With SaladoPlayer</h2>
+     *
+     * <p><a href="http://panozona.com/wiki/">SaladoPlayer</a> is a cool
+     * Flash-based VR panorama viewer that can display Deep Zoom Images.
+     * It can be used as a fallback for Bigshot for browsers that don't
+     * support WebGL.
+     *
+     * <p>Since Bigshot can use a Deep Zoom Image (DZI) via a {@link bigshot.DeepZoomImageFileSystem}
+     * adapter, the common file format is DZI. There are two cases: The first is
+     * when the DZI is served up as a folder structure, the second when
+     * we pack the DZI into a Bigshot archive and serve it using bigshot.php.
+     *
+     * <h3>Serving DZI as Folders</h3>
+     *
+     * <p>This is an easy one. First, we generate the required DZIs:
+     *
+     * <code><pre>
+     * java -jar bigshot.jar input.jpg dzi.bigshot \
+     *     --preset dzi-cubemap \ 
+     *     --format folders
+     * </pre></code>
+     * 
+     * <p>We'll assume that we have the six DZI folders in "temp/dzi", and that
+     * they have "face_" as a common prefix (which is what Bigshot's MakeImagePyramid
+     * outputs). So we have, for example, "temp/dzi/face_f.xml" and the tiles for face_f
+     * in "temp/dzi/face_f/". Set up Bigshot like this:
+     *
+     * <code><pre>
+     * bvr = new bigshot.VRPanorama (
+     *     new bigshot.ImageParameters ({
+     *             container : document.getElementById ("canvas"),
+     *             basePath : "temp/dzi",
+     *             fileSystemType : "dzi"
+     *         }));
+     * </pre></code>
+     * 
+     * <p>SaladoPlayer uses an XML config file, which in this case will
+     * look something like this:
+     * 
+     * <code><pre>
+     * &lt;SaladoPlayer>
+     *     &lt;global debug="false" firstPanorama="pano"/>
+     *     &lt;panoramas>
+     *         &lt;panorama id="pano" path="temp/dzi/face_f.xml"/>
+     *     &lt;/panoramas>
+     * &lt;/SaladoPlayer>
+     * </pre></code>
+     *
+     * <h3>Serving DZI as Archive</h3>
+     *
+     * <p>This one is a bit more difficult. First we create a DZI as a bigshot archive:
+     *
+     * <code><pre>
+     * java -jar bigshot.jar input.jpg dzi.bigshot \
+     *     --preset dzi-cubemap \ 
+     *     --format archive
+     * </pre></code>
+     *
+     * <p>We'll assume that we have our Bigshot archive at
+     * "temp/dzi.bigshot". For this we will use the "entry" parameter of bigshot.php
+     * to serve up the right files:
+     *
+     * <code><pre>
+     * bvr = new bigshot.VRPanorama (
+     *     new bigshot.ImageParameters ({
+     *             container : document.getElementById ("canvas"),
+     *             basePath : "/bigshot.php?file=temp/dzi.bigshot&entry=",
+     *             fileSystemType : "dzi"
+     *         }));
+     * </pre></code>
+     * 
+     * <p>SaladoPlayer uses an XML config file, which in this case will
+     * look something like this:
+     * 
+     * <code><pre>
+     * &lt;SaladoPlayer>
+     *     &lt;global debug="false" firstPanorama="pano"/>
+     *     &lt;panoramas>
+     *         &lt;panorama id="pano" path="/bigshot.php?file=dzi.bigshot&amp;amp;entry=face_f.xml"/>
+     *     &lt;/panoramas>
+     * &lt;/SaladoPlayer>
+     * </pre></code>
+     *
      * @class A cube-map VR panorama.
      *
      * @param {bigshot.ImageParameters} parameters the image parameters.
      * @example
      * var bvr = new bigshot.VRPanorama (
      *     new bigshot.ImageParameters ({
-     *         basePath : "/bigshot.php?file=myvr.bigshot",
-     *         fileSystemType : "archive",
-     *         container : document.getElementById ("bigshot_canvas")
+     *             basePath : "/bigshot.php?file=myvr.bigshot",
+     *             fileSystemType : "archive",
+     *             container : document.getElementById ("bigshot_canvas")
      *         }));
      * @see bigshot.ImageParameters
      */

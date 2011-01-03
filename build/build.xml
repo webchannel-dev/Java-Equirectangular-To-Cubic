@@ -146,26 +146,30 @@
             dir="${basedir}">
             <arg value="${basedir}/test/vr-sample.jpg"/>
             <arg value="${temp}/vr.bigshot"/>
-            <arg value="--transform"/>
-            <arg value="facemap"/>
-            <arg value="--levels"/>
-            <arg value="12"/>
-            <arg value="--descriptor-format"/>
-            <arg value="dzi"/>
-            <arg value="--folder-layout"/>
-            <arg value="dzi"/>
-            <arg value="--level-numbering"/>
-            <arg value="invert"/>
+            <arg value="--preset"/>
+            <arg value="dzi-cubemap"/>
             <!--
+            <arg value="- -transform"/>
+            <arg value="facemap"/>
+            <arg value="- -levels"/>
+            <arg value="12"/>
+            <arg value="- -descriptor-format"/>
+            <arg value="dzi"/>
+            <arg value="- -folder-layout"/>
+            <arg value="dzi"/>
+            <arg value="- -level-numbering"/>
+            <arg value="invert"/>
+            
             <arg value="- -format"/>
             <arg value="archive"/>
-            -->
-            <arg value="--face-size"/>
+            
+            <arg value="- -face-size"/>
             <arg value="2032"/>
-            <arg value="--tile-size"/>
+            <arg value="- -tile-size"/>
             <arg value="254"/>
-            <arg value="--overlap"/>
+            <arg value="- -overlap"/>
             <arg value="2"/>
+            -->
             <jvmarg value="-Xmx768M"/>
         </java>
     </target>

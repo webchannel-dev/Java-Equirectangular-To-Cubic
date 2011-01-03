@@ -242,6 +242,34 @@ public class MakeImagePyramid {
         }
     }
     
+    public static boolean isPowerOfTwo (int i) {
+        return (i & (i - 1)) == 0;
+    }
+    
+    public static void presetDziCubemap (Map<String,String> parameters) throws Exception {
+        int overlap = getParameterAsInt (parameters, "overlap", 2);
+        int tileSize = getParameterAsInt (parameters, "tile-size", 256 - overlap);
+        int faceSize = getParameterAsInt (parameters, "face-size", 8 * tileSize);
+        
+        if (!isPowerOfTwo (tileSize + overlap)) {
+            System.err.println ("WARNING: Resulting image tile size (tile-size + overlap) is not a power of two:" + (tileSize + overlap));
+        }
+        if ((faceSize % tileSize) != 0) {
+            System.err.println ("WARNING: face-size is not an even multiple of tile-size:" + faceSize + " % " + tileSize + " != 0");
+        }
+        
+        parameters.put ("overlap", String.valueOf (overlap));
+        parameters.put ("tile-size", String.valueOf (tileSize));
+        parameters.put ("face-size", String.valueOf (faceSize));
+        parameters.put ("transform", "facemap");
+        
+        int levels = (int) Math.ceil (Math.log (faceSize + overlap) / Math.log (2));
+        parameters.put ("levels", String.valueOf (levels + 1));
+        parameters.put ("descriptor-format", "dzi");
+        parameters.put ("folder-layout", "dzi");
+        parameters.put ("level-numbering", "invert");
+    }
+    
     public static void main (String[] args) throws Exception {
         if (args.length < 2) {
             showHelp ();
@@ -261,6 +289,10 @@ public class MakeImagePyramid {
                     parameters.put (key, value);
                 }
             }
+            if ("dzi-cubemap".equals (parameters.get ("preset"))) {
+                presetDziCubemap (parameters);
+            }
+            
             boolean makeVr = "facemap".equals (parameters.get ("transform"));
             
             if (makeVr) {
