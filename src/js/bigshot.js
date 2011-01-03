@@ -17,6 +17,8 @@ if (!self["bigshot"]) {
     /**
      * @namespace Bigshot namespace.
      *
+     * Bigshot is a toolkit for zoomable images and VR panoramas.
+     * 
      * <h3>Zoomable Images</h3>
      *
      * <p>The two classes that are needed for zoomable images are:
@@ -2925,7 +2927,7 @@ if (!self["bigshot"]) {
         /**
          * List of context identifiers WebGL may be accessed via.
          *
-         * @type Array<String>
+         * @type String[]
          * @private
          */
         contextNames : ["webgl", "experimental-webgl"],
@@ -3131,7 +3133,7 @@ if (!self["bigshot"]) {
         /**
          * The object-to-world transform matrix stack.
          *
-         * @type Array<Matrix>
+         * @type Matrix[]
          */
         this.mvMatrixStack = [];
         
@@ -3188,7 +3190,7 @@ if (!self["bigshot"]) {
         /**
          * Adds a translation to the world transform matrix.
          *
-         * @param {Array<number>[3]} the translation vector
+         * @param {number[3]} vector the translation vector
          */
         this.mvTranslate = function (vector) {
             var m = Matrix.Translation($V([vector[0], vector[1], vector[2]])).ensure4x4 ();
@@ -3198,8 +3200,8 @@ if (!self["bigshot"]) {
         /**
          * Adds a rotation to the world transform matrix.
          *
-         * @param {number} the angle in degrees to rotate
-         * @param {Array<number>[3]} vector the rotation vector
+         * @param {number} ang the angle in degrees to rotate
+         * @param {number[3]} vector the rotation vector
          */
         this.mvRotate = function (ang, vector) {
             var arad = ang * Math.PI / 180.0;
@@ -4130,7 +4132,7 @@ if (!self["bigshot"]) {
         /**
          * The six cube faces.
          *
-         * @type Array<bigshot.VRFace>
+         * @type bigshot.VRFace[]
          * @private
          */
         this.vrFaces = new Array ();
