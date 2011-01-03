@@ -2286,37 +2286,50 @@ if (!self["bigshot"]) {
     }
     
     /**
- * Creates a new cache instance.
- *
- * @class Tile cache for a {@link bigshot.VRFace}.
- * @constructor
- */
+     * Creates a new cache instance.
+     *
+     * @class Tile cache for a {@link bigshot.VRFace}.
+     * @constructor
+     */
     bigshot.TileTextureCache = function (onLoaded, parameters, _webGl) {
         this.webGl = _webGl;
         
         /**
-            * Reduced-resolution preview of the full image.
-            * Loaded from the "poster" image created by 
-            * MakeImagePyramid
-            *
-            * @private
-            * @type HTMLImageElement
-            */
+         * Reduced-resolution preview of the full image.
+         * Loaded from the "poster" image created by 
+         * MakeImagePyramid
+         *
+         * @private
+         * @type HTMLImageElement
+         */
         this.fullImage = document.createElement ("img");
         this.fullImage.src = parameters.fileSystem.getPosterFilename ();
         
         /**
-            * Maximum number of tiles in the cache.
-            * @private
-            * @type int
-            */
-        this.maxCacheSize = 512;
+         * Maximum number of WebGL textures in the cache. This is the
+         * "L1" cache.
+         *
+         * @private
+         * @type int
+         */
+        this.maxTextureCacheSize = 256;
+        
+        /**
+         * Maximum number of HTMLImageElement images in the cache. This is the
+         * "L2" cache.
+         *
+         * @private
+         * @type int
+         */
+        this.maxImageCacheSize = 1024;
         this.cachedTextures = {};
+        this.cachedImages = {};
         this.requestedImages = {};
         this.lastOnLoadFiredAt = 0;
         this.imageRequests = 0;
         this.partialImageSize = parameters.tileSize / 8;
-        this.lruMap = new bigshot.LRUMap ();
+        this.imageLruMap = new bigshot.LRUMap ();
+        this.textureLruMap = new bigshot.LRUMap ();
         this.onLoaded = onLoaded;
         this.browser = new bigshot.Browser ();
         
@@ -2328,7 +2341,7 @@ if (!self["bigshot"]) {
                 }
                 canvas.width = this.partialImageSize;
                 canvas.height = this.partialImageSize;
-                var ctx = canvas.getContext('2d'); 
+                var ctx = canvas.getContext ("2d"); 
                 
                 var posterScale = parameters.posterSize / Math.max (parameters.width, parameters.height);
                 
@@ -2363,9 +2376,13 @@ if (!self["bigshot"]) {
         
         this.getTexture = function (tileX, tileY, zoomLevel) {
             var key = this.getImageKey (tileX, tileY, zoomLevel);
-            this.lruMap.access (key);
+            this.textureLruMap.access (key);
+            this.imageLruMap.access (key);
             
             if (this.cachedTextures[key]) {
+                return this.cachedTextures[key];
+            } else if (this.cachedImages[key]) {
+                this.cachedTextures[key] = this.webGl.createImageTextureFromImage (this.cachedImages[key]);
                 return this.cachedTextures[key];
             } else {
                 this.requestImage (tileX, tileY, zoomLevel);
@@ -2387,6 +2404,7 @@ if (!self["bigshot"]) {
                         if (that.cachedTextures[key]) {
                             that.webGl.gl.deleteTexture (that.cachedTextures[key]);
                         }
+                        that.cachedImages[key] = tile;
                         that.cachedTextures[key] = that.webGl.createImageTextureFromImage (tile);
                         delete that.requestedImages[key];
                         that.imageRequests--;
@@ -2401,13 +2419,26 @@ if (!self["bigshot"]) {
             }            
         };
         
-        this.purgeCache = function () {
-            for (var i = 0; i < 4; ++i) {
-                if (this.lruMap.getSize () > this.maxCacheSize) {
-                    var leastUsed = this.lruMap.leastUsed ();
-                    this.lruMap.remove (leastUsed);
-                    this.webGl.deleteTexture (this.cachedTextures[leastUsed]);
-                    delete this.cachedTextures[leastUsed];
+        this.purge = function () {
+            var that = this;
+            this.purgeCache (this.textureLruMap, this.cachedTextures, this.maxTextureCacheSize, function (leastUsedKey) {
+                that.webGl.gl.deleteTexture (that.cachedTextures[leastUsedKey]);
+                });
+            this.purgeCache (this.imageLruMap, this.cachedImages, this.maxImageCacheSize, function (leastUsedKey) {
+                });
+        }
+        
+        this.purgeCache = function (lruMap, cache, maxCacheSize, onEvict) {
+            for (var i = 0; i < 64; ++i) {
+                if (lruMap.getSize () > maxCacheSize) {
+                    var leastUsed = lruMap.leastUsed ();
+                    lruMap.remove (leastUsed);
+                    if (onEvict) {
+                        onEvict (leastUsed);
+                    }                    
+                    delete cache[leastUsed];
+                } else {
+                    break;
                 }
             }
         };
@@ -2621,7 +2652,7 @@ if (!self["bigshot"]) {
          * Performs post-render cleanup.
          */
         this.endRender = function () {
-            this.tileCache.purgeCache ();
+            this.tileCache.purge ();
         }
         
         /**
