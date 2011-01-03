@@ -52,8 +52,8 @@
         <java fork="yes" jar="${jsdoc-path}/jsrun.jar"
             dir="${basedir}">
             <arg value="${jsdoc-path}/app/run.js"/>
-            <!-- <arg value="-h"/> -->
-            <arg value="-t=${jsdoc-path}/templates/jsdoc"/>
+            <arg value="-D=packageName:Bigshot"/>
+            <arg value="-t=${basedir}/tools/jsdoc"/>
             <arg value="-d=${package-dir}/doc/js"/>
             <arg value="${src}/js/"/>
         </java>

@@ -3287,7 +3287,7 @@ if (!self["bigshot"]) {
     /**
      * Creates a new VR panorama in a canvas. <b>Requires WebGL support.</b>
      * 
-     * <h2 id="integration-with-saladoplayer">Integration With SaladoPlayer</h2>
+     * <h3 id="integration-with-saladoplayer">Integration With SaladoPlayer</h3>
      *
      * <p><a href="http://panozona.com/wiki/">SaladoPlayer</a> is a cool
      * Flash-based VR panorama viewer that can display Deep Zoom Images.
@@ -3299,12 +3299,12 @@ if (!self["bigshot"]) {
      * when the DZI is served up as a folder structure, the second when
      * we pack the DZI into a Bigshot archive and serve it using bigshot.php.
      *
-     * <h3>Serving DZI as Folders</h3>
+     * <h4>Serving DZI as Folders</h4>
      *
      * <p>This is an easy one. First, we generate the required DZIs:
      *
      * <code><pre>
-     * java -jar bigshot.jar input.jpg dzi.bigshot \
+     * java -jar bigshot.jar input.jpg temp/dzi \
      *     --preset dzi-cubemap \ 
      *     --format folders
      * </pre></code>
@@ -3335,12 +3335,12 @@ if (!self["bigshot"]) {
      * &lt;/SaladoPlayer>
      * </pre></code>
      *
-     * <h3>Serving DZI as Archive</h3>
+     * <h4>Serving DZI as Archive</h4>
      *
      * <p>This one is a bit more difficult. First we create a DZI as a bigshot archive:
      *
      * <code><pre>
-     * java -jar bigshot.jar input.jpg dzi.bigshot \
+     * java -jar bigshot.jar input.jpg temp/dzi.bigshot \
      *     --preset dzi-cubemap \ 
      *     --format archive
      * </pre></code>
@@ -3370,9 +3370,7 @@ if (!self["bigshot"]) {
      * &lt;/SaladoPlayer>
      * </pre></code>
      *
-     * @class A cube-map VR panorama.
-     *
-     * @param {bigshot.ImageParameters} parameters the image parameters.
+     * <h3>Usage example:</h3>
      * @example
      * var bvr = new bigshot.VRPanorama (
      *     new bigshot.ImageParameters ({
@@ -3380,6 +3378,11 @@ if (!self["bigshot"]) {
      *             fileSystemType : "archive",
      *             container : document.getElementById ("bigshot_canvas")
      *         }));
+     * @class A cube-map VR panorama.
+     *
+     * @param {bigshot.ImageParameters} parameters the image parameters.
+     *
+     
      * @see bigshot.ImageParameters
      */
     bigshot.VRPanorama = function (parameters) {
