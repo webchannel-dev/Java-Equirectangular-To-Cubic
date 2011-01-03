@@ -2579,6 +2579,34 @@ if (!self["bigshot"]) {
             return (point.x >= min.x && point.y >= min.y && point.x < max.x && point.y < max.y);
         }
         
+        this.rectPointsInRect = function (amin, amax, min, max) {
+            var p = 0;
+            
+            if (this.pointInRect (amin, min, max)) {
+                ++p;
+            }
+            
+            if (this.pointInRect ({
+                            x : amax.x,
+                            y : amin.y
+                        }, min, max)) {
+                ++p;
+            }
+            
+            if (this.pointInRect (amax, min, max)) {
+                ++p;
+            }
+            
+            if (this.pointInRect ({
+                            x : amin.x,
+                            y : amax.y
+                        }, min, max)) {
+                ++p;
+            }
+            
+            return p;
+        }
+        
         this.intersectWithView = function (p0, p1, p2, p3) {
             var transformed = [
                 this.owner.webGl.transformToScreen ([p0.x, p0.y, p0.z]),
@@ -2618,7 +2646,7 @@ if (!self["bigshot"]) {
                 y : this.owner.webGl.gl.viewportHeight
             };
             
-            var inView = 0;
+            var pointsInViewport = 0;
             for (var i = 0; i < transformed.length; ++i) {
                 min.x = Math.min (min.x, transformed[i].x);
                 min.y = Math.min (min.y, transformed[i].y);
@@ -2627,40 +2655,29 @@ if (!self["bigshot"]) {
                 max.y = Math.max (max.y, transformed[i].y);
                 
                 if (this.pointInRect (transformed[i], viewMin, viewMax)) {
-                    inView++;
+                    pointsInViewport++;
                 }
             }
             
-            if (inView == 4) {
+            if (pointsInViewport == 4) {
                 return this.VISIBLE_ALL;
             }
             
-            var aabbInView = 0;
-            if (this.pointInRect (viewMin, min, max)) {
-                aabbInView++;
-            }
-            if (this.pointInRect ({
-                            x : viewMax.x,
-                            y : viewMin.y
-                        }, min, max)) {
-                aabbInView++;
-            }
-            if (this.pointInRect (viewMax, min, max)) {
-                aabbInView++;
-            }
-            if (this.pointInRect ({
-                            x : viewMin.x,
-                            y : viewMax.y
-                        }, min, max)) {
-                aabbInView++;
-            }
-            
+            var aabbInView = this.rectPointsInRect (min, max, viewMin, viewMax);
             if (aabbInView == 4) {
                 return this.VISIBLE_ALL;
             }
-            if (aabbInView == 0 && inView == 0) {
+            
+            var viewInAabb = this.rectPointsInRect (viewMin, viewMax, min, max);
+            
+            if (viewInAabb == 4) {
+                return this.VISIBLE_ALL;
+            }
+                        
+            if (viewInAabb == 0 && aabbInView == 0 && pointsInViewport == 0) {
                 return this.VISIBLE_NONE;
             }
+            
             return this.VISIBLE_SOME;
         }
         
