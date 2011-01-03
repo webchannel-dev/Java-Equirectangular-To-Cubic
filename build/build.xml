@@ -19,7 +19,7 @@
     <property name="src" value="src/"/>
     <property name="doc" value="doc/"/>
     <property name="final" value="final/"/>
-    <property name="version" value="1.0"/>
+    <property name="version" value="1.1"/>
     <property name="package-dir" value="${final}/bigshot"/>
     <property name="site-dir" value="${basedir}/../site/"/>
     
@@ -52,7 +52,7 @@
         <java fork="yes" jar="${jsdoc-path}/jsrun.jar"
             dir="${basedir}">
             <arg value="${jsdoc-path}/app/run.js"/>
-            <arg value="-D=packageName:Bigshot"/>
+            <arg value="-D=packageName:Bigshot ${version}"/>
             <arg value="-t=${basedir}/tools/jsdoc"/>
             <arg value="-d=${package-dir}/doc/js"/>
             <arg value="${src}/js/"/>
@@ -109,34 +109,7 @@
             <jvmarg value="-Xmx768M"/>
         </java>
     </target>
-    
-    <target name="build-dzi">
-        <java fork="yes" jar="${package-dir}/bigshot.jar"
-            dir="${basedir}">
-            <arg value="${temp}/dzi.jpg"/>
-            <arg value="${temp}/dzi.bigshot"/>
-            <arg value="--transform"/>
-            <arg value="facemap"/>
-            <arg value="--descriptor-format"/>
-            <arg value="dzi"/>
-            <arg value="--levels"/>
-            <arg value="13"/>
-            <arg value="--folder-layout"/>
-            <arg value="dzi"/>
-            <arg value="--format"/>
-            <arg value="archive"/>
-            <arg value="--level-numbering"/>
-            <arg value="invert"/>
-            <arg value="--face-size"/>
-            <arg value="2048"/>
-            <arg value="--tile-size"/>
-            <arg value="256"/>
-            <arg value="--overlap"/>
-            <arg value="1"/>
-            <jvmarg value="-Xmx768M"/>
-        </java>
-    </target>
-    
+        
     <target name="build-vr">
         <mkdir dir="${temp}/vr.bigshot"/>
         <delete includeEmptyDirs="true">
@@ -148,30 +121,17 @@
             <arg value="${temp}/vr.bigshot"/>
             <arg value="--preset"/>
             <arg value="dzi-cubemap"/>
-            <!--
-            <arg value="- -transform"/>
-            <arg value="facemap"/>
-            <arg value="- -levels"/>
-            <arg value="12"/>
-            <arg value="- -descriptor-format"/>
-            <arg value="dzi"/>
-            <arg value="- -folder-layout"/>
-            <arg value="dzi"/>
-            <arg value="- -level-numbering"/>
-            <arg value="invert"/>
-            
-            <arg value="- -format"/>
-            <arg value="archive"/>
-            
-            <arg value="- -face-size"/>
-            <arg value="2032"/>
-            <arg value="- -tile-size"/>
-            <arg value="254"/>
-            <arg value="- -overlap"/>
-            <arg value="2"/>
-            -->
             <jvmarg value="-Xmx768M"/>
         </java>
+    </target>
+    
+    <target name="build-site">
+        <delete includeEmptyDirs="true">
+            <fileset dir="${site-dir}/doc/"/>
+        </delete>
+        <copy todir="${site-dir}/doc/">
+            <fileset dir="${package-dir}/doc/"/>
+        </copy>
     </target>
     
     <target name="host">

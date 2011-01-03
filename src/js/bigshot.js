@@ -2909,33 +2909,109 @@ if (!self["bigshot"]) {
         }
     }
     
-    bigshot.WebGLDebug = false;
+    /**
+     * @class WebGL utility functions.
+     */
+    bigshot.webglutil = {
+        /**
+         * Flag indicating whether we want to wrap the WebGL context in a 
+         * WebGLDebugUtils.makeDebugContext. Defaults to false.
+         * 
+         * @type boolean
+         * @public
+         */
+        debug : false,
+        
+        /**
+         * List of context identifiers WebGL may be accessed via.
+         *
+         * @type Array<String>
+         * @private
+         */
+        contextNames : ["webgl", "experimental-webgl"],
+        
+        /**
+         * Utility function for creating a context given a canvas and 
+         * a context identifier.
+         * @type WebGLRenderingContext
+         * @private
+         */
+        createContext0 : function (canvas, context) {
+            var gl = this.debug
+            ?
+            WebGLDebugUtils.makeDebugContext(canvas.getContext(context))
+            :
+            canvas.getContext (context);
+            return gl;
+        },
+        
+        /**
+         * Creates a WebGL context for the given canvas, if possible.
+         *
+         * @public
+         * @type WebGLRenderingContext
+         * @param {HTMLCanvasElement} canvas the canvas
+         * @return The WebGL context
+         * @throws {Error} If WebGL isn't supported.
+         */
+        createContext : function (canvas) {
+            for (var i = 0; i < this.contextNames.length; ++i) {
+                var gl = this.createContext0 (canvas, this.contextNames[i]);
+                if (gl) {
+                    return gl;
+                }
+            }
+            throw new Error ("Could not initialize WebGL.");
+        },
+        
+        /**
+         * Tests whether WebGL is supported.
+         *
+         * @type boolean
+         * @public
+         * @return true If WebGL is supported, false otherwise.
+         */
+        isWebGLSupported : function () {
+            var canvas = document.createElement ("canvas");
+            if (!canvas["width"]) {
+                // Not even canvas support
+                return false;
+            }
+            
+            try {
+                this.createContext (canvas);
+                return true;
+            } catch (e) {
+                // No WebGL support
+                return false;
+            }
+        }
+    }
     
     /**
      * Creates a new WebGL wrapper instance.
      *
      * @class WebGL wrapper for common {@link bigshot.VRPanorama} uses.
+     * @param {HTMLCanvasElement} canvas_ the canvas
+     * @see #onresize()
      */
     bigshot.WebGL = function (canvas_) {
         
         this.canvas = canvas_;
         
-        this.gl = bigshot.WebGLDebug 
-            ?
-            WebGLDebugUtils.makeDebugContext(this.canvas.getContext("experimental-webgl"))
-        :
-        this.canvas.getContext("experimental-webgl");
-        if (!this.gl) {
-            throw new Error("Could not initialise WebGL.");
-            return;
-        }    
-        this.gl.viewportWidth = this.canvas.width;
-        this.gl.viewportHeight = this.canvas.height;
+        this.gl = bigshot.webglutil.createContext (this.canvas); 
         
+        /**
+         * Must be called when the canvas element is resized.
+         *
+         * @public
+         */
         this.onresize = function () {
             this.gl.viewportWidth = this.canvas.width;
             this.gl.viewportHeight = this.canvas.height;
         }
+        
+        this.onresize ();
         
         /**
          * Fragment shader. Taken from the "Learning WebGL" lessons:
@@ -2972,6 +3048,14 @@ if (!self["bigshot"]) {
             "    vTextureCoord = aTextureCoord;\n" +
             "}";
         
+        /**
+         * Creates a new shader.
+         *
+         * @type WebGLShader
+         * @param {String} source the source code
+         * @param {int} type the shader type, one of WebGLRenderingContext.FRAGMENT_SHADER or 
+         * WebGLRenderingContext.VERTEX_SHADER
+         */
         this.createShader = function (source, type) {
             var shader = this.gl.createShader (type);
             this.gl.shaderSource (shader, source);
@@ -2985,16 +3069,34 @@ if (!self["bigshot"]) {
             return shader;
         };
         
+        /**
+         * Creates a new fragment shader.
+         *
+         * @type WebGLShader
+         * @param {String} source the source code
+         */
         this.createFragmentShader = function (source) {
             return this.createShader (source, this.gl.FRAGMENT_SHADER);
         };
         
+        /**
+         * Creates a new vertex shader.
+         *
+         * @type WebGLShader
+         * @param {String} source the source code
+         */
         this.createVertexShader = function (source) {
             return this.createShader (source, this.gl.VERTEX_SHADER);
         };
         
+        /**
+         * The current shader program.
+         */
         this.shaderProgram = null;
         
+        /**
+         * Initializes the shaders.
+         */
         this.initShaders = function () {
             this.shaderProgram = this.gl.createProgram ();
             this.gl.attachShader (this.shaderProgram, this.createVertexShader (this.vertexShader));
@@ -3002,7 +3104,7 @@ if (!self["bigshot"]) {
             this.gl.linkProgram (this.shaderProgram);
             
             if (!this.gl.getProgramParameter (this.shaderProgram, this.gl.LINK_STATUS)) {
-                alert ("Could not initialise shaders");
+                throw new Error ("Could not initialise shaders");
                 return;
             }
             
@@ -3019,10 +3121,29 @@ if (!self["bigshot"]) {
             this.shaderProgram.samplerUniform = this.gl.getUniformLocation(this.shaderProgram, "uSampler");
         };
         
-        
+        /**
+         * The current object-to-world transform matrix.
+         *
+         * @type Matrix
+         */
         this.mvMatrix = null;
+        
+        /**
+         * The object-to-world transform matrix stack.
+         *
+         * @type Array<Matrix>
+         */
         this.mvMatrixStack = [];
         
+        /**
+         * Pushes the current world transform onto the stack
+         * and returns a new, identical one.
+         *
+         * @return the new world transform matrix
+         * @param {Matrix} [matrix] the new world transform. 
+         * If omitted, the current is used
+         * @type Matrix
+         */
         this.mvPushMatrix = function (matrix) {
             if (matrix) {
                 this.mvMatrixStack.push (matrix.dup());
@@ -3034,24 +3155,40 @@ if (!self["bigshot"]) {
             }
         }
         
+        /**
+         * Pops the last-pushed world transform off the stack, thereby restoring it.
+         *
+         * @type Matrix
+         * @return the previously-pushed matrix
+         */
         this.mvPopMatrix = function () {
             if (this.mvMatrixStack.length == 0) {
-                throw "Invalid popMatrix!";
+                throw new Error ("Invalid popMatrix!");
             }
             this.mvMatrix = this.mvMatrixStack.pop();
             return mvMatrix;
         }
         
+        /**
+         * Resets the world transform to the identity transform.
+         */
         this.mvReset = function () {
             this.mvMatrix = Matrix.I(4);
         }
         
+        /**
+         * Multiplies the current world transform with a matrix.
+         *
+         * @param {Matrix} matrix the matrix to multiply with
+         */
         this.mvMultiply = function (matrix) {
             this.mvMatrix = this.mvMatrix.x (matrix);
         }
         
         /**
          * Adds a translation to the world transform matrix.
+         *
+         * @param {Array<number>[3]} the translation vector
          */
         this.mvTranslate = function (vector) {
             var m = Matrix.Translation($V([vector[0], vector[1], vector[2]])).ensure4x4 ();
@@ -3062,7 +3199,7 @@ if (!self["bigshot"]) {
          * Adds a rotation to the world transform matrix.
          *
          * @param {number} the angle in degrees to rotate
-         * @param {vector} vector the rotation vector
+         * @param {Array<number>[3]} vector the rotation vector
          */
         this.mvRotate = function (ang, vector) {
             var arad = ang * Math.PI / 180.0;
@@ -3096,7 +3233,8 @@ if (!self["bigshot"]) {
          * Creates a texture from an image.
          *
          * @param {HTMLImageElement or HTMLCanvasElement} image the image
-         * @return WebGLTexture
+         * @type WebGLTexture
+         * @return An initialized texture
          */
         this.createImageTextureFromImage = function (image) {
             var texture = this.gl.createTexture();
@@ -3382,7 +3520,6 @@ if (!self["bigshot"]) {
      *
      * @param {bigshot.ImageParameters} parameters the image parameters.
      *
-     
      * @see bigshot.ImageParameters
      */
     bigshot.VRPanorama = function (parameters) {
@@ -3415,8 +3552,10 @@ if (!self["bigshot"]) {
         };
         
         /**
-        * WebGL wrapper.
-        */
+         * WebGL wrapper.
+         * @private
+         * @type bigshot.WebGL
+         */
         this.webGl = new bigshot.WebGL (this.container);
         this.webGl.initShaders();
         this.webGl.gl.clearColor(0.0, 0.0, 0.0, 1.0);
@@ -3427,6 +3566,11 @@ if (!self["bigshot"]) {
         
         this.webGl.gl.clearDepth(1.0);
         
+        /**
+         * Returns the {@link bigshot.ImageParameters} object used by this instance.
+         *
+         * @type bigshot.ImageParameters
+         */
         this.getParameters = function () {
             return this.parameters;
         }
@@ -3496,8 +3640,8 @@ if (!self["bigshot"]) {
         }
         
         /**
-        * Sets up transformation matrices etc.
-        */
+         * Sets up transformation matrices etc.
+         */
         this.beginRender = function () {
             this.webGl.gl.viewport (0, 0, this.webGl.gl.viewportWidth, this.webGl.gl.viewportHeight);
             
@@ -3520,8 +3664,8 @@ if (!self["bigshot"]) {
         }
         
         /**
-        * Renders the VR cube.
-        */
+         * Renders the VR cube.
+         */
         this.render = function () {
             this.beginRender ();
             
@@ -3537,8 +3681,8 @@ if (!self["bigshot"]) {
         }
         
         /**
-        * Render updated faces. Called as tiles are loaded from the server.
-        */
+         * Render updated faces. Called as tiles are loaded from the server.
+         */
         this.renderUpdated = function () {
             this.beginRender ();
             
@@ -3568,6 +3712,10 @@ if (!self["bigshot"]) {
          */
         this.DRAG_PAN = "pan";
         
+        /**
+         * The current drag mode.
+         * @private
+         */
         this.dragMode = this.DRAG_GRAB;
         
         /**
@@ -3654,6 +3802,13 @@ if (!self["bigshot"]) {
                 }, 1000);
         }
         
+        /**
+         * Sets the panorama to auto-rotate after a certain time has
+         * elapsed with no user interaction. Default is disabled.
+         * 
+         * @param {int} delay the delay in seconds. Set to < 0 to disable
+         * auto-rotation when idle
+         */
         this.autoRotateWhenIdle = function (delay) {
             this.maxIdleCounter = delay;
             this.idleCounter = 0;
@@ -3667,6 +3822,9 @@ if (!self["bigshot"]) {
             }
         }
         
+        /**
+         * Starts auto-rotation of the camera.
+         */
         this.autoRotate = function () {
             var that = this;
             var scale = this.state.fov / 400;
@@ -3683,21 +3841,23 @@ if (!self["bigshot"]) {
         }
         
         /**
-        * Integer acting as a "permit". When the smoothRotate function
-        * is called, the current value is incremented and saved. If the number changes
-        * that particular call to smoothRotate stops. This way we avoid
-        * having multiple smoothRotate rotations going in parallel.
-        */
+         * Integer acting as a "permit". When the smoothRotate function
+         * is called, the current value is incremented and saved. If the number changes
+         * that particular call to smoothRotate stops. This way we avoid
+         * having multiple smoothRotate rotations going in parallel.
+         * @private
+         * @type int
+         */
         this.smoothrotatePermit = 0;
         
         /**
-        * Smoothly rotates the camera. If any of the dp or dy functions are null, stops
-        * any smooth rotation.
-        *
-        * @param {function()} dp function giving the pitch increment for the next frame
-        * @param {function()} dy function giving the yaw increment for the next frame
-        * @param {function()} [df] function giving the field of view (degrees) increment for the next frame
-        */
+         * Smoothly rotates the camera. If any of the dp or dy functions are null, stops
+         * any smooth rotation.
+         *
+         * @param {function()} dp function giving the pitch increment for the next frame
+         * @param {function()} dy function giving the yaw increment for the next frame
+         * @param {function()} [df] function giving the field of view (degrees) increment for the next frame
+         */
         this.smoothRotate = function (dp, dy, df) {
             ++this.smoothrotatePermit;
             var savedPermit = this.smoothrotatePermit;
@@ -3721,9 +3881,9 @@ if (!self["bigshot"]) {
         }
         
         /**
-        * Helper function to consume events.
-        * @private
-        */
+         * Helper function to consume events.
+         * @private
+         */
         var consumeEvent = function (event) {
             if (event.preventDefault) {
                 event.preventDefault ();
@@ -3732,9 +3892,9 @@ if (!self["bigshot"]) {
         };
         
         /**
-        * Translates mouse wheel events.
-        * @private
-        */
+         * Translates mouse wheel events.
+         * @private
+         */
         this.mouseWheel = function (event){
             var delta = 0;
             if (!event) /* For IE. */
@@ -3774,6 +3934,10 @@ if (!self["bigshot"]) {
             event.returnValue = false;
         };
         
+        /**
+         * Utility function to interpret mouse wheel events.
+         * @private
+         */
         this.mouseWheelHandler = function (delta) {
             var that = this;
             var target = null;
@@ -3807,21 +3971,24 @@ if (!self["bigshot"]) {
         this.isFullScreen = false;
         
         /**
-        * Maximizes the image to cover the browser viewport.
-        * The container div is removed from its parent node upon entering 
-        * full screen mode. When leaving full screen mode, the container
-        * is appended to its old parent node. To avoid rearranging the
-        * nodes, wrap the container in an extra div.
-        *
-        * <p>For unknown reasons (probably security), browsers will
-        * not let you open a window that covers the entire screen.
-        * Even when specifying "fullscreen=yes", all you get is a window
-        * that has a title bar and only covers the desktop (not any task
-        * bars or the like). For now, this is the best that I can do,
-        * but should the situation change I'll update this to be
-        * full-screen<i>-ier</i>.
-        * @public
-        */
+         * Maximizes the image to cover the browser viewport.
+         * The container div is removed from its parent node upon entering 
+         * full screen mode. When leaving full screen mode, the container
+         * is appended to its old parent node. To avoid rearranging the
+         * nodes, wrap the container in an extra div.
+         *
+         * <p>For unknown reasons (probably security), browsers will
+         * not let you open a window that covers the entire screen.
+         * Even when specifying "fullscreen=yes", all you get is a window
+         * that has a title bar and only covers the desktop (not any task
+         * bars or the like). For now, this is the best that I can do,
+         * but should the situation change I'll update this to be
+         * full-screen<i>-ier</i>.
+         *
+         * @param {function()} [onClose] function that is called when the user 
+         * exits full-screen mode
+         * @public
+         */
         this.fullScreen = function (onClose) {
             if (this.isFullScreen) {
                 return;
@@ -3913,6 +4080,7 @@ if (!self["bigshot"]) {
         
         /**
          * Right-sizes the canvas container.
+         * @private
          */
         this.onresize = function () {
             if (!this.isFullScreen) {
@@ -3952,13 +4120,19 @@ if (!self["bigshot"]) {
          * Automatically resizes the canvas element to the size of the 
          * given element on resize.
          *
-         * @param {HTMLElement} sizeContainer the element to use. Set to {@code null}
+         * @param {HTMLElement} sizeContainer the element to use. Set to <code>null</code>
          * to disable.
          */
         this.autoResizeContainer = function (sizeContainer) {
             this.sizeContainer = sizeContainer;
         }
         
+        /**
+         * The six cube faces.
+         *
+         * @type Array<bigshot.VRFace>
+         * @private
+         */
         this.vrFaces = new Array ();
         this.vrFaces[0] = new bigshot.VRFace (this, "f", {x:-1, y:1, z:-1}, 2.0, {x:1, y:0, z:0}, {x:0, y:-1, z:0});
         this.vrFaces[1] = new bigshot.VRFace (this, "b", {x:1, y:1, z:1}, 2.0, {x:-1, y:0, z:0}, {x:0, y:-1, z:0});
