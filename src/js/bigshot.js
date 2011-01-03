@@ -2312,7 +2312,7 @@ if (!self["bigshot"]) {
          * @private
          * @type int
          */
-        this.maxTextureCacheSize = 256;
+        this.maxTextureCacheSize = 512;
         
         /**
          * Maximum number of HTMLImageElement images in the cache. This is the
@@ -2321,7 +2321,7 @@ if (!self["bigshot"]) {
          * @private
          * @type int
          */
-        this.maxImageCacheSize = 1024;
+        this.maxImageCacheSize = 2048;
         this.cachedTextures = {};
         this.cachedImages = {};
         this.requestedImages = {};
@@ -2533,7 +2533,6 @@ if (!self["bigshot"]) {
                 that.updated = true;
                 owner.renderUpdated ();
             }, this.parameters, this.owner.webGl);
-        this.tileCache.maxCacheSize = 4096;
         
         this.fullSize = this.parameters.width;
         this.overlap = this.parameters.overlap;
@@ -2562,14 +2561,42 @@ if (!self["bigshot"]) {
         }
         
         /**
-         * Tests if the point is behind the observer. Since we're looking down
+         * Tests if the point is visible to the observer. Since we're looking down
          * negative z we just test if z > 0 after applying the world transform.
          *
          * @private
          */
-        this.isBehind = function (p) {
-            var result = this.owner.webGl.transformToWorld ([p.x, p.y, p.z]);
-            return result.e(3) > 0;
+        this.isVisible = function (p0) {
+            var world = this.owner.webGl.transformToWorld ([p0.x, p0.y, p0.z]);
+            return world.e(3) < 0;
+        }
+        
+        this.VISIBLE_NONE = 0;
+        this.VISIBLE_SOME = 1;
+        this.VISIBLE_ALL = 2;
+        
+        this.intersectWithView = function (p0, p1, p2, p3) {
+            var numVisible = 0;
+            if (this.isVisible (p0)) {
+                numVisible++;
+            }
+            if (this.isVisible (p1)) {
+                numVisible++;
+            }
+            if (this.isVisible (p2)) {
+                numVisible++;
+            }
+            if (this.isVisible (p3)) {
+                numVisible++;
+            }
+            
+            if (numVisible == 4) {
+                return this.VISIBLE_ALL;
+            } else if (numVisible > 0) {
+                return this.VISIBLE_SOME;
+            } else {
+                return this.VISIBLE_NONE;
+            }
         }
         
         /**
@@ -2590,31 +2617,28 @@ if (!self["bigshot"]) {
             var topRight = this.pt3dMultAdd (this.u, width, topLeft);
             var bottomRight = this.pt3dMultAdd (this.u, width, bottomLeft);
             
-            var numBehind = 0;
-            if (this.isBehind (topLeft)) {
-                numBehind++;
-            }
-            if (this.isBehind (bottomLeft)) {
-                numBehind++;
-            }
-            if (this.isBehind (topRight)) {
-                numBehind++;
-            }
-            if (this.isBehind (bottomRight)) {
-                numBehind++;
-            }
-            
-            if (numBehind == 4) {
+            var numVisible = this.intersectWithView (topLeft, topRight, bottomRight, bottomLeft);
+                
+            if (numVisible == this.VISIBLE_NONE) {
                 return;
             }
-            var straddles = numBehind > 0;
+            var straddles = this.VISIBLE_SOME;
             
             var dmax = this.screenDistanceMax (topLeft, topRight).d;
             dmax = Math.max (this.screenDistanceMax (topRight, bottomRight).d, dmax);
             dmax = Math.max (this.screenDistanceMax (bottomRight, bottomLeft).d, dmax);
             dmax = Math.max (this.screenDistanceMax (bottomLeft, topLeft).d, dmax);
             
-            if (divisions < this.minDivisions || ((dmax > (this.tileSize - this.overlap) || straddles) && divisions < this.maxDivisions)) {
+            if (divisions < this.minDivisions 
+                    || 
+                    (
+                        (
+                            dmax > (this.tileSize - this.overlap) 
+                            ||
+                            straddles
+                        ) && divisions < this.maxDivisions
+                    )
+                ) {
                 var center = this.pt3dMultAdd ({x: this.u.x + this.v.x, y: this.u.y + this.v.y, z: this.u.z + this.v.z }, width / 2, topLeft);
                 var midTop = this.pt3dMultAdd (this.u, width / 2, topLeft);
                 var midLeft = this.pt3dMultAdd (this.v, width / 2, topLeft);
@@ -2973,15 +2997,78 @@ if (!self["bigshot"]) {
          */
         this.transformToScreen = function (vector) {
             var world = this.transformToWorld (vector);
+            if (world.e(3) > 0) {
+                return null;
+            }
+            
             var screen = this.pMatrix.x (world);
             if (Math.abs (screen.e(4)) < Sylvester.precision) {
                 return null;
             }
             var r = {
                 x: this.gl.viewportWidth  * screen.e(1) / screen.e(4) + this.gl.viewportWidth / 2, 
-                y: this.gl.viewportHeight * screen.e(2) / screen.e(4) + this.gl.viewportHeight / 2
+                y: this.gl.viewportHeight * screen.e(2) / screen.e(4) + this.gl.viewportHeight / 2,
+                toString : function () {
+                    return this.x + "," + this.y;
+                }
             };
             return r;
+        }
+        
+        /**
+         * Tests if the given point (given as model space coordinates) is visible in the viewport.
+         */
+        this.isVisible = function (vector) {
+            var r = this.transformToScreen (vector);
+            if (r == null) {
+                return false;
+            }
+            return (r.x >= 0 && r.y >= 0 && r.x < this.gl.viewportWidth && r.y < this.gl.viewportHeight);
+        }
+        
+        this.isInViewport = function (point) {
+            return point && (point.x >= 0 && point.y >= 0 && point.x < this.gl.viewportWidth && point.y < this.gl.viewportHeight);
+        }
+        
+        this.isEdgeVisible = function (a, b) {
+            var at = this.transformToScreen (a);
+            var bt = this.transformToScreen (b);
+            
+            console.log (a + " trans " + at + "  " + b + " trans " + bt);
+            
+            if (at == null && bt == null) {
+                console.log ("no");
+                return false;
+            } else if (at == null && bt != null) {
+                console.log ("yes");
+                return true;
+            } else if (at != null && bt == null) {
+                console.log ("yes");
+                return true;
+            }
+            
+            if (at.x < 0 && bt.x < 0) {
+                console.log ("no");
+                return false;
+            }
+            
+            if (at.x > this.gl.viewportWidth && bt.x > this.gl.viewportWidth) {
+                console.log ("no");
+                return false;
+            }
+            
+            if (at.y < 0 && bt.y < 0) {
+                console.log ("no");
+                return false;
+            }
+            
+            if (at.y > this.gl.viewportHeight && bt.y > this.gl.viewportHeight) {
+                console.log ("no");
+                return false;
+            }
+            
+            console.log ("yes");
+            return true;
         }
     };
     
@@ -3681,11 +3768,12 @@ if (!self["bigshot"]) {
         
         this.vrFaces = new Array ();
         this.vrFaces[0] = new bigshot.VRFace (this, "f", {x:-1, y:1, z:-1}, 2.0, {x:1, y:0, z:0}, {x:0, y:-1, z:0});
-        this.vrFaces[1] = new bigshot.VRFace (this, "b", {x:1, y:1, z:1}, 2.0, {x:-1, y:0, z:0}, {x:0, y:-1, z:0});
+        /*this.vrFaces[1] = new bigshot.VRFace (this, "b", {x:1, y:1, z:1}, 2.0, {x:-1, y:0, z:0}, {x:0, y:-1, z:0});
         this.vrFaces[2] = new bigshot.VRFace (this, "l", {x:-1, y:1, z:1}, 2.0, {x:0, y:0, z:-1}, {x:0, y:-1, z:0});
         this.vrFaces[3] = new bigshot.VRFace (this, "r", {x:1, y:1, z:-1}, 2.0, {x:0, y:0, z:1}, {x:0, y:-1, z:0});
         this.vrFaces[4] = new bigshot.VRFace (this, "u", {x:-1, y:1, z:1}, 2.0, {x:1, y:0, z:0}, {x:0, y:0, z:-1});
         this.vrFaces[5] = new bigshot.VRFace (this, "d", {x:-1, y:-1, z:-1}, 2.0, {x:1, y:0, z:0}, {x:0, y:0, z:1});
+        */
         
         this.browser.registerListener (this.container, "mousedown", function (e) {
                 that.resetIdle ();
