@@ -92,6 +92,31 @@
             <arg value="${package-dir}/bigshot-compressed.js"/>
             <arg value="${package-dir}/bigshot.js"/>
         </java>
+        
+        <concat destfile="${temp}/bigshot-full.js">
+            <filelist dir="${src}/js/webgl/" files="sylvester.js"/>
+            <filelist dir="${src}/js/webgl/" files="glUtils.js"/>
+            <filelist dir="${src}/js/" files="bigshot.js"/>
+        </concat>
+        <java fork="yes" jar="${basedir}/tools/yuicompressor-2.4.2.jar"
+            dir="${basedir}">
+            <arg value="-o"/>
+            <arg value="${package-dir}/bigshot-full-compressed.js"/>
+            <arg value="${temp}/bigshot-full.js"/>
+        </java>
+
+        <concat destfile="${temp}/bigshot-full-and-optional.js">
+            <filelist dir="${src}/js/webgl/" files="sylvester.js"/>
+            <filelist dir="${src}/js/webgl/" files="glUtils.js"/>
+            <filelist dir="${src}/js/webgl/" files="webgl-debug.js"/>
+            <filelist dir="${src}/js/" files="bigshot.js"/>
+        </concat>
+        <java fork="yes" jar="${basedir}/tools/yuicompressor-2.4.2.jar"
+            dir="${basedir}">
+            <arg value="-o"/>
+            <arg value="${package-dir}/bigshot-full-and-optional-compressed.js"/>
+            <arg value="${temp}/bigshot-full-and-optional.js"/>
+        </java>
         <zip destfile="${final}/bigshot-${version}.zip">
             <fileset dir="${package-dir}"/>
         </zip>
@@ -109,7 +134,7 @@
             <jvmarg value="-Xmx768M"/>
         </java>
     </target>
-        
+    
     <target name="build-vr">
         <mkdir dir="${temp}/vr.bigshot"/>
         <delete includeEmptyDirs="true">
