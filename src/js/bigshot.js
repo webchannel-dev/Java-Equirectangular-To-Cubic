@@ -2575,28 +2575,93 @@ if (!self["bigshot"]) {
         this.VISIBLE_SOME = 1;
         this.VISIBLE_ALL = 2;
         
+        this.pointInRect = function (point, min, max) {
+            return (point.x >= min.x && point.y >= min.y && point.x < max.x && point.y < max.y);
+        }
+        
         this.intersectWithView = function (p0, p1, p2, p3) {
-            var numVisible = 0;
-            if (this.isVisible (p0)) {
-                numVisible++;
-            }
-            if (this.isVisible (p1)) {
-                numVisible++;
-            }
-            if (this.isVisible (p2)) {
-                numVisible++;
-            }
-            if (this.isVisible (p3)) {
-                numVisible++;
-            }
+            var transformed = [
+                this.owner.webGl.transformToScreen ([p0.x, p0.y, p0.z]),
+                this.owner.webGl.transformToScreen ([p1.x, p1.y, p1.z]),
+                this.owner.webGl.transformToScreen ([p2.x, p2.y, p2.z]),
+                this.owner.webGl.transformToScreen ([p3.x, p3.y, p3.z])
+            ];
             
-            if (numVisible == 4) {
-                return this.VISIBLE_ALL;
-            } else if (numVisible > 0) {
-                return this.VISIBLE_SOME;
-            } else {
+            var numNull = 0;
+            for (var i = 0; i < transformed.length; ++i) {
+                if (transformed[i] == null) {
+                    numNull++;
+                }
+            }
+            if (numNull == 4) {
                 return this.VISIBLE_NONE;
             }
+            if (numNull > 0) {
+                return this.VISIBLE_SOME;
+            }
+
+            var min = {
+                x : transformed[0].x,
+                y : transformed[0].y
+            };
+            var max = {
+                x : transformed[0].x,
+                y : transformed[0].y
+            };
+            
+            var viewMin = {
+                x : 0,
+                y : 0
+            };
+            var viewMax = {
+                x : this.owner.webGl.gl.viewportWidth,
+                y : this.owner.webGl.gl.viewportHeight
+            };
+            
+            var inView = 0;
+            for (var i = 0; i < transformed.length; ++i) {
+                min.x = Math.min (min.x, transformed[i].x);
+                min.y = Math.min (min.y, transformed[i].y);
+                
+                max.x = Math.max (max.x, transformed[i].x);
+                max.y = Math.max (max.y, transformed[i].y);
+                
+                if (this.pointInRect (transformed[i], viewMin, viewMax)) {
+                    inView++;
+                }
+            }
+            
+            if (inView == 4) {
+                return this.VISIBLE_ALL;
+            }
+            
+            var aabbInView = 0;
+            if (this.pointInRect (viewMin, min, max)) {
+                aabbInView++;
+            }
+            if (this.pointInRect ({
+                            x : viewMax.x,
+                            y : viewMin.y
+                        }, min, max)) {
+                aabbInView++;
+            }
+            if (this.pointInRect (viewMax, min, max)) {
+                aabbInView++;
+            }
+            if (this.pointInRect ({
+                            x : viewMin.x,
+                            y : viewMax.y
+                        }, min, max)) {
+                aabbInView++;
+            }
+            
+            if (aabbInView == 4) {
+                return this.VISIBLE_ALL;
+            }
+            if (aabbInView == 0 && inView == 0) {
+                return this.VISIBLE_NONE;
+            }
+            return this.VISIBLE_SOME;
         }
         
         /**
@@ -3006,69 +3071,13 @@ if (!self["bigshot"]) {
                 return null;
             }
             var r = {
-                x: this.gl.viewportWidth  * screen.e(1) / screen.e(4) + this.gl.viewportWidth / 2, 
-                y: this.gl.viewportHeight * screen.e(2) / screen.e(4) + this.gl.viewportHeight / 2,
+                x: (this.gl.viewportWidth / 2) * screen.e(1) / screen.e(4) + this.gl.viewportWidth / 2, 
+                y: (this.gl.viewportHeight / 2) * screen.e(2) / screen.e(4) + this.gl.viewportHeight / 2,
                 toString : function () {
                     return this.x + "," + this.y;
                 }
             };
             return r;
-        }
-        
-        /**
-         * Tests if the given point (given as model space coordinates) is visible in the viewport.
-         */
-        this.isVisible = function (vector) {
-            var r = this.transformToScreen (vector);
-            if (r == null) {
-                return false;
-            }
-            return (r.x >= 0 && r.y >= 0 && r.x < this.gl.viewportWidth && r.y < this.gl.viewportHeight);
-        }
-        
-        this.isInViewport = function (point) {
-            return point && (point.x >= 0 && point.y >= 0 && point.x < this.gl.viewportWidth && point.y < this.gl.viewportHeight);
-        }
-        
-        this.isEdgeVisible = function (a, b) {
-            var at = this.transformToScreen (a);
-            var bt = this.transformToScreen (b);
-            
-            console.log (a + " trans " + at + "  " + b + " trans " + bt);
-            
-            if (at == null && bt == null) {
-                console.log ("no");
-                return false;
-            } else if (at == null && bt != null) {
-                console.log ("yes");
-                return true;
-            } else if (at != null && bt == null) {
-                console.log ("yes");
-                return true;
-            }
-            
-            if (at.x < 0 && bt.x < 0) {
-                console.log ("no");
-                return false;
-            }
-            
-            if (at.x > this.gl.viewportWidth && bt.x > this.gl.viewportWidth) {
-                console.log ("no");
-                return false;
-            }
-            
-            if (at.y < 0 && bt.y < 0) {
-                console.log ("no");
-                return false;
-            }
-            
-            if (at.y > this.gl.viewportHeight && bt.y > this.gl.viewportHeight) {
-                console.log ("no");
-                return false;
-            }
-            
-            console.log ("yes");
-            return true;
         }
     };
     
@@ -3265,6 +3274,7 @@ if (!self["bigshot"]) {
          * @param {number} p the pitch, in degrees
          */
         this.setPitch = function (p) {
+            var pin = p;
             p = Math.min (90, p);
             p = Math.max (-90, p);
             this.state.p = p;
@@ -3402,8 +3412,8 @@ if (!self["bigshot"]) {
                     var scale = this.state.fov / this.container.height;
                     var dx = e.clientX - this.dragStart.clientX;
                     var dy = e.clientY - this.dragStart.clientY;
-                    this.state.y -= dx * scale;
-                    this.state.p -= dy * scale;
+                    this.setYaw (this.getYaw () - dx * scale);
+                    this.setPitch (this.getPitch () - dy * scale);
                     this.render ();
                     this.dragStart = e;
                 } else {
@@ -3768,12 +3778,11 @@ if (!self["bigshot"]) {
         
         this.vrFaces = new Array ();
         this.vrFaces[0] = new bigshot.VRFace (this, "f", {x:-1, y:1, z:-1}, 2.0, {x:1, y:0, z:0}, {x:0, y:-1, z:0});
-        /*this.vrFaces[1] = new bigshot.VRFace (this, "b", {x:1, y:1, z:1}, 2.0, {x:-1, y:0, z:0}, {x:0, y:-1, z:0});
+        this.vrFaces[1] = new bigshot.VRFace (this, "b", {x:1, y:1, z:1}, 2.0, {x:-1, y:0, z:0}, {x:0, y:-1, z:0});
         this.vrFaces[2] = new bigshot.VRFace (this, "l", {x:-1, y:1, z:1}, 2.0, {x:0, y:0, z:-1}, {x:0, y:-1, z:0});
         this.vrFaces[3] = new bigshot.VRFace (this, "r", {x:1, y:1, z:-1}, 2.0, {x:0, y:0, z:1}, {x:0, y:-1, z:0});
         this.vrFaces[4] = new bigshot.VRFace (this, "u", {x:-1, y:1, z:1}, 2.0, {x:1, y:0, z:0}, {x:0, y:0, z:-1});
         this.vrFaces[5] = new bigshot.VRFace (this, "d", {x:-1, y:-1, z:-1}, 2.0, {x:1, y:0, z:0}, {x:0, y:0, z:1});
-        */
         
         this.browser.registerListener (this.container, "mousedown", function (e) {
                 that.resetIdle ();
