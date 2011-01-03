@@ -2553,32 +2553,39 @@ if (!self["bigshot"]) {
             var texture = this.tileCache.getTexture (tx, ty, -this.maxDivisions + divisions);
             scene.addQuad (new bigshot.WebGLTexturedQuad (
                     topLeft,
-                    this.pt3dMult (u, width),
-                    this.pt3dMult (v, width),
+                    this.pt3dMult (this.u, width),
+                    this.pt3dMult (this.v, width),
                     texture
                 )
             );
         }
-        
-        /**
-         * Tests if the point is visible to the observer. Since we're looking down
-         * negative z we just test if z > 0 after applying the world transform.
-         *
-         * @private
-         */
-        this.isVisible = function (p0) {
-            var world = this.owner.webGl.transformToWorld ([p0.x, p0.y, p0.z]);
-            return world.e(3) < 0;
-        }
-        
+
         this.VISIBLE_NONE = 0;
         this.VISIBLE_SOME = 1;
         this.VISIBLE_ALL = 2;
         
+        /**
+         * Tests whether the point is in the axis-aligned rectangle.
+         * 
+         * @private
+         * @param point the point
+         * @param min top left corner of the rectangle
+         * @param max bottom right corner of the rectangle
+         */
         this.pointInRect = function (point, min, max) {
             return (point.x >= min.x && point.y >= min.y && point.x < max.x && point.y < max.y);
         }
         
+        /**
+         * Counts the number of points in the axis-aligned rectangle
+         * amin-amax that are in the axis-aligned rectangle min-max
+         *
+         * @private
+         * @param amin top left corner of the rectangle whose points are to be tested
+         * @param amin bottom right corner of the rectangle whose points are to be tested
+         * @param min top left corner of the rectangle to be tested against
+         * @param min bottom right corner of the rectangle to be tested against
+         */
         this.rectPointsInRect = function (amin, amax, min, max) {
             var p = 0;
             
@@ -2607,14 +2614,15 @@ if (!self["bigshot"]) {
             return p;
         }
         
-        this.intersectWithView = function (p0, p1, p2, p3) {
-            var transformed = [
-                this.owner.webGl.transformToScreen ([p0.x, p0.y, p0.z]),
-                this.owner.webGl.transformToScreen ([p1.x, p1.y, p1.z]),
-                this.owner.webGl.transformToScreen ([p2.x, p2.y, p2.z]),
-                this.owner.webGl.transformToScreen ([p3.x, p3.y, p3.z])
-            ];
-            
+        /**
+         * Intersects a quadrilateral with the view frustum.
+         * The test is a simple rectangle intersection of the AABB of
+         * the transformed quad with the WebGL viewport.
+         *
+         * @private
+         * @return VISIBLE_NONE, VISIBLE_SOME or VISIBLE_ALL
+         */
+        this.intersectWithView = function (transformed) {
             var numNull = 0;
             for (var i = 0; i < transformed.length; ++i) {
                 if (transformed[i] == null) {
@@ -2681,6 +2689,13 @@ if (!self["bigshot"]) {
             return this.VISIBLE_SOME;
         }
         
+        this.screenDistance = function (p0, p1) {
+            if (p0 == null || p1 == null) {
+                return 1000000;
+            }
+            return Math.max (Math.abs (p0.x - p1.x), Math.abs (p0.y - p1.y));
+        }
+        
         /**
          * Optionally subdivides a quad into fourn new quads, depending on the
          * position and on-screen size of the quad.
@@ -2699,17 +2714,25 @@ if (!self["bigshot"]) {
             var topRight = this.pt3dMultAdd (this.u, width, topLeft);
             var bottomRight = this.pt3dMultAdd (this.u, width, bottomLeft);
             
-            var numVisible = this.intersectWithView (topLeft, topRight, bottomRight, bottomLeft);
+            var transformed = [
+                this.owner.webGl.transformToScreen ([topLeft.x, topLeft.y, topLeft.z]),
+                this.owner.webGl.transformToScreen ([topRight.x, topRight.y, topRight.z]),
+                this.owner.webGl.transformToScreen ([bottomRight.x, bottomRight.y, bottomRight.z]),
+                this.owner.webGl.transformToScreen ([bottomLeft.x, bottomLeft.y, bottomLeft.z])
+            ];
+            
+            var numVisible = this.intersectWithView (transformed);
                 
             if (numVisible == this.VISIBLE_NONE) {
                 return;
             }
             var straddles = this.VISIBLE_SOME;
             
-            var dmax = this.screenDistanceMax (topLeft, topRight).d;
-            dmax = Math.max (this.screenDistanceMax (topRight, bottomRight).d, dmax);
-            dmax = Math.max (this.screenDistanceMax (bottomRight, bottomLeft).d, dmax);
-            dmax = Math.max (this.screenDistanceMax (bottomLeft, topLeft).d, dmax);
+            var dmax = 0;
+            for (var i = 0; i < transformed.length; ++i) {
+                var next = (i + 1) & 4;
+                dmax = Math.max (this.screenDistance (transformed[i], transformed[next]));
+            }
             
             if (divisions < this.minDivisions 
                     || 
@@ -2759,73 +2782,6 @@ if (!self["bigshot"]) {
          */
         this.endRender = function () {
             this.tileCache.purge ();
-        }
-        
-        /**
-         * Projects the given point into screen coordinates.
-         */
-        this.projectPointToCanvas = function (p) {
-            return this.owner.webGl.transformToScreen ([p.x, p.y, p.z]);
-        }
-        
-        /**
-         * Returns the on-screen distance of two points.
-         *
-         * @param {point} p0 the first point
-         * @param {point} p1 the second point
-         * @return {point} the x and y difference in pixel position
-         */
-        this.screenDistance = function (p0, p1) {
-            var p0t = this.projectPointToCanvas (p0);
-            var p1t = this.projectPointToCanvas (p1);
-            
-            if (p0t == null || p1t == null) {
-                return null;
-            }
-            
-            var r = {
-                x : p0t.x - p1t.x,
-                y : p0t.y - p1t.y
-            };
-            return r;
-        }
-        
-        /**
-         * Returns the on-screen distance of two points as euclidean distance.
-         *
-         * @param {point} p0 the first point
-         * @param {point} p1 the second point
-         * @return {point} the x and y difference in pixel position
-         */
-        this.screenDistanceHyp = function (p0, p1) {
-            var r = this.screenDistance (p0, p1);
-            if (r == null) {
-                return {x: 0, y:0, d: 100000};
-            }
-            
-            r.d = Math.sqrt (r.x * r.x + r.y * r.y);
-            return r;
-        }
-        
-        /**
-         * Returns the on-screen distance of two points as the maximum of
-         * x and y difference.
-         *
-         * @param {point} p0 the first point
-         * @param {point} p1 the second point
-         * @return {point} the x and y difference in pixel position
-         */
-        this.screenDistanceMax = function (p0, p1) {
-            var r = this.screenDistance (p0, p1);
-            
-            if (r == null) {
-                return {x: 0, y:0, d: 100000};
-            }
-            
-            var ax = Math.abs (r.x);
-            var ay = Math.abs (r.y);
-            r.d = ax > ay ? ax : ay;
-            return r;
         }
     }
     
