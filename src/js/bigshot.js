@@ -2538,7 +2538,7 @@ if (!self["bigshot"]) {
         this.purge = function () {
             var that = this;
             this.purgeCache (this.textureLruMap, this.cachedTextures, this.maxTextureCacheSize, function (leastUsedKey) {
-                that.webGl.gl.deleteTexture (that.cachedTextures[leastUsedKey]);
+                    that.webGl.gl.deleteTexture (that.cachedTextures[leastUsedKey]);
                 });
             this.purgeCache (this.imageLruMap, this.cachedImages, this.maxImageCacheSize, function (leastUsedKey) {
                 });
@@ -2675,7 +2675,7 @@ if (!self["bigshot"]) {
                 )
             );
         }
-
+        
         this.VISIBLE_NONE = 0;
         this.VISIBLE_SOME = 1;
         this.VISIBLE_ALL = 2;
@@ -2713,7 +2713,7 @@ if (!self["bigshot"]) {
             if (numNull > 0) {
                 return this.VISIBLE_SOME;
             }
-
+            
             var min = {
                 x : transformed[0].x,
                 y : transformed[0].y
@@ -2762,7 +2762,7 @@ if (!self["bigshot"]) {
             if (imin.x < imax.x && imin.y < imax.y) {
                 return this.VISIBLE_SOME;
             }            
-                        
+            
             return this.VISIBLE_NONE;
         }
         
@@ -2809,7 +2809,7 @@ if (!self["bigshot"]) {
             ];
             
             var numVisible = this.intersectWithView (transformed);
-                
+            
             if (numVisible == this.VISIBLE_NONE) {
                 return;
             }
@@ -2827,20 +2827,20 @@ if (!self["bigshot"]) {
                         (
                             dmax > (this.tileSize - this.overlap) 
                             ||
-                            straddles
+                                straddles
                         ) && divisions < this.maxDivisions
                     )
                 ) {
-                var center = this.pt3dMultAdd ({x: this.u.x + this.v.x, y: this.u.y + this.v.y, z: this.u.z + this.v.z }, width / 2, topLeft);
-                var midTop = this.pt3dMultAdd (this.u, width / 2, topLeft);
-                var midLeft = this.pt3dMultAdd (this.v, width / 2, topLeft);
-                this.generateSubdivisionFace (scene, topLeft, width / 2, divisions + 1, tx * 2, ty * 2);
-                this.generateSubdivisionFace (scene, midTop, width / 2, divisions + 1, tx * 2 + 1, ty * 2);
-                this.generateSubdivisionFace (scene, midLeft, width / 2, divisions + 1, tx * 2, ty * 2 + 1);
-                this.generateSubdivisionFace (scene, center, width / 2, divisions + 1, tx * 2 + 1, ty * 2 + 1);
-            } else {
-                this.generateFace (scene, topLeft, width, tx, ty, divisions);
-            }
+                    var center = this.pt3dMultAdd ({x: this.u.x + this.v.x, y: this.u.y + this.v.y, z: this.u.z + this.v.z }, width / 2, topLeft);
+                    var midTop = this.pt3dMultAdd (this.u, width / 2, topLeft);
+                    var midLeft = this.pt3dMultAdd (this.v, width / 2, topLeft);
+                    this.generateSubdivisionFace (scene, topLeft, width / 2, divisions + 1, tx * 2, ty * 2);
+                    this.generateSubdivisionFace (scene, midTop, width / 2, divisions + 1, tx * 2 + 1, ty * 2);
+                    this.generateSubdivisionFace (scene, midLeft, width / 2, divisions + 1, tx * 2, ty * 2 + 1);
+                    this.generateSubdivisionFace (scene, center, width / 2, divisions + 1, tx * 2 + 1, ty * 2 + 1);
+                } else {
+                    this.generateFace (scene, topLeft, width, tx, ty, divisions);
+                }
         }
         
         /**
@@ -2901,8 +2901,8 @@ if (!self["bigshot"]) {
          */
         createContext0 : function (canvas, context) {
             var gl = this.debug
-            ?
-            WebGLDebugUtils.makeDebugContext(canvas.getContext(context))
+                ?
+                WebGLDebugUtils.makeDebugContext(canvas.getContext(context))
             :
             canvas.getContext (context);
             return gl;
@@ -2919,9 +2919,12 @@ if (!self["bigshot"]) {
          */
         createContext : function (canvas) {
             for (var i = 0; i < this.contextNames.length; ++i) {
-                var gl = this.createContext0 (canvas, this.contextNames[i]);
-                if (gl) {
-                    return gl;
+                try {
+                    var gl = this.createContext0 (canvas, this.contextNames[i]);
+                    if (gl) {
+                        return gl;
+                    }
+                } catch (e) {
                 }
             }
             throw new Error ("Could not initialize WebGL.");
