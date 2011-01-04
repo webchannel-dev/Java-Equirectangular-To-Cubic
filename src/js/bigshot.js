@@ -2693,44 +2693,6 @@ if (!self["bigshot"]) {
         }
         
         /**
-         * Counts the number of points in the axis-aligned rectangle
-         * amin-amax that are in the axis-aligned rectangle min-max
-         *
-         * @private
-         * @param amin top left corner of the rectangle whose points are to be tested
-         * @param amin bottom right corner of the rectangle whose points are to be tested
-         * @param min top left corner of the rectangle to be tested against
-         * @param min bottom right corner of the rectangle to be tested against
-         */
-        this.rectPointsInRect = function (amin, amax, min, max) {
-            var p = 0;
-            
-            if (this.pointInRect (amin, min, max)) {
-                ++p;
-            }
-            
-            if (this.pointInRect ({
-                            x : amax.x,
-                            y : amin.y
-                        }, min, max)) {
-                ++p;
-            }
-            
-            if (this.pointInRect (amax, min, max)) {
-                ++p;
-            }
-            
-            if (this.pointInRect ({
-                            x : amin.x,
-                            y : amax.y
-                        }, min, max)) {
-                ++p;
-            }
-            
-            return p;
-        }
-        
-        /**
          * Intersects a quadrilateral with the view frustum.
          * The test is a simple rectangle intersection of the AABB of
          * the transformed quad with the WebGL viewport.
@@ -2787,22 +2749,21 @@ if (!self["bigshot"]) {
                 return this.VISIBLE_ALL;
             }
             
-            var aabbInView = this.rectPointsInRect (min, max, viewMin, viewMax);
-            if (aabbInView == 4) {
-                return this.VISIBLE_ALL;
-            }
+            var imin = {
+                x : Math.max (min.x, viewMin.x),
+                y : Math.max (min.y, viewMin.y)
+            };
             
-            var viewInAabb = this.rectPointsInRect (viewMin, viewMax, min, max);
+            var imax = {
+                x : Math.min (max.x, viewMax.x),
+                y : Math.min (max.y, viewMax.y)
+            };
             
-            if (viewInAabb == 4) {
-                return this.VISIBLE_ALL;
-            }
+            if (imin.x < imax.x && imin.y < imax.y) {
+                return this.VISIBLE_SOME;
+            }            
                         
-            if (viewInAabb == 0 && aabbInView == 0 && pointsInViewport == 0) {
-                return this.VISIBLE_NONE;
-            }
-            
-            return this.VISIBLE_SOME;
+            return this.VISIBLE_NONE;
         }
         
         /**
