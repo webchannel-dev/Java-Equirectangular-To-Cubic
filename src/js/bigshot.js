@@ -363,7 +363,9 @@ if (!self["bigshot"]) {
             for (var k in o) {
                 sb += k + ":" + o[k] + "\n";
             }
-            console.log (sb);
+            if (console) {
+                console.log (sb);
+            }
         }
     };
     
@@ -2323,8 +2325,8 @@ if (!self["bigshot"]) {
         }
         
         this.getFilename = function (name) {
-            name = this.prefix + "/" + name;
-            if (!this.index[name]) {
+            name = this.getPrefix () + name;
+            if (!this.index[name] && console) {
                 console.log ("Can't find " + name);
             }
             var f = parameters.basePath + "&start=" + this.index[name].start + "&length=" + this.index[name].length;
@@ -2342,6 +2344,15 @@ if (!self["bigshot"]) {
             var key = (-zoomLevel) + "/" + tileX + "_" + tileY + this.suffix;
             return this.getFilename (key);
         };
+        
+        this.getPrefix = function () {
+            if (this.prefix) {
+                return this.prefix + "/";
+            } else {
+                return "";
+            }
+        }
+        
         
         this.setPrefix = function (prefix) {
             this.prefix = prefix;
