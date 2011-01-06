@@ -20,6 +20,29 @@
             div#container {
                 overflow: hidden;
             }
+            
+            div.hotspot {
+                width:48px; 
+                height: 48px; 
+                position:relative; 
+                z-index:2;
+                border: 1px solid #808080;
+                opacity: 0.5;
+            }
+            
+            div.hotspot_label {
+                visibility:hidden;
+            }
+            
+            div.hotspot:hover {
+                opacity: 1.0;
+                border: 1px solid #ffffff;
+                cursor: hand;
+            }
+            
+            div.hotspot:hover div.hotspot_label {
+                visibility:visible;
+            }
         </style>
         <script src="../js/webgl/webgl-debug.js"></script>
         <script src="../js/webgl/sylvester.js"></script>
@@ -30,6 +53,7 @@
             var bvr = null;
             
             function vrpano () {
+                var hotspot = document.getElementById ("hotspot");
                 var canvas = document.getElementById ("canvas");
                 var linear = bigshot.webglutil.createContext (canvas).LINEAR;
                 bvr = new bigshot.VRPanorama (
@@ -44,6 +68,7 @@
                 //bvr.autoRotateWhenIdle (3);
                 bvr.autoResizeContainer (document.getElementById ("container"));
                 bvr.onresize ();
+                bvr.addHotspot (new bigshot.VRHotspot (bvr, -19, 6, hotspot, 0, 0));
                 bvr.render ();
             }
             
@@ -59,6 +84,10 @@
             
             function fullScreen () {
                 bvr.fullScreen ();
+            }
+            
+            function getPosition () {
+                alert (bvr.getYaw () + " " + bvr.getPitch ());
             }
             
             function setupWithFallback (
@@ -122,6 +151,19 @@
                         Bigshot VR
                     </h2>
                     <div style="background:black; height:480px;" id="container">
+                        <div style="width:0px; height:0px; position:absolute; z-index:1;">
+                            <div class="hotspot" id="hotspot" style="text-align:center;"
+                                onclick="alert('Clicked on hotspot!');">
+                                <div style="position:absolute; left: 50%;">
+                                    <div class="hotspot_label" style="position:absolute; width:300em; left: -150em; top: 56px; text-align:center">
+                                        <span style="background:black; color:white; padding:4px; font-family:arial; font-size: 10pt;">
+                                            Parliament Building ("Riksdagen")
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
                         <canvas style="position:absolute;" id="canvas" width="480" height="480">
                             This demo requires a web browser that supports HTML5 canvas and WebGL.
                         </canvas>
@@ -129,6 +171,7 @@
                     <a href="#" onclick="redraw()"><button type="button">Redraw</button></a>
                     <a href="#" onclick="autorotate()"><button type="button">Autorotate</button></a>
                     <a href="#" onclick="fullScreen()"><button type="button">Fullscreen</button></a>
+                    <a href="#" onclick="getPosition()"><button type="button">Get Position</button></a>
                 </td>
                 <!--
                 <td class="playerContainer" width="50%" valign="top">

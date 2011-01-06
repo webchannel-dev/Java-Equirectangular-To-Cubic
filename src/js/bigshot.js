@@ -3288,7 +3288,7 @@ if (!self["bigshot"]) {
             }
             var r = {
                 x: (this.gl.viewportWidth / 2) * screen.e(1) / screen.e(4) + this.gl.viewportWidth / 2, 
-                y: (this.gl.viewportHeight / 2) * screen.e(2) / screen.e(4) + this.gl.viewportHeight / 2,
+                y: - (this.gl.viewportHeight / 2) * screen.e(2) / screen.e(4) + this.gl.viewportHeight / 2,
                 toString : function () {
                     return this.x + "," + this.y;
                 }
@@ -3835,6 +3835,7 @@ if (!self["bigshot"]) {
         this.container = parameters.container;
         this.browser = new bigshot.Browser ();
         this.dragStart = null;
+        this.hotspots = [];
         
         /**
         * Current camera state.
@@ -3871,6 +3872,15 @@ if (!self["bigshot"]) {
         
         
         this.webGl.gl.clearDepth(1.0);
+        
+        /**
+         * Adds a hotstpot.
+         *
+         * @param {bigshot.VRHotspot} hs the hotspot to add
+         */
+        this.addHotspot = function (hs) {
+            this.hotspots.push (hs);
+        }
         
         /**
          * Returns the {@link bigshot.VRPanoramaParameters} object used by this instance.
@@ -4037,6 +4047,10 @@ if (!self["bigshot"]) {
             
             scene.render (this.webGl);
             
+            for (var i = 0; i < this.hotspots.length; ++i) {
+                this.hotspots[i].layout ();
+            }
+            
             this.endRender ();
         }
         
@@ -4055,6 +4069,10 @@ if (!self["bigshot"]) {
             }
             
             scene.render (this.webGl);
+            
+            for (var i = 0; i < this.hotspots.length; ++i) {
+                this.hotspots[i].layout ();
+            }
             
             this.endRender ();
         };
@@ -4553,5 +4571,62 @@ if (!self["bigshot"]) {
         this.setPitch (0.0);
         this.setYaw (0.0);
         this.setFov (45.0);
+    }
+    
+    /**
+     * Creates a new hotspot and attaches it to a VR panorama.
+     *
+     * @class VR panorama hotspots.
+     *
+     * A Hotspot is simply an HTML element that is moved / hidden etc.
+     * to overlay a given position in the panorama. The element is moved
+     * by setting its <code>style.top</code> and <code>style.left</code>
+     * values.
+     *
+     * @param {bigshot.VRPanorama} panorama the panorama to attach this hotspot to
+     * @param {number} yaw the yaw coordinate of the hotspot
+     * @param {number} pitch the pitch coordinate of the hotspot
+     * @param {HTMLElement} element the HTML element
+     * @param {number} offsetX the offset to add to the screen coordinate corresponding
+     * to the hotspot's polar coordinates. Use this to center the hotspot horizontally.
+     * @param {number} offsetY the offset to add to the screen coordinate corresponding
+     * to the hotspot's polar coordinates. Use this to center the hotspot vertically.
+     */
+    bigshot.VRHotspot = function (panorama, yaw, pitch, element, offsetX, offsetY) {
+        this.layout = function () {
+            var p = this.toScreen ();
+            var s = panorama.browser.getElementSize (element);
+            
+            p.x += offsetX;
+            p.y += offsetY;
+            
+            if (p != null && p.x > 0 && (p.x + s.w) < panorama.webGl.gl.viewportWidth &&
+                p.y > 0 && (p.y + s.h) < panorama.webGl.gl.viewportHeight) {
+                element.style.top = (p.y + offsetY) + "px";
+                element.style.left = (p.x + offsetX) + "px";
+                    element.style.visibility = "inherit";
+                } else {
+                    element.style.visibility = "hidden";
+                }
+        }
+        
+        this.rotate = function (ang, vector, point) {
+            var arad = ang * Math.PI / 180.0;
+            var m = Matrix.Rotation(arad, $V([vector[0], vector[1], vector[2]])).ensure4x4 ();
+            return m.x (point);
+        }
+        
+        this.toVector = function () {
+            var point = $V([0, 0, -1, 1]);
+            point = this.rotate (yaw, [0, 1, 0], point);
+            point = this.rotate (pitch, [1, 0, 0], point);
+            return [point.e(1), point.e(2), point.e(3)];
+        }
+        
+        this.toScreen = function () {
+            return panorama.webGl.transformToScreen (this.point);
+        }
+                
+        this.point = this.toVector ();
     }
 }
