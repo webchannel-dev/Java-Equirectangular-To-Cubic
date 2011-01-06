@@ -3572,6 +3572,61 @@ if (!self["bigshot"]) {
         this.textureMinFilter = null;
         
         /**
+         * Minimum vertical field of view in degrees.
+         *
+         * @default 2.0
+         * @type number
+         */
+        this.minFov = 2.0;
+        
+        /**
+         * Maximum vertical field of view in degrees.
+         *
+         * @default 90.0
+         * @type number
+         */
+        this.maxFov = 90;
+        
+        /**
+         * Minimum pitch in degrees.
+         *
+         * @default -90
+         * @type number
+         */
+        this.minPitch = -90;
+        
+        /**
+         * Maximum pitch in degrees.
+         *
+         * @default 90.0
+         * @type number
+         */
+        this.maxPitch = 90;
+        
+        /**
+         * Minimum yaw in degrees. The number is interpreted modulo 360.
+         * The default value, -360, is just to make sure that we won't accidentally
+         * trip it. If the number is set to something in the interval 0-360,
+         * the autoRotate function will pan back and forth.
+         *
+         * @default -360
+         * @type number
+         */
+        this.minYaw = -360;
+        
+        /**
+         * Maximum yaw in degrees. The number is interpreted modulo 360.
+         * The default value, 720, is just to make sure that we won't accidentally
+         * trip it. If the number is set to something in the interval 0-360,
+         * the autoRotate function will pan back and forth.
+         *
+         * @default 720.0
+         * @type number
+         */
+        this.maxYaw = 720;
+        
+        
+        /**
          * Enable the touch-friendly ui. The touch-friendly UI splits the viewport into
          * three click-sensitive regions:
          * <p style="text-align:center"><img src="../images/touch-ui.png"/></p>
@@ -3832,8 +3887,8 @@ if (!self["bigshot"]) {
          * @param {number} fov the vertical field of view, in degrees
          */
         this.setFov = function (fov) {
-            fov = Math.min (90, fov);
-            fov = Math.max (2, fov);
+            fov = Math.min (this.parameters.maxFov, fov);
+            fov = Math.max (this.parameters.minFov, fov);
             this.state.fov = fov;
         }
         
@@ -3853,10 +3908,34 @@ if (!self["bigshot"]) {
          */
         this.setPitch = function (p) {
             var pin = p;
-            p = Math.min (90, p);
-            p = Math.max (-90, p);
+            p = Math.min (this.parameters.maxPitch, p);
+            p = Math.max (this.parameters.minPitch, p);
             this.state.p = p;
         }
+        
+        /**
+         * Subtraction mod 360, sort of...
+         */
+        var circleDistance = function (p0, p1) {
+            if (p1 > p0) {
+                var d1 = (p1 - p0);
+                var d2 = ((p1 - 360) - p0);
+                return Math.abs (d1) < Math.abs (d2) ? d1 : d2;
+            } else {
+                var d1 = (p0 - p1);
+                var d2 = ((p0 - 360) - p1);
+                return Math.abs (d1) < Math.abs (d2) ? d1 : d2;
+            }
+        };
+        
+        /**
+         * Subtraction mod 360, sort of...
+         */
+        var circleSnapTo = function (p, p1, p2) {
+            var d1 = circleDistance (p, p1);
+            var d2 = circleDistance (p, p2);
+            return Math.abs (d1) < Math.abs (d2) ? p1 : p2;
+        };
         
         /**
          * Sets the current camera yaw. The yaw is normalized between
@@ -3868,6 +3947,24 @@ if (!self["bigshot"]) {
             y %= 360;
             if (y < 0) {
                 y += 360;
+            }
+            if (this.parameters.minYaw < this.parameters.maxYaw) {
+                if (y > this.parameters.maxYaw || y < this.parameters.minYaw) {
+                    y = circleSnapTo (y, this.parameters.minYaw, this.parameters.maxYaw);
+                }
+            } else {
+                // The only time when minYaw > maxYaw is when the interval
+                // contains the 0 angle.
+                if (y > this.parameters.minYaw) {
+                    // ok, we're somewhere between minYaw and 0.0
+                } else if (y > this.parameters.maxYaw) {
+                    // we're somewhere between maxYaw and minYaw 
+                    // (but on the wrong side).
+                    // figure out the nearest point and snap to it
+                    y = circleSnapTo (y, this.parameters.minYaw, this.parameters.maxYaw);
+                } else {
+                    // ok, we're somewhere between 0.0 and maxYaw
+                }
             }
             this.state.y = y;
         }
@@ -4086,18 +4183,36 @@ if (!self["bigshot"]) {
         }
         
         /**
-         * Starts auto-rotation of the camera.
+         * Starts auto-rotation of the camera. If the yaw is constrained,
+         * will pan back and forth between the yaw endpoints.
          */
         this.autoRotate = function () {
             var that = this;
             var scale = this.state.fov / 400;
             
             var speed = scale;
+            var dy = speed;
             this.smoothRotate (
                 function () {
                     return that.ease (that.getPitch (), 0.0, speed);
                 }, function () {
-                    return speed;
+                    var nextPos = that.getYaw () + dy;
+                    if (that.parameters.minYaw < that.parameters.maxYaw) {
+                        if (nextPos > that.parameters.maxYaw || nextPos < that.parameters.minYaw) {
+                            dy = -dy;
+                        }
+                    } else {
+                        // The only time when minYaw > maxYaw is when the interval
+                        // contains the 0 angle.
+                        if (nextPos > that.parameters.minYaw) {
+                            // ok, we're somewhere between minYaw and 0.0
+                        } else if (nextPos > that.parameters.maxYaw) {
+                            dy = -dy;
+                        } else {
+                            // ok, we're somewhere between 0.0 and maxYaw
+                        }
+                    }
+                    return dy;
                 }, function () {
                     return that.ease (that.getFov (), 45.0, 0.1);
                 });
@@ -4434,5 +4549,9 @@ if (!self["bigshot"]) {
                 return consumeEvent (e);
             }, false);
         this.browser.registerListener (window, 'resize', this.onresizeHandler, false);
+        
+        this.setPitch (0.0);
+        this.setYaw (0.0);
+        this.setFov (45.0);
     }
 }
