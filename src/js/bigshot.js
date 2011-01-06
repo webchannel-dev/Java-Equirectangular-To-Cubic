@@ -1112,7 +1112,7 @@ if (!self["bigshot"]) {
         
         /**
          * Base path for the image. This is filesystem dependent; but for the two most common cases
-         * the following should be set=
+         * the following should be set
          *
          * <ul>
          * <li><b>archive</b>= The basePath is <code>"&lt;path&gt;/bigshot.php?file=&lt;path-to-bigshot-archive-relative-to-bigshot.php&gt;"</code>;
@@ -2494,7 +2494,7 @@ if (!self["bigshot"]) {
                 
                 ctx.drawImage (this.fullImage, sx, sy, sw, sh, -1, -1, dw, dh);
                 
-                return this.webGl.createImageTextureFromImage (canvas);
+                return this.webGl.createImageTextureFromImage (canvas, parameters.textureMinFilter, parameters.textureMagFilter);
             } else {
                 return null;
             }
@@ -2509,7 +2509,7 @@ if (!self["bigshot"]) {
             if (this.cachedTextures[key]) {
                 return this.cachedTextures[key];
             } else if (this.cachedImages[key]) {
-                this.cachedTextures[key] = this.webGl.createImageTextureFromImage (this.cachedImages[key]);
+                this.cachedTextures[key] = this.webGl.createImageTextureFromImage (this.cachedImages[key], parameters.textureMinFilter, parameters.textureMagFilter);
                 return this.cachedTextures[key];
             } else {
                 this.requestImage (tileX, tileY, zoomLevel);
@@ -2532,7 +2532,7 @@ if (!self["bigshot"]) {
                             that.webGl.gl.deleteTexture (that.cachedTextures[key]);
                         }
                         that.cachedImages[key] = tile;
-                        that.cachedTextures[key] = that.webGl.createImageTextureFromImage (tile);
+                        that.cachedTextures[key] = that.webGl.createImageTextureFromImage (tile, parameters.textureMinFilter, parameters.textureMagFilter);
                         delete that.requestedImages[key];
                         that.imageRequests--;
                         var now = new Date();
@@ -3210,9 +3210,9 @@ if (!self["bigshot"]) {
          * @type WebGLTexture
          * @return An initialized texture
          */
-        this.createImageTextureFromImage = function (image) {
+        this.createImageTextureFromImage = function (image, minFilter, magFilter) {
             var texture = this.gl.createTexture();
-            this.handleImageTextureLoaded (this, texture, image);
+            this.handleImageTextureLoaded (this, texture, image, minFilter, magFilter);
             return texture;
         }
         
@@ -3222,13 +3222,13 @@ if (!self["bigshot"]) {
          * @param {String} source the URL of the image
          * @return WebGLTexture
          */
-        this.createImageTextureFromSource = function (source) {
+        this.createImageTextureFromSource = function (source, minFilter, magFilter) {
             var image = new Image();
             var texture = this.gl.createTexture();
             
             var that = this;
             image.onload = function () {
-                that.handleImageTextureLoaded (that, texture, image);
+                that.handleImageTextureLoaded (that, texture, image, minFilter, magFilter);
             }
             
             image.src = source;
@@ -3242,12 +3242,19 @@ if (!self["bigshot"]) {
          *
          * @private
          */
-        this.handleImageTextureLoaded = function (that, texture, image) {
+        this.handleImageTextureLoaded = function (that, texture, image, minFilter, magFilter) {
             that.gl.bindTexture(that.gl.TEXTURE_2D, texture);        
             that.gl.texImage2D(that.gl.TEXTURE_2D, 0, that.gl.RGBA, that.gl.RGBA, that.gl.UNSIGNED_BYTE, image);
-            that.gl.texParameteri(that.gl.TEXTURE_2D, that.gl.TEXTURE_MAG_FILTER, that.gl.NEAREST);
-            that.gl.texParameteri(that.gl.TEXTURE_2D, that.gl.TEXTURE_MIN_FILTER, that.gl.NEAREST);
-            //that.gl.generateMipmap(that.gl.TEXTURE_2D);
+            that.gl.texParameteri(that.gl.TEXTURE_2D, that.gl.TEXTURE_MAG_FILTER, magFilter ? magFilter : that.gl.NEAREST);
+            that.gl.texParameteri(that.gl.TEXTURE_2D, that.gl.TEXTURE_MIN_FILTER, minFilter ? minFilter : that.gl.NEAREST);
+            that.gl.texParameteri(that.gl.TEXTURE_2D, that.gl.TEXTURE_WRAP_S, that.gl.CLAMP_TO_EDGE);
+            that.gl.texParameteri(that.gl.TEXTURE_2D, that.gl.TEXTURE_WRAP_T, that.gl.CLAMP_TO_EDGE);
+            if (minFilter == that.gl.NEAREST_MIPMAP_NEAREST
+                    || minFilter == that.gl.LINEAR_MIPMAP_NEAREST
+                        || minFilter == that.gl.NEAREST_MIPMAP_LINEAR
+                        || minFilter == that.gl.LINEAR_MIPMAP_LINEAR) {
+                            that.gl.generateMipmap(that.gl.TEXTURE_2D);
+                        }
             
             that.gl.bindTexture(that.gl.TEXTURE_2D, null);      
         }
@@ -3500,7 +3507,7 @@ if (!self["bigshot"]) {
         
         /**
          * Base path for the image. This is filesystem dependent; but for the two most common cases
-         * the following should be set=
+         * the following should be set
          *
          * <ul>
          * <li><b>archive</b>= The basePath is <code>"&lt;path&gt;/bigshot.php?file=&lt;path-to-bigshot-archive-relative-to-bigshot.php&gt;"</code>;
@@ -3545,6 +3552,24 @@ if (!self["bigshot"]) {
          * @default 1.0
          */
         this.maxTextureMagnification = 1.0;
+        
+        /**
+         * The WebGL texture filter to use for magnifying textures. 
+         * Possible values are all values valid for <code>TEXTURE_MAG_FILTER</code>.
+         * <code>null</code> means <code>NEAREST</code>. 
+         *
+         * @default null / NEAREST.
+         */
+        this.textureMagFilter = null;
+        
+        /**
+         * The WebGL texture filter to use for supersampling (minifying) textures. 
+         * Possible values are all values valid for <code>TEXTURE_MIN_FILTER</code>.
+         * <code>null</code> means <code>NEAREST</code>. 
+         *
+         * @default null / NEAREST.
+         */
+        this.textureMinFilter = null;
         
         /**
          * Enable the touch-friendly ui. The touch-friendly UI splits the viewport into

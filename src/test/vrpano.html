@@ -30,11 +30,16 @@
             var bvr = null;
             
             function vrpano () {
+                var canvas = document.getElementById ("canvas");
+                var linear = bigshot.webglutil.createContext (canvas).LINEAR;
                 bvr = new bigshot.VRPanorama (
                     new bigshot.VRPanoramaParameters ({
                             container : document.getElementById ("canvas"),
                             basePath : "../../temp/vr.bigshot/",
-                            fileSystemType : "dzi"
+                            fileSystemType : "dzi",
+                            textureMinFilter : linear,
+                            textureMagFilter : linear,
+                            maxTextureMagnification : 1.0
                         }));
                 //bvr.autoRotateWhenIdle (3);
                 bvr.autoResizeContainer (document.getElementById ("container"));
