@@ -2161,7 +2161,7 @@ if (!self["bigshot"]) {
      *
      * @augments bigshot.FileSystem
      * @class Folder-based filesystem.
-     * @param {bigshot.ImageParameters} parameters the associated image parameters
+     * @param {bigshot.ImageParameters or bigshot.VRPanoramaParameters} parameters the associated image parameters
      * @constructor
      */
     bigshot.FolderFileSystem = function (parameters) {
@@ -2222,7 +2222,7 @@ if (!self["bigshot"]) {
      *
      * @augments bigshot.FileSystem
      * @class Folder-based filesystem.
-     * @param {bigshot.ImageParameters} parameters the associated image parameters
+     * @param {bigshot.ImageParameters or bigshot.VRPanoramaParameters} parameters the associated image parameters
      * @constructor
      */
     bigshot.DeepZoomImageFileSystem = function (parameters) {
@@ -2286,7 +2286,7 @@ if (!self["bigshot"]) {
      * Creates a new instance of a <code>.bigshot</code> archive filesystem adapter.
      * 
      * @class Bigshot archive filesystem.
-     * @param {bigshot.ImageParameters} parameters the associated image parameters
+     * @param {bigshot.ImageParameters or bigshot.VRPanoramaParameters} parameters the associated image parameters
      * @augments bigshot.FileSystem
      * @constructor
      */     
@@ -2395,7 +2395,7 @@ if (!self["bigshot"]) {
      * {@link bigshot.ImageParameters#fileSystemType} member is used to create a new 
      * {@link bigshot.FileSystem} instance and set it.
      *
-     * @param {bigshot.ImageParameters} parameters the parameters object to populate
+     * @param {bigshot.ImageParameters or bigshot.VRPanoramaParameters} parameters the parameters object to populate
      */
     bigshot.setupFileSystem = function (parameters) {
         if (!parameters.fileSystem) {
@@ -2415,7 +2415,7 @@ if (!self["bigshot"]) {
      * @class Tile texture cache for a {@link bigshot.VRFace}.
      * @param {function()} onLoaded function that is called whenever a texture tile has been
      * loaded.
-     * @param {bigshot.ImageParameters} image parameters
+     * @param {bigshot.VRPanoramaParameters} image parameters
      * @param {bigshot.WebGL} _webGl WebGL instance to use
      */
     bigshot.TileTextureCache = function (onLoaded, parameters, _webGl) {
@@ -2824,11 +2824,10 @@ if (!self["bigshot"]) {
             if (numVisible == this.VISIBLE_NONE) {
                 return;
             }
-            var straddles = this.VISIBLE_SOME;
             
             var dmax = 0;
             for (var i = 0; i < transformed.length; ++i) {
-                var next = (i + 1) & 4;
+                var next = (i + 1) % 4;
                 dmax = Math.max (this.screenDistance (transformed[i], transformed[next]));
             }
             
@@ -2836,9 +2835,7 @@ if (!self["bigshot"]) {
                     || 
                     (
                         (
-                            dmax > (this.tileSize - this.overlap) 
-                            ||
-                                straddles
+                            dmax > this.owner.maxTextureMagnification * (this.tileSize - this.overlap) 
                         ) && divisions < this.maxDivisions
                     )
                 ) {
@@ -3400,8 +3397,259 @@ if (!self["bigshot"]) {
     };
     
     /**
+     * Creates a new VR panorama parameter object and populates it with default values for
+     * all values not explicitly given.
+     *
+     * @class VRPanoramaParameters parameter object.
+     * You need not set any fields that can be read from the image descriptor that 
+     * MakeImagePyramid creates. See the {@link bigshot.VRPanorama}
+     * documentation for required parameters.
+     *
+     * <p>Usage:
+     *
+     * @example
+     * var bvr = new bigshot.VRPanorama (
+     *     new bigshot.VRPanoramaParameters ({
+     *         basePath : "/bigshot.php?file=myvr.bigshot",
+     *         fileSystemType : "archive",
+     *         container : document.getElementById ("bigshot_canvas")
+     *         }));
+     * @param values named parameter map, see the fields below for parameter names and types.
+     * @see bigshot.VRPanorama
+     */
+    bigshot.VRPanoramaParameters = function (values) {
+        /**
+         * Size of low resolution preview image along the longest image
+         * dimension. The preview is assumed to have the same aspect
+         * ratio as the full image (specified by width and height).
+         *
+         * @default <i>Optional</i> set by MakeImagePyramid and loaded from descriptor
+         * @type int
+         * @public
+         */
+        this.posterSize = 0;
+        
+        /**
+         * Url for the image tile to show while the tile is loading and no 
+         * low-resolution preview is available.
+         *
+         * @default <code>null</code>, which results in an all-black image
+         * @type String
+         * @public
+         */
+        this.emptyImage = null;
+        
+        /**
+         * Suffix to append to the tile filenames. Typically <code>".jpg"</code> or 
+         * <code>".png"</code>.
+         *
+         * @default <i>Optional</i> set by MakeImagePyramid and loaded from descriptor
+         * @type String
+         */
+        this.suffix = null;
+        
+        /**
+         * The width of the full image; in pixels.
+         *
+         * @default <i>Optional</i> set by MakeImagePyramid and loaded from descriptor
+         * @type int
+         */
+        this.width = 0;
+        
+        /**
+         * The height of the full image; in pixels.
+         *
+         * @default <i>Optional</i> set by MakeImagePyramid and loaded from descriptor
+         * @type int
+         */
+        this.height = 0;
+        
+        /**
+         * For {@link bigshot.VRPanorama}, the {@code canvas} to render into.
+         *
+         * @type HTMLDivElement or HTMLCanvasElement
+         */
+        this.container = null;
+        
+        /**
+         * The minimum zoom value. Zoom values are specified as a magnification; where
+         * 2<sup>n</sup> is the magnification and n is the zoom value. So a zoom value of
+         * 2 means a 4x magnification of the full image. -3 means showing an image that
+         * is a quarter (1/8 or 1/2<sup>3</sup>) of the full size.
+         *
+         * @type number
+         * @default <i>Optional</i> set by MakeImagePyramid and loaded from descriptor
+         */
+        this.minZoom = 0.0;
+        
+        /**
+         * Size of one tile in pixels.
+         *
+         * @type int
+         * @default <i>Optional</i> set by MakeImagePyramid and loaded from descriptor
+         */
+        this.tileSize = 0;
+        
+        /**
+         * Tile overlap. Not implemented.
+         *
+         * @type int
+         * @default <i>Optional</i> set by MakeImagePyramid and loaded from descriptor
+         */
+        this.overlap = 0;
+        
+        /**
+         * Base path for the image. This is filesystem dependent; but for the two most common cases
+         * the following should be set=
+         *
+         * <ul>
+         * <li><b>archive</b>= The basePath is <code>"&lt;path&gt;/bigshot.php?file=&lt;path-to-bigshot-archive-relative-to-bigshot.php&gt;"</code>;
+         *     for example; <code>"/bigshot.php?file=images/bigshot-sample.bigshot"</code>.
+         * <li><b>folder</b>= The basePath is <code>"&lt;path-to-image-folder&gt;"</code>;
+         *     for example; <code>"/images/bigshot-sample"</code>.
+         * </ul>
+         *
+         * @type String
+         */
+        this.basePath = null;
+        
+        /**
+         * The file system type. Used to create a filesystem instance unless
+         * the fileSystem field is set. Possible values are <code>"archive"</code>, 
+         * <code>"folder"</code> or <code>"dzi"</code>.
+         *
+         * @type String
+         * @default "folder"
+         */
+        this.fileSystemType = "folder";
+        
+        /**
+         * A reference to a filesystem implementation. If set; it overrides the
+         * fileSystemType field.
+         *
+         * @default set depending on value of bigshot.VRPanoramaParameters#fileSystemType
+         * @type bigshot.FileSystem
+         */
+        this.fileSystem = null;
+        
+        /**
+         * The maximum magnification for the texture tiles making up the VR cube.
+         * Used for level-of-detail tesselation.
+         * A value of 1.0 means that textures will never be stretched (one texture pixel will
+         * always be at most one screen pixel), unless there is no more detailed texture available. 
+         * A value of 2.0 means that textures may be stretched at most 2x (one texture pixel 
+         * will always be at most 2x2 screen pixels)
+         * The bigger the value, the less texture data is required, but quality suffers.
+         *
+         * @type number
+         * @default 1.0
+         */
+        this.maxTextureMagnification = 1.0;
+        
+        /**
+         * Enable the touch-friendly ui. The touch-friendly UI splits the viewport into
+         * three click-sensitive regions:
+         * <p style="text-align:center"><img src="../images/touch-ui.png"/></p>
+         * 
+         * <p>Clicking (or tapping with a finger) on the outer region causes the viewport to zoom out.
+         * Clicking anywhere within the middle, "pan", region centers the image on the spot clicked.
+         * Finally, clicking in the center hotspot will center the image on the spot clicked and zoom
+         * in half a zoom level.
+         *
+         * <p>As before, you can drag to pan anywhere.
+         *
+         * <p>If you have navigation tools for mouse users that hover over the image container, it 
+         * is recommended that any click events on them are kept from bubbling, otherwise the click 
+         * will propagate to the touch ui. One way is to use the 
+         * {@link bigshot.Browser#stopMouseEventBubbling} method:
+         *
+         * @example
+         * var browser = new bigshot.Browser ();
+         * browser.stopMouseEventBubbling (document.getElementById ("myBigshotControlDiv"));
+         *
+         * @see bigshot.Image#showTouchUI
+         *
+         * @type boolean
+         * @default true
+         */
+        this.touchUI = true;
+        
+        if (values) {
+            for (var k in values) {
+                this[k] = values[k];
+            }
+        }
+        
+        this.merge = function (values, overwrite) {
+            for (var k in values) {
+                if (overwrite || !this[k]) {
+                    this[k] = values[k];
+                }
+            }
+        }
+        return this;        
+    };
+    
+    /**
      * Creates a new VR panorama in a canvas. <b>Requires WebGL support.</b>
+     * (Note: See {@link bigshot.VRPanorama#dispose} for important information.)
      * 
+     * <h3 id="creating-a-cubemap">Creating a Cube Map</h3>
+     *
+     * <p>The panorama consists of six image pyramids, one for each face of the VR cube.
+     * Due to restrictions in WebGL, each texture tile must have a power-of-two (POT) size -
+     * that is, 2, 4, ..., 128, 256, etc. Furthermore, due to the way the faces are tesselated
+     * the largest image must consist of POT x POT tiles. The final restriction is that the 
+     * tiles must overlap for good seamless results.
+     *
+     * <p>The MakeImagePyramid has some sensible defaults built-in. If you just use the
+     * command line:
+     *
+     * <code><pre>
+     * java -jar bigshot.jar input.jpg temp/dzi \
+     *     --preset dzi-cubemap \ 
+     *     --format folders
+     * </pre></code>
+     * 
+     * <p>You will get 2034 pixels per face, and a tile size of 256 pixels with 2 pixels
+     * overlap. If you don't like that, you can use the <code>overlap</code>, <code>face-size</code>
+     * and <code>tile-size</code> parameters. Let's take these one by one:
+     *
+     * <ul>
+     * <li><p><code>overlap</code>: Overlap defines how much tiles should overlap, just to avoid
+     * seams in the rendered results caused by finite numeric precision. The default is <b>2</b>, which
+     * I've found works great for me.</p></li>
+     * <li><p><code>tile-size</code>: First you need to decide what POT size the output should be.
+     * Then subtract the overlap value. For example, if you set overlap to 1, <code>tile-size</code>
+     * could be 127, 255, 511, or any 2<sup>n</sup>-1 value.</p></li>
+     * <li><p><code>face-size</code>: Finally, we decide on a size for the full cube face. This should be
+     * tile-size * 2<sup>n</sup>. Let's say we set n=3, which makes each face 8x8 tiles at the most zoomed-in
+     * level. For a tile-size of 255, then, face-size is 255*2<sup>3</sup> = 255*8 = <b>2040</b>.</p></li>
+     * </ul>
+     * 
+     * <p>A command line for the hypothetical scenario above would be:
+     * 
+     * <code><pre>
+     * java -jar bigshot.jar input.jpg temp/dzi \
+     *     --preset dzi-cubemap \ 
+     *     --overlap 1 \
+     *     --tile-size 255 \
+     *     --face-size 2040 \
+     *     --format folders
+     * </pre></code>
+     *
+     * <p>If your tile size numbers don't add up, you'll get a warning like:
+     *
+     * <code><pre>
+     * WARNING: Resulting image tile size (tile-size + overlap) is not a power of two: 255
+     * </pre></code>
+     *
+     * <p>If your face size don't add up, you'll get another warning:
+     *
+     * <code><pre>
+     * WARNING: face-size is not an even multiple of tile-size: 2040 % 254 != 0
+     * </pre></code>
+     *
      * <h3 id="integration-with-saladoplayer">Integration With SaladoPlayer</h3>
      *
      * <p><a href="http://panozona.com/wiki/">SaladoPlayer</a> is a cool
@@ -3431,7 +3679,7 @@ if (!self["bigshot"]) {
      *
      * <code><pre>
      * bvr = new bigshot.VRPanorama (
-     *     new bigshot.ImageParameters ({
+     *     new bigshot.VRPanoramaParameters ({
      *             container : document.getElementById ("canvas"),
      *             basePath : "temp/dzi",
      *             fileSystemType : "dzi"
@@ -3466,7 +3714,7 @@ if (!self["bigshot"]) {
      *
      * <code><pre>
      * bvr = new bigshot.VRPanorama (
-     *     new bigshot.ImageParameters ({
+     *     new bigshot.VRPanoramaParameters ({
      *             container : document.getElementById ("canvas"),
      *             basePath : "/bigshot.php?file=temp/dzi.bigshot&entry=",
      *             fileSystemType : "dzi"
@@ -3488,21 +3736,22 @@ if (!self["bigshot"]) {
      * <h3>Usage example:</h3>
      * @example
      * var bvr = new bigshot.VRPanorama (
-     *     new bigshot.ImageParameters ({
+     *     new bigshot.VRPanoramaParameters ({
      *             basePath : "/bigshot.php?file=myvr.bigshot",
      *             fileSystemType : "archive",
      *             container : document.getElementById ("bigshot_canvas")
      *         }));
      * @class A cube-map VR panorama.
      *
-     * @param {bigshot.ImageParameters} parameters the image parameters.
+     * @param {bigshot.VRPanoramaParameters} parameters the panorama parameters.
      *
-     * @see bigshot.ImageParameters
+     * @see bigshot.VRPanoramaParameters
      */
     bigshot.VRPanorama = function (parameters) {
         var that = this;
         
         this.parameters = parameters;
+        this.maxTextureMagnification = parameters.maxTextureMagnification;
         this.container = parameters.container;
         this.browser = new bigshot.Browser ();
         this.dragStart = null;
@@ -3544,9 +3793,9 @@ if (!self["bigshot"]) {
         this.webGl.gl.clearDepth(1.0);
         
         /**
-         * Returns the {@link bigshot.ImageParameters} object used by this instance.
+         * Returns the {@link bigshot.VRPanoramaParameters} object used by this instance.
          *
-         * @type bigshot.ImageParameters
+         * @type bigshot.VRPanoramaParameters
          */
         this.getParameters = function () {
             return this.parameters;
@@ -3615,6 +3864,18 @@ if (!self["bigshot"]) {
         this.getPitch = function () {
             return this.state.p;
         }
+        
+        /**
+         * Unregisters event handlers and other page-level hooks. The client need not call this
+         * method unless bigshot images are created and removed from the page
+         * dynamically. In that case, this method must be called when the client wishes to
+         * free the resources allocated by the image. Otherwise the browser will garbage-collect
+         * all resources automatically.
+         * @public
+         */
+        this.dispose = function () {
+            this.browser.unregisterListener (window, "resize", this.onresizeHandler, false);
+        };
         
         /**
          * Sets up transformation matrices etc.
@@ -3855,6 +4116,10 @@ if (!self["bigshot"]) {
                 }
             };
             stepper ();
+        }
+        
+        this.onresizeHandler = function (e) {
+            that.onresize ();
         }
         
         /**
@@ -4143,8 +4408,6 @@ if (!self["bigshot"]) {
                 that.mouseWheel (e);
                 return consumeEvent (e);
             }, false);
-        this.browser.registerListener (window, 'resize', function (e) {
-                that.onresize ();
-            }, false);
+        this.browser.registerListener (window, 'resize', this.onresizeHandler, false);
     }
 }

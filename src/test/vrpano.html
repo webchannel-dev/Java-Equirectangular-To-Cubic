@@ -16,6 +16,10 @@
             td.playerContainerLeft {
                 border-right: 1px solid #b8b8b8;
             }
+            
+            div#container {
+                overflow: hidden;
+            }
         </style>
         <script src="../js/webgl/webgl-debug.js"></script>
         <script src="../js/webgl/sylvester.js"></script>
@@ -27,7 +31,7 @@
             
             function vrpano () {
                 bvr = new bigshot.VRPanorama (
-                    new bigshot.ImageParameters ({
+                    new bigshot.VRPanoramaParameters ({
                             container : document.getElementById ("canvas"),
                             basePath : "../../temp/vr.bigshot/",
                             fileSystemType : "dzi"
@@ -52,19 +56,40 @@
                 bvr.fullScreen ();
             }
             
-            function setupWithFallback (containerName) {
-                var canvas = document.createElement ("canvas");
-                if (!canvas.width || !canvas.getContext ("webgl-experimental")) {
-                    
+            function setupWithFallback (
+                containerName,
+                canvasName,
+                pathToXml, 
+                pathToSaladoPlayerSwf, 
+                pathToExpressInstall,
+                pathToBigshot
+            ) {
+                
+                if (bigshot.webglutil.isWebGLSupported ()) {
+                    var container = document.getElementById (containerName);
+                    bvr = new bigshot.VRPanorama (
+                        new bigshot.VRPanoramaParameters ({
+                                container : canvas,
+                                basePath : pathToBigshot,
+                                fileSystemType : "dzi"
+                            }));
+                    bvr.autoRotateWhenIdle (3);
+                    bvr.autoResizeContainer (container);
+                    bvr.onresize ();
+                    bvr.render ();
                 } else {
+                    var canvas = document.getElementById ("canvasName");
+                    if (canvas.parentNode) {
+                        canvas.parentNode.removeChild (canvas);
+                    }
                     setupSaladoPlayer (containerName);
                 }
             }
         </script>
         <script type="text/javascript">
-            function setupSaladoPlayer (containerName, xml, pathToSaladoPlayerSwf, pathToExpressInstall) {
+            function setupSaladoPlayer (containerName, pathToXml, pathToSaladoPlayerSwf, pathToExpressInstall) {
                 var flashvars = {};
-                flashvars.xml = xml;
+                flashvars.xml = pathToXml;
                 
                 var params = {};
                 params.play = "true";
@@ -91,8 +116,8 @@
                     <h2>
                         Bigshot VR
                     </h2>
-                    <div style="background:black; height:480px; width:100%;" id="container">
-                        <canvas id="canvas" width="480" height="480">
+                    <div style="background:black; height:480px;" id="container">
+                        <canvas style="position:absolute;" id="canvas" width="480" height="480">
                             This demo requires a web browser that supports HTML5 canvas and WebGL.
                         </canvas>
                     </div>
@@ -102,16 +127,16 @@
                 </td>
                 <!--
                 <td class="playerContainer" width="50%" valign="top">
-                    <h2>
-                        Salado Player
-                    </h2>
-                    <div class="centered_div">
-                        <div id="SaladoPlayer">
-                            <a href="http://www.adobe.com/go/getflashplayer">
-                                <img src="http://www.adobe.com/images/shared/download_buttons/get_flash_player.gif" alt="Get Adobe Flash player" />
-                            </a>
-                        </div>
-                    </div>
+                <h2>
+                Salado Player
+                </h2>
+                <div class="centered_div">
+                <div id="SaladoPlayer">
+                <a href="http://www.adobe.com/go/getflashplayer">
+                <img src="http://www.adobe.com/images/shared/download_buttons/get_flash_player.gif" alt="Get Adobe Flash player" />
+                </a>
+                </div>
+                </div>
                 </td>
                 -->
             </tr>
