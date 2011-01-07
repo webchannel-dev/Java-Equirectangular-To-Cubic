@@ -4574,15 +4574,47 @@ if (!self["bigshot"]) {
     }
     
     /**
-     * Creates a new hotspot and attaches it to a VR panorama.
+     * Abstract base class for panorama hotspots.
      *
-     * @class VR panorama hotspots.
+     * @class Abstract base class for panorama hotspots.
+     *
+     * A Hotspot is simply an HTML element that is moved / hidden etc.
+     * to overlay a given position in the panorama.
+     *
+     * @param {bigshot.VRPanorama} panorama the panorama to attach this hotspot to
+     */
+    bigshot.VRHotspot = function (panorama) {
+        this.layout = function () {};
+        
+        this.rotate = function (ang, vector, point) {
+            var arad = ang * Math.PI / 180.0;
+            var m = Matrix.Rotation(arad, $V([vector[0], vector[1], vector[2]])).ensure4x4 ();
+            return m.x (point);
+        }
+        
+        this.toVector = function (yaw, pitch) {
+            var point = $V([0, 0, -1, 1]);
+            point = this.rotate (-yaw, [0, 1, 0], point);
+            point = this.rotate (-pitch, [1, 0, 0], point);
+            return [point.e(1), point.e(2), point.e(3)];
+        }
+        
+        this.toScreen = function (p) {
+            return panorama.webGl.transformToScreen (p);
+        }
+    }
+    
+    /**
+     * Creates a new point-hotspot and attaches it to a VR panorama.
+     *
+     * @class A VR panorama point-hotspot.
      *
      * A Hotspot is simply an HTML element that is moved / hidden etc.
      * to overlay a given position in the panorama. The element is moved
      * by setting its <code>style.top</code> and <code>style.left</code>
      * values.
      *
+     * @augments bigshot.VRHotspot
      * @param {bigshot.VRPanorama} panorama the panorama to attach this hotspot to
      * @param {number} yaw the yaw coordinate of the hotspot
      * @param {number} pitch the pitch coordinate of the hotspot
@@ -4592,41 +4624,89 @@ if (!self["bigshot"]) {
      * @param {number} offsetY the offset to add to the screen coordinate corresponding
      * to the hotspot's polar coordinates. Use this to center the hotspot vertically.
      */
-    bigshot.VRHotspot = function (panorama, yaw, pitch, element, offsetX, offsetY) {
+    bigshot.VRPointHotspot = function (panorama, yaw, pitch, element, offsetX, offsetY) {
         this.layout = function () {
             var p = this.toScreen ();
-            var s = panorama.browser.getElementSize (element);
             
-            p.x += offsetX;
-            p.y += offsetY;
-            
-            if (p != null && p.x > 0 && (p.x + s.w) < panorama.webGl.gl.viewportWidth &&
-                p.y > 0 && (p.y + s.h) < panorama.webGl.gl.viewportHeight) {
-                element.style.top = (p.y + offsetY) + "px";
-                element.style.left = (p.x + offsetX) + "px";
-                    element.style.visibility = "inherit";
-                } else {
-                    element.style.visibility = "hidden";
-                }
-        }
-        
-        this.rotate = function (ang, vector, point) {
-            var arad = ang * Math.PI / 180.0;
-            var m = Matrix.Rotation(arad, $V([vector[0], vector[1], vector[2]])).ensure4x4 ();
-            return m.x (point);
-        }
-        
-        this.toVector = function () {
-            var point = $V([0, 0, -1, 1]);
-            point = this.rotate (yaw, [0, 1, 0], point);
-            point = this.rotate (pitch, [1, 0, 0], point);
-            return [point.e(1), point.e(2), point.e(3)];
-        }
-        
-        this.toScreen = function () {
-            return panorama.webGl.transformToScreen (this.point);
-        }
+            var visible = false;
+            if (p != null) {
+                var s = panorama.browser.getElementSize (element);
                 
-        this.point = this.toVector ();
+                p.x += offsetX;
+                p.y += offsetY;
+                
+                if (p.x > 0 && (p.x + s.w) < panorama.webGl.gl.viewportWidth && p.y > 0 && (p.y + s.h) < panorama.webGl.gl.viewportHeight) {
+                    element.style.top = (p.y + offsetY) + "px";
+                    element.style.left = (p.x + offsetX) + "px";
+                    element.style.visibility = "inherit";
+                    visible = true;
+                }
+            }
+            
+            if (!visible) {
+                element.style.visibility = "hidden";
+            }
+        }
+        
+        var e = bigshot.object.extend (new bigshot.VRHotspot (panorama), this);
+        
+        e.point = e.toVector (yaw, pitch);
+        return e;
+    }
+    
+    /**
+     * Creates a new rectangular hotspot and attaches it to a VR panorama.
+     *
+     * @class A rectangular VR panorama hotspot.
+     *
+     * A rectangular hotspot is simply an HTML element that is moved / resized / hidden etc.
+     * to overlay a given rectangle in the panorama. The element is moved
+     * by setting its <code>style.top</code> and <code>style.left</code>
+     * values, and resized by setting its <code>style.width</code> and <code>style.height</code>
+     * values.
+     *
+     * @augments bigshot.VRHotspot
+     * @param {bigshot.VRPanorama} panorama the panorama to attach this hotspot to
+     * @param {number} yaw0 the yaw coordinate of the top-left corner of the hotspot
+     * @param {number} pitch0 the pitch coordinate of the top-left corner of the hotspot
+     * @param {number} yaw1 the yaw coordinate of the bottom-right corner of the hotspot
+     * @param {number} pitch1 the pitch coordinate of the bottom-right corner of the hotspot
+     * @param {HTMLElement} element the HTML element
+     */
+    bigshot.VRRectangleHotspot = function (panorama, yaw0, pitch0, yaw1, pitch1, element) {
+        this.layout = function () {
+            var p = this.toScreen (this.point0);
+            var p1 = this.toScreen (this.point1);
+            
+            var visible = false;
+            if (p != null && p1 != null) {
+                
+                var s = {
+                    w : p1.x - p.x,
+                    h : p1.y - p.y
+                };
+                
+                console.log (s.w + " " + s.h);
+                
+                if (p.x > 0 && (p.x + s.w) < panorama.webGl.gl.viewportWidth && p.y > 0 && (p.y + s.h) < panorama.webGl.gl.viewportHeight) {
+                    element.style.top = (p.y) + "px";
+                    element.style.left = (p.x) + "px";
+                    element.style.width = (s.w) + "px";
+                    element.style.height = (s.h) + "px";
+                    element.style.visibility = "inherit";
+                    visible = true;
+                }
+            }
+            
+            if (!visible) {
+                element.style.visibility = "hidden";
+            }
+        }
+        
+        var e = bigshot.object.extend (new bigshot.VRHotspot (panorama), this);
+        
+        e.point0 = e.toVector (yaw0, pitch0);
+        e.point1 = e.toVector (yaw1, pitch1);
+        return e;
     }
 }
