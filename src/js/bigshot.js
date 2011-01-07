@@ -3911,29 +3911,35 @@ if (!self["bigshot"]) {
             return this.state.fov;
         }
         
+        this.snapPitch = function (p) {
+            p = Math.min (this.parameters.maxPitch, p);
+            p = Math.max (this.parameters.minPitch, p);
+            return p;
+        }
+        
         /**
          * Sets the current camera pitch.
          *
          * @param {number} p the pitch, in degrees
          */
         this.setPitch = function (p) {
-            var pin = p;
-            p = Math.min (this.parameters.maxPitch, p);
-            p = Math.max (this.parameters.minPitch, p);
-            this.state.p = p;
+            this.state.p = this.snapPitch (p);
         }
         
         /**
          * Subtraction mod 360, sort of...
+         * @returns the angular distance with smallest magnitude to add to p0 to get to p1 % 360
          */
-        var circleDistance = function (p0, p1) {
+        this.circleDistance = function (p0, p1) {
             if (p1 > p0) {
-                var d1 = (p1 - p0);
-                var d2 = ((p1 - 360) - p0);
+                // p1 is somewhere clockwise to p0
+                var d1 = (p1 - p0); // move clockwise
+                var d2 = ((p1 - 360) - p0); // move counterclockwise, first -p0 to get to 0, then p1 - 360.
                 return Math.abs (d1) < Math.abs (d2) ? d1 : d2;
             } else {
-                var d1 = (p0 - p1);
-                var d2 = ((p0 - 360) - p1);
+                // p1 is somewhere counterclockwise to p0
+                var d1 = (p1 - p0); // move counterclockwise
+                var d2 = (360 - p0) + p1; // move clockwise, first (360-p= to get to 0, then another p1 degrees
                 return Math.abs (d1) < Math.abs (d2) ? d1 : d2;
             }
         };
@@ -3942,18 +3948,12 @@ if (!self["bigshot"]) {
          * Subtraction mod 360, sort of...
          */
         var circleSnapTo = function (p, p1, p2) {
-            var d1 = circleDistance (p, p1);
-            var d2 = circleDistance (p, p2);
+            var d1 = this.circleDistance (p, p1);
+            var d2 = this.circleDistance (p, p2);
             return Math.abs (d1) < Math.abs (d2) ? p1 : p2;
         };
         
-        /**
-         * Sets the current camera yaw. The yaw is normalized between
-         * 0 <= y < 360.
-         *
-         * @param {number} y the yaw, in degrees
-         */
-        this.setYaw = function (y) {
+        this.snapYaw = function (y) {
             y %= 360;
             if (y < 0) {
                 y += 360;
@@ -3976,7 +3976,17 @@ if (!self["bigshot"]) {
                     // ok, we're somewhere between 0.0 and maxYaw
                 }
             }
-            this.state.y = y;
+            return y;
+        }
+        
+        /**
+         * Sets the current camera yaw. The yaw is normalized between
+         * 0 <= y < 360.
+         *
+         * @param {number} y the yaw, in degrees
+         */
+        this.setYaw = function (y) {
+            this.state.y = this.snapYaw (y);
         }
         
         /**
@@ -4139,9 +4149,35 @@ if (!self["bigshot"]) {
             }
         }
         
+        this.mouseDoubleClick = function (e) {
+            var pos = this.browser.getElementPosition (this.container);
+            this.smoothRotateToXY (e.clientX - pos.x, e.clientY - pos.y);
+        }
+        
+        this.smoothRotateToXY = function (x, y) {
+            var halfHeight = this.container.height / 2;
+            var halfWidth = this.container.width / 2;
+            var x = (x - halfWidth);
+            var y = (y - halfHeight);
+            
+            var edgeSizeY = Math.tan ((this.state.fov / 2) * Math.PI / 180);
+            var edgeSizeX = edgeSizeY * this.container.width / this.container.height;
+            
+            var wy = y * edgeSizeY / halfHeight;
+            var wx = x * edgeSizeX / halfWidth;
+            
+            var dpitch = Math.atan (wy) * 180 / Math.PI;
+            var dyaw = Math.atan (wx) * 180 / Math.PI;
+            
+            this.smoothRotateTo (this.snapYaw (this.getYaw () + dyaw), this.snapPitch (this.getPitch () + dpitch), this.getFov (), this.state.fov / 200);
+            /*this.setPitch (this.getPitch () + dpitch);
+            this.setYaw (this.getYaw () + dyaw);*/
+            //this.renderAsap ();
+        }
+        
         this.ease = function (current, target, speed) {
-            var easingFrom = speed * 10;
-            var snapFrom = speed / 20;
+            var easingFrom = speed * 40;
+            var snapFrom = speed / 5;
             var ignoreFrom = speed / 1000;
             
             var distance = current - target;
@@ -4154,7 +4190,7 @@ if (!self["bigshot"]) {
             } else if (Math.abs (distance) < ignoreFrom) {
                 distance = 0;
             } else {
-                distance = -distance * speed * (Math.abs (distance) / easingFrom);
+                distance = - (speed * distance) / (easingFrom);
             }
             return distance;
         }
@@ -4234,6 +4270,20 @@ if (!self["bigshot"]) {
                 }, function () {
                     return that.ease (that.getFov (), 45.0, 0.1);
                 });
+        }
+        
+        this.smoothRotateTo = function (yaw, pitch, fov, speed) {
+            var that = this;
+            this.smoothRotate (
+                function () {
+                    return that.ease (that.getPitch (), pitch, speed);
+                }, function () {
+                    var distance = that.circleDistance (yaw, that.getYaw ());
+                    return -that.ease (0, distance, speed);
+                }, function () {
+                    return that.ease (that.getFov (), fov, speed);
+                }
+            );
         }
         
         /**
@@ -4541,6 +4591,21 @@ if (!self["bigshot"]) {
         this.vrFaces[4] = new bigshot.VRFace (this, "u", {x:-1, y:1, z:1}, 2.0, {x:1, y:0, z:0}, {x:0, y:0, z:-1});
         this.vrFaces[5] = new bigshot.VRFace (this, "d", {x:-1, y:-1, z:-1}, 2.0, {x:1, y:0, z:0}, {x:0, y:0, z:1});
         
+        /**
+         * Helper function to translate touch events to mouse-like events.
+         * @private
+         */
+        var translateEvent = function (event) {
+            if (event.clientX) {
+                return event;
+            } else {
+                return {
+                    clientX : event.changedTouches[0].clientX,
+                    clientY : event.changedTouches[0].clientY
+                };
+            };
+        };
+        
         this.browser.registerListener (this.container, "mousedown", function (e) {
                 that.resetIdle ();
                 that.dragMouseDown (e);
@@ -4566,6 +4631,14 @@ if (!self["bigshot"]) {
                 that.mouseWheel (e);
                 return consumeEvent (e);
             }, false);
+        this.browser.registerListener (parameters.container, "dblclick", function (e) {
+                that.mouseDoubleClick (e);
+                return consumeEvent (e);
+            }, false);
+        this.browser.registerListener (parameters.container, "touchend", function (e) {
+                that.mouseDoubleClick (translateEvent (e));
+                return consumeEvent (e);
+            }, false);
         this.browser.registerListener (window, 'resize', this.onresizeHandler, false);
         
         this.setPitch (0.0);
@@ -4584,6 +4657,88 @@ if (!self["bigshot"]) {
      * @param {bigshot.VRPanorama} panorama the panorama to attach this hotspot to
      */
     bigshot.VRHotspot = function (panorama) {
+        /**
+         * Hides the hotspot if less than <code>frac</code> of its area is visible.
+         * 
+         * @param {number} frac the fraction (0.0 - 1.0) of the hotspot that must be visible for
+         * it to be shown.
+         * @type function(p,s)
+         */
+        this.CLIP_FRACTION = function (frac) {
+            return function (p, s) {
+                var r = {
+                    x0 : Math.max (p.x, 0),
+                    y0 : Math.max (p.y, 0),
+                    x1 : Math.min (p.x + s.w, panorama.webGl.gl.viewportWidth),
+                    y1 : Math.min (p.y + s.h, panorama.webGl.gl.viewportHeight)
+                };
+                var full = s.w * s.h;
+                var visible = Math.abs ((r.x1 - r.x0) * (r.y1 - r.y0));
+                
+                return (visible / full) >= frac;
+            }
+        }
+        
+        /**
+         * Hides the hotspot if its center is outside the viewport.
+         * 
+         * @type function(p,s)
+         */
+        this.CLIP_CENTER = function () {
+            return function (p, s) {
+                var c = {
+                    x : p.x + s.w / 2,
+                    y : p.y + s.h / 2
+                };
+                return c.x >= 0 && c.x < panorama.webGl.gl.viewportWidth && 
+                    c.y >= 0 && c.y < panorama.webGl.gl.viewportHeight;
+            }
+        }
+        
+        /**
+         * Resizes the hotspot to fit in the viewport. Hides the hotspot if 
+         * it is completely outside the viewport.
+         * 
+         * @type function(p,s)
+         */
+        this.CLIP_ADJUST = function () {
+            return function (p, s) {
+                if (p.x < 0) {
+                    s.w -= -p.x;
+                    p.x = 0;
+                }
+                if (p.y < 0) {
+                    s.h -= -p.y;
+                    p.y = 0;
+                }
+                if (p.x + s.w > panorama.webGl.gl.viewportWidth) {
+                    s.w = panorama.webGl.gl.viewportWidth - p.x - 1;
+                }
+                if (p.y + s.h > panorama.webGl.gl.viewportHeight) {
+                    s.h = panorama.webGl.gl.viewportHeight - p.y - 1;
+                }
+                
+                return s.w > 0 && s.h > 0;
+            }
+        }
+
+        /**
+         * The method to use for dealing with hotspots that extend outside the 
+         * viewport. Note that {@link #CLIP_ADJUST} et al are functions, not constants.
+         * To set the value, you must call the function to get a clipping strategy:
+         *
+         * @example
+         * var hotspot = ...;
+         * // note the function call below ---------------v
+         * hotspot.clippingStrategy = hotspot.CLIP_ADJUST ();
+         *
+         * @see bigshot.VRHotspot#CLIP_ADJUST
+         * @see bigshot.VRHotspot#CLIP_CENTER
+         * @see bigshot.VRHotspot#CLIP_FRACTION
+         * @type function(p,s)
+         */
+        this.clippingStrategy = this.CLIP_ADJUST ();
+        
         this.layout = function () {};
         
         this.rotate = function (ang, vector, point) {
@@ -4601,6 +4756,11 @@ if (!self["bigshot"]) {
         
         this.toScreen = function (p) {
             return panorama.webGl.transformToScreen (p);
+        }
+        
+        this.clip = function (p, s) {
+            return this.clippingStrategy (p, s);
+            //return p.x > 0 && (p.x + s.w) < panorama.webGl.gl.viewportWidth && p.y > 0 && (p.y + s.h) < panorama.webGl.gl.viewportHeight;
         }
     }
     
@@ -4635,7 +4795,7 @@ if (!self["bigshot"]) {
                 p.x += offsetX;
                 p.y += offsetY;
                 
-                if (p.x > 0 && (p.x + s.w) < panorama.webGl.gl.viewportWidth && p.y > 0 && (p.y + s.h) < panorama.webGl.gl.viewportHeight) {
+                if (this.clip (p, s)) {
                     element.style.top = (p.y + offsetY) + "px";
                     element.style.left = (p.x + offsetX) + "px";
                     element.style.visibility = "inherit";
@@ -4648,10 +4808,12 @@ if (!self["bigshot"]) {
             }
         }
         
-        var e = bigshot.object.extend (new bigshot.VRHotspot (panorama), this);
+        this.initialize = function () {
+            this.point = this.toVector (yaw, pitch);
+            return this;
+        }
         
-        e.point = e.toVector (yaw, pitch);
-        return e;
+        return bigshot.object.extend (new bigshot.VRHotspot (panorama), this).initialize ();
     }
     
     /**
@@ -4678,17 +4840,16 @@ if (!self["bigshot"]) {
             var p = this.toScreen (this.point0);
             var p1 = this.toScreen (this.point1);
             
+            
+            
             var visible = false;
             if (p != null && p1 != null) {
-                
                 var s = {
                     w : p1.x - p.x,
                     h : p1.y - p.y
                 };
                 
-                console.log (s.w + " " + s.h);
-                
-                if (p.x > 0 && (p.x + s.w) < panorama.webGl.gl.viewportWidth && p.y > 0 && (p.y + s.h) < panorama.webGl.gl.viewportHeight) {
+                if (this.clip (p, s)) {
                     element.style.top = (p.y) + "px";
                     element.style.left = (p.x) + "px";
                     element.style.width = (s.w) + "px";
@@ -4703,10 +4864,13 @@ if (!self["bigshot"]) {
             }
         }
         
-        var e = bigshot.object.extend (new bigshot.VRHotspot (panorama), this);
+        this.initialize = function () {
+            this.point0 = this.toVector (yaw0, pitch0);
+            this.point1 = this.toVector (yaw1, pitch1);
+            
+            return this;
+        }
         
-        e.point0 = e.toVector (yaw0, pitch0);
-        e.point1 = e.toVector (yaw1, pitch1);
-        return e;
+        return bigshot.object.extend (new bigshot.VRHotspot (panorama), this).initialize ();
     }
 }

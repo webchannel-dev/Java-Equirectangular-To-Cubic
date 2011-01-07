@@ -154,8 +154,8 @@
                         <div style="width:0px; height:0px; position:absolute; z-index:1;">
                             <div class="hotspot" id="hotspot" style="text-align:center;"
                                 onclick="alert('Clicked on hotspot!');">
-                                <div style="position:absolute; left: 50%;">
-                                    <div class="hotspot_label" style="position:absolute; width:300em; left: -150em; top: 56px; text-align:center">
+                                <div style="position:absolute; left: 50%; top:100%;">
+                                    <div class="hotspot_label" style="position:absolute; width:300em; left: -150em; top: 16px; text-align:center">
                                         <span style="background:black; color:white; padding:4px; font-family:arial; font-size: 10pt;">
                                             Parliament Building ("Riksdagen")
                                         </span>
@@ -163,7 +163,9 @@
                                 </div>
                             </div>
                         </div>
-                        
+                        <div style="width:0px; left:50%; height:0px; position:absolute; z-index:1;">
+                            <div style="width:32px; height:32px; position: relative; top:240px; border-top:1px solid red; border-left:1px solid red;">&#160;</div>
+                        </div>
                         <canvas style="position:absolute;" id="canvas" width="480" height="480">
                             This demo requires a web browser that supports HTML5 canvas and WebGL.
                         </canvas>
