@@ -3946,6 +3946,7 @@ if (!self["bigshot"]) {
         
         /**
          * Subtraction mod 360, sort of...
+         * @private
          */
         var circleSnapTo = function (p, p1, p2) {
             var d1 = this.circleDistance (p, p1);
@@ -4225,9 +4226,11 @@ if (!self["bigshot"]) {
          * current = current + this.ease (current, target, 1.0);
          * @private
          */
-        this.ease = function (current, target, speed) {
+        this.ease = function (current, target, speed, snapFrom) {
             var easingFrom = speed * 40;
-            var snapFrom = speed / 5;
+            if (!snapFrom) {
+                snapFrom = speed / 5;
+            }
             var ignoreFrom = speed / 1000;
             
             var distance = current - target;
@@ -4315,8 +4318,6 @@ if (!self["bigshot"]) {
             var dy = speed;
             this.smoothRotate (
                 function () {
-                    return that.ease (that.getPitch (), 0.0, speed);
-                }, function () {
                     var nextPos = that.getYaw () + dy;
                     if (that.parameters.minYaw < that.parameters.maxYaw) {
                         if (nextPos > that.parameters.maxYaw || nextPos < that.parameters.minYaw) {
@@ -4335,18 +4336,28 @@ if (!self["bigshot"]) {
                     }
                     return dy;
                 }, function () {
+                    return that.ease (that.getPitch (), 0.0, speed);
+                }, function () {
                     return that.ease (that.getFov (), 45.0, 0.1);
                 });
         }
         
+        /**
+         * Smoothly rotates the panorama to the given state.
+         *
+         * @param {number} yaw the target yaw
+         * @param {number} pitch the target pitch
+         * @param {number} fov the target vertical field of view
+         * @param {number} the speed to rotate with
+         */
         this.smoothRotateTo = function (yaw, pitch, fov, speed) {
             var that = this;
             this.smoothRotate (
                 function () {
-                    return that.ease (that.getPitch (), pitch, speed);
-                }, function () {
                     var distance = that.circleDistance (yaw, that.getYaw ());
                     return -that.ease (0, distance, speed);
+                }, function () {
+                    return that.ease (that.getPitch (), pitch, speed);
                 }, function () {
                     return that.ease (that.getFov (), fov, speed);
                 }
@@ -4367,11 +4378,11 @@ if (!self["bigshot"]) {
          * Smoothly rotates the camera. If all of the dp, dy and df functions are null, stops
          * any smooth rotation.
          *
-         * @param {function()} dp function giving the pitch increment for the next frame
-         * @param {function()} dy function giving the yaw increment for the next frame
+         * @param {function()} [dy] function giving the yaw increment for the next frame
+         * @param {function()} [dp] function giving the pitch increment for the next frame
          * @param {function()} [df] function giving the field of view (degrees) increment for the next frame
          */
-        this.smoothRotate = function (dp, dy, df) {
+        this.smoothRotate = function (dy, dp, df) {
             ++this.smoothrotatePermit;
             var savedPermit = this.smoothrotatePermit;
             if (!dp && !dy && !df) {
@@ -4470,12 +4481,12 @@ if (!self["bigshot"]) {
             var that = this;
             var target = null;
             if (delta > 0) {
-                if (this.getFov () > 5) {
+                if (this.getFov () > this.parameters.minFov) {
                     target = this.getFov () * 0.9;
                 }
             }
             if (delta < 0) {
-                if (this.getFov () < 90) {
+                if (this.getFov () < this.parameters.maxFov) {
                     target = this.getFov () / 0.9;
                 }
             }
@@ -4486,7 +4497,7 @@ if (!self["bigshot"]) {
                     }, function () {
                         return 0;
                     }, function () {
-                        return target - that.getFov ();
+                        return (target - that.getFov ()) / 1.5;
                     });        
             }
         };
@@ -4814,6 +4825,7 @@ if (!self["bigshot"]) {
          * @see bigshot.VRHotspot#CLIP_CENTER
          * @see bigshot.VRHotspot#CLIP_FRACTION
          * @type function(p,s)
+         * @default bigshot.VRHotspot#CLIP_ADJUST
          */
         this.clippingStrategy = this.CLIP_ADJUST ();
         
@@ -4839,7 +4851,10 @@ if (!self["bigshot"]) {
         
         /**
          * Converts the polar coordinates to world coordinates.
+         * The distance is assumed to be 1.0.
          *
+         * @param yaw the yaw, in degrees
+         * @param pitch the pitch, in degrees
          * @type number[3]
          */
         this.toVector = function (yaw, pitch) {
