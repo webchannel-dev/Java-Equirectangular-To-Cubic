@@ -43,6 +43,12 @@
             div.hotspot:hover div.hotspot_label {
                 visibility:visible;
             }
+            
+            span.coordinate {
+                width: 4em;
+                text-align:right;
+                display: inline-block;
+            }
         </style>
         <script src="../js/webgl/webgl-debug.js"></script>
         <script src="../js/webgl/sylvester.js"></script>
@@ -65,6 +71,12 @@
                             textureMagFilter : linear,
                             maxTextureMagnification : 1.0
                         }));
+                bvr.onrender = function () {
+                    var s = document.getElementById ("position-yaw");
+                    s.innerHTML = bvr.getYaw ().toFixed (3);
+                    s = document.getElementById ("position-pitch");
+                    s.innerHTML = bvr.getPitch ().toFixed (3);
+                }
                 //bvr.autoRotateWhenIdle (3);
                 bvr.autoResizeContainer (document.getElementById ("container"));
                 bvr.onresize ();
@@ -84,10 +96,6 @@
             
             function fullScreen () {
                 bvr.fullScreen ();
-            }
-            
-            function getPosition () {
-                alert (bvr.getYaw () + " " + bvr.getPitch ());
             }
             
             function setupWithFallback (
@@ -170,10 +178,24 @@
                             This demo requires a web browser that supports HTML5 canvas and WebGL.
                         </canvas>
                     </div>
+                    <p>
                     <a href="#" onclick="redraw()"><button type="button">Redraw</button></a>
                     <a href="#" onclick="autorotate()"><button type="button">Autorotate</button></a>
                     <a href="#" onclick="fullScreen()"><button type="button">Fullscreen</button></a>
-                    <a href="#" onclick="getPosition()"><button type="button">Get Position</button></a>
+                    <a href="#" onclick="bvr.setFov (bvr.getMinFovFromViewportAndImage ()); bvr.render ();"><button type="button">computedMinZoom</button></a>
+                    </p>
+                    
+                    <p>
+                    Drag mode:
+                    <input type="radio" name="panMode" value="drag" onchange="bvr.setDragMode (bvr.DRAG_PAN);" checked="true"/> Pan
+                    <input type="radio" name="panMode" value="grab" onchange="bvr.setDragMode (bvr.DRAG_GRAB);"/> Grab
+                    </p>
+                    
+                    <p>
+                    Position:
+                    Yaw: <span id="position-yaw" class="coordinate"></span> ; Pitch: <span id="position-pitch" class="coordinate"></span>
+                    </p>
+                    
                 </td>
                 <!--
                 <td class="playerContainer" width="50%" valign="top">

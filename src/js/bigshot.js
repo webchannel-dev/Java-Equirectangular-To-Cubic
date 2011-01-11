@@ -4035,11 +4035,22 @@ if (!self["bigshot"]) {
         }
         
         /**
+         * If set, called at the end of every render.
+         *
+         * @event
+         * @type function()
+         */
+        this.onrender = null;
+        
+        /**
          * Performs per-render cleanup.
          */
         this.endRender = function () {
             for (var f in this.vrFaces) {
                 this.vrFaces[f].endRender ();
+            }
+            if (this.onrender) {
+                this.onrender ();
             }
         }
         
@@ -4104,7 +4115,7 @@ if (!self["bigshot"]) {
          * The current drag mode.
          * @private
          */
-        this.dragMode = this.DRAG_GRAB;
+        this.dragMode = this.DRAG_PAN;
         
         /**
          * Sets the mouse dragging mode.
@@ -4136,7 +4147,7 @@ if (!self["bigshot"]) {
                     this.render ();
                     this.dragStart = e;
                 } else {
-                    var scale = 0.2 * this.state.fov / this.container.height;
+                    var scale = 0.1 * this.state.fov / this.container.height;
                     var dx = e.clientX - this.dragStart.clientX;
                     var dy = e.clientY - this.dragStart.clientY;
                     this.smoothRotate (
@@ -4154,6 +4165,40 @@ if (!self["bigshot"]) {
             this.smoothRotateToXY (e.clientX - pos.x, e.clientY - pos.y);
         }
         
+        /**
+         * Computes the minimum field of view where the resulting image will not
+         * have to stretch the textures more than given by the
+         * {@link bigshot.VRPanoramaParameters#maxTextureMagnification} parameter.
+         *
+         * @type number
+         * @return the minimum FOV, below which it is necessary to stretch the 
+         * vr cube texture more than the given {@link bigshot.VRPanoramaParameters#maxTextureMagnification}
+         */
+        this.getMinFovFromViewportAndImage = function () {
+            var halfHeight = this.container.height / 2;
+            
+            var minFaceHeight = this.vrFaces[0].parameters.height;
+            for (var i in this.vrFaces) {
+                minFaceHeight = Math.min (minFaceHeight, this.vrFaces[i].parameters.height);
+            }
+            
+            var edgeSizeY = this.parameters.maxTextureMagnification * minFaceHeight / 2;
+            
+            var wy = halfHeight / edgeSizeY;
+            
+            var mz = Math.atan (wy) * 180 / Math.PI;
+            
+            return mz * 2;
+        }
+        
+        /**
+         * Smoothly rotates the panorama so that the 
+         * point given by x and y, in pixels relative to the top left corner
+         * of the panorama, ends up in the center of the viewport.
+         *
+         * @param {int} x the x-coordinate, in pixels from the left edge
+         * @param {int} y the y-coordinate, in pixels from the top edge
+         */
         this.smoothRotateToXY = function (x, y) {
             var halfHeight = this.container.height / 2;
             var halfWidth = this.container.width / 2;
@@ -4170,11 +4215,16 @@ if (!self["bigshot"]) {
             var dyaw = Math.atan (wx) * 180 / Math.PI;
             
             this.smoothRotateTo (this.snapYaw (this.getYaw () + dyaw), this.snapPitch (this.getPitch () + dpitch), this.getFov (), this.state.fov / 200);
-            /*this.setPitch (this.getPitch () + dpitch);
-            this.setYaw (this.getYaw () + dyaw);*/
-            //this.renderAsap ();
         }
         
+        /**
+         * Gives the step to take to slowly approach the 
+         * target value.
+         *
+         * @example
+         * current = current + this.ease (current, target, 1.0);
+         * @private
+         */
         this.ease = function (current, target, speed) {
             var easingFrom = speed * 40;
             var snapFrom = speed / 5;
@@ -4195,13 +4245,29 @@ if (!self["bigshot"]) {
             return distance;
         }
         
+        /**
+         * Current value of the idle counter.
+         */
         this.idleCounter = 0;
+        
+        /**
+         * Maximum value of the idle counter before any idle events start,
+         * such as autorotation.
+         */
         this.maxIdleCounter = -1;
         
+        /**
+         * Resets the "idle" clock.
+         * @private
+         */
         this.resetIdle = function () {
             this.idleCounter = 0;
         }
         
+        /**
+         * Idle clock.
+         * @private
+         */
         this.idleTick = function () {
             if (this.maxIdleCounter < 0) {
                 return;
@@ -4238,7 +4304,8 @@ if (!self["bigshot"]) {
         
         /**
          * Starts auto-rotation of the camera. If the yaw is constrained,
-         * will pan back and forth between the yaw endpoints.
+         * will pan back and forth between the yaw endpoints. Call
+         * {@link #smoothRotate}() to stop the rotation.
          */
         this.autoRotate = function () {
             var that = this;
@@ -4297,7 +4364,7 @@ if (!self["bigshot"]) {
         this.smoothrotatePermit = 0;
         
         /**
-         * Smoothly rotates the camera. If any of the dp or dy functions are null, stops
+         * Smoothly rotates the camera. If all of the dp, dy and df functions are null, stops
          * any smooth rotation.
          *
          * @param {function()} dp function giving the pitch increment for the next frame
@@ -4307,15 +4374,21 @@ if (!self["bigshot"]) {
         this.smoothRotate = function (dp, dy, df) {
             ++this.smoothrotatePermit;
             var savedPermit = this.smoothrotatePermit;
-            if (!dp || !dy) {            
+            if (!dp && !dy && !df) {
                 return;
             }
             
             var that = this;
             var stepper = function () {
                 if (that.smoothrotatePermit == savedPermit) {
-                    that.setYaw (that.getYaw () + dy());
-                    that.setPitch (that.getPitch () + dp());
+                    if (dy) {
+                        that.setYaw (that.getYaw () + dy());
+                    }
+                    
+                    if (dp) {
+                        that.setPitch (that.getPitch () + dp());
+                    }
+                    
                     if (df) {
                         that.setFov (that.getFov () + df());
                     }
@@ -4326,6 +4399,11 @@ if (!self["bigshot"]) {
             stepper ();
         }
         
+        /**
+         * Stub function to call onresize on this instance.
+         *
+         * @private
+         */
         this.onresizeHandler = function (e) {
             that.onresize ();
         }
@@ -4739,14 +4817,31 @@ if (!self["bigshot"]) {
          */
         this.clippingStrategy = this.CLIP_ADJUST ();
         
+        /**
+         * Layout and resize the hotspot. Called by the panorama.
+         */
         this.layout = function () {};
         
+        /**
+         * Helper function to rotate a point around an axis.
+         *
+         * @param {number} ang the angle
+         * @param {number[3]} vector the vector to rotate around
+         * @param {Vector} point the point
+         * @type Vector
+         * @private
+         */
         this.rotate = function (ang, vector, point) {
             var arad = ang * Math.PI / 180.0;
             var m = Matrix.Rotation(arad, $V([vector[0], vector[1], vector[2]])).ensure4x4 ();
             return m.x (point);
         }
         
+        /**
+         * Converts the polar coordinates to world coordinates.
+         *
+         * @type number[3]
+         */
         this.toVector = function (yaw, pitch) {
             var point = $V([0, 0, -1, 1]);
             point = this.rotate (-yaw, [0, 1, 0], point);
@@ -4754,13 +4849,28 @@ if (!self["bigshot"]) {
             return [point.e(1), point.e(2), point.e(3)];
         }
         
+        /**
+         * Converts the world-coordinate point p to screen coordinates.
+         *
+         * @param {number[3]} p the world-coordinate point
+         * @type point
+         */
         this.toScreen = function (p) {
             return panorama.webGl.transformToScreen (p);
         }
         
+        /**
+         * Clips the hotspot against the viewport. Both parameters 
+         * are in/out. Clipping is done by adjusting the values of the
+         * parameters.
+         *
+         * @param {point} p the top-left corner of the hotspot, in pixels.
+         * @param {size} s the width and height of the hotspot, in pixels
+         * @type boolean
+         * @return true if the hotspot is visible, false otherwise
+         */
         this.clip = function (p, s) {
             return this.clippingStrategy (p, s);
-            //return p.x > 0 && (p.x + s.w) < panorama.webGl.gl.viewportWidth && p.y > 0 && (p.y + s.h) < panorama.webGl.gl.viewportHeight;
         }
     }
     
@@ -4808,6 +4918,11 @@ if (!self["bigshot"]) {
             }
         }
         
+        /**
+         * Initializer
+         *
+         * @private
+         */
         this.initialize = function () {
             this.point = this.toVector (yaw, pitch);
             return this;
@@ -4864,6 +4979,11 @@ if (!self["bigshot"]) {
             }
         }
         
+        /**
+         * Initializer
+         *
+         * @private
+         */
         this.initialize = function () {
             this.point0 = this.toVector (yaw0, pitch0);
             this.point1 = this.toVector (yaw1, pitch1);
