@@ -198,7 +198,7 @@ public class MakeImagePyramid {
         }
     }
     
-    public static void tile (BufferedImage full, int tileWidth, int overlap, File outputBase, Output output) throws Exception {
+    protected static void tile (BufferedImage full, int tileWidth, int overlap, File outputBase, Output output) throws Exception {
         BufferedImage tile = new BufferedImage (tileWidth, tileWidth, BufferedImage.TYPE_INT_RGB);
         int startOffset = 0;
         
@@ -226,7 +226,7 @@ public class MakeImagePyramid {
         }
     }
     
-    public static void showHelp () throws Exception {
+    protected static void showHelp () throws Exception {
         byte[] buffer = new byte[1024];
         InputStream is = MakeImagePyramid.class.getResourceAsStream ("help.txt");
         try {
@@ -242,11 +242,11 @@ public class MakeImagePyramid {
         }
     }
     
-    public static boolean isPowerOfTwo (int i) {
+    protected static boolean isPowerOfTwo (int i) {
         return (i & (i - 1)) == 0;
     }
     
-    public static void presetDziCubemap (Map<String,String> parameters) throws Exception {
+    protected static void presetDziCubemap (Map<String,String> parameters) throws Exception {
         int overlap = getParameterAsInt (parameters, "overlap", 2);
         int tileSize = getParameterAsInt (parameters, "tile-size", 256 - overlap);
         int faceSize = getParameterAsInt (parameters, "face-size", 8 * tileSize);
@@ -289,48 +289,53 @@ public class MakeImagePyramid {
                     parameters.put (key, value);
                 }
             }
-            if ("dzi-cubemap".equals (parameters.get ("preset"))) {
-                presetDziCubemap (parameters);
-            }
             
-            boolean makeVr = "facemap".equals (parameters.get ("transform"));
+            process (input, outputBase, parameters);
+        }
+    }
+    
+    public static void process (File input, File outputBase, Map<String,String> parameters) throws Exception {
+        if ("dzi-cubemap".equals (parameters.get ("preset"))) {
+            presetDziCubemap (parameters);
+        }
+        
+        boolean makeVr = "facemap".equals (parameters.get ("transform"));
+        
+        if (makeVr) {
+            boolean archive = "archive".equals (parameters.get ("format"));
             
-            if (makeVr) {
-                boolean archive = "archive".equals (parameters.get ("format"));
+            File facesOut = File.createTempFile ("makeimagepyramid", "bigshot");
+            facesOut.delete ();
+            facesOut.mkdirs ();
+            try {
+                File[] faces = EquirectangularToCubic.transformToFaces (input, facesOut, getParameterAsInt (parameters, "face-size", 2048) + getParameterAsInt (parameters, "overlap", 0));
+                parameters.remove ("format");
+                parameters.remove ("folder-layout");
                 
-                File facesOut = File.createTempFile ("makeimagepyramid", "bigshot");
-                facesOut.delete ();
-                facesOut.mkdirs ();
-                try {
-                    File[] faces = EquirectangularToCubic.transformToFaces (input, facesOut, getParameterAsInt (parameters, "face-size", 2048) + getParameterAsInt (parameters, "overlap", 0));
-                    parameters.remove ("format");
-                    parameters.remove ("folder-layout");
-                    
-                    File pyramidBase = outputBase;
-                    if (archive) {
-                        pyramidBase = File.createTempFile ("makeimagepyramid", "bigshot");
-                        pyramidBase.delete ();
-                        pyramidBase.mkdirs ();
-                    }
-                    
-                    for (File f : faces) {
-                        System.out.println ("Making pyramid for " + f.getName ());
-                        File face = new File (f.getPath () + ".png");
-                        File out = new File (pyramidBase, f.getName ());
-                        makePyramid (face, out, parameters);
-                        face.delete ();
-                    }
-                    
-                    if (archive) {
-                        pack (pyramidBase, outputBase);
-                        deleteAll (pyramidBase);
-                    }
-                } finally {
-                    deleteAll (facesOut);
+                File pyramidBase = outputBase;
+                if (archive) {
+                    pyramidBase = File.createTempFile ("makeimagepyramid", "bigshot");
+                    pyramidBase.delete ();
+                    pyramidBase.mkdirs ();
                 }
-            } else {
-                makePyramid (input, outputBase, parameters);
+                
+                for (File f : faces) {
+                    System.out.println ("Making pyramid for " + f.getName ());
+                    File face = new File (f.getPath () + ".png");
+                    File out = new File (pyramidBase, f.getName ());
+                    makePyramid (face, out, parameters);
+                    face.delete ();
+                }
+                
+                if (archive) {
+                    pack (pyramidBase, outputBase);
+                    deleteAll (pyramidBase);
+                }
+            } finally {
+                deleteAll (facesOut);
             }
+        } else {
+            makePyramid (input, outputBase, parameters);
         }
     }
     
@@ -371,7 +376,7 @@ public class MakeImagePyramid {
         }
     }
     
-    public static long scan (File directory, List<PackageEntry> result, String relativePath, long currentPosition) {
+    protected static long scan (File directory, List<PackageEntry> result, String relativePath, long currentPosition) {
         for (File f : directory.listFiles ()) {
             if (f.isDirectory ()) {
                 currentPosition = scan (f, result, relativePath + f.getName () + "/", currentPosition);
@@ -389,7 +394,7 @@ public class MakeImagePyramid {
         return currentPosition;
     }
     
-    public static void pack (File source, File outputBase) throws Exception {
+    protected static void pack (File source, File outputBase) throws Exception {
         File packedOutput = outputBase;
         List<PackageEntry> fileList = new ArrayList<PackageEntry> ();
         scan (source, fileList, "", 0);
@@ -434,7 +439,7 @@ public class MakeImagePyramid {
         }
     }
     
-    public static void makePyramid (File input, File outputBase, Map<String,String> parameters) throws Exception {
+    protected static void makePyramid (File input, File outputBase, Map<String,String> parameters) throws Exception {
         BufferedImage full = ImageIO.read (input);
         
         boolean outputPackage = "archive".equals (parameters.get ("format"));
@@ -565,7 +570,7 @@ public class MakeImagePyramid {
     }
     
     
-    public static void deleteAll (File f) {
+    protected static void deleteAll (File f) {
         if (f.isDirectory ()) {
             for (File f2 : f.listFiles ()) {
                 deleteAll (f2);

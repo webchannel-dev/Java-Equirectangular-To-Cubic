@@ -104,7 +104,7 @@
             <arg value="${package-dir}/bigshot-full-compressed.js"/>
             <arg value="${temp}/bigshot-full.js"/>
         </java>
-
+        
         <concat destfile="${temp}/bigshot-full-and-optional.js">
             <filelist dir="${src}/js/webgl/" files="sylvester.js"/>
             <filelist dir="${src}/js/webgl/" files="glUtils.js"/>
@@ -120,6 +120,12 @@
         <zip destfile="${final}/bigshot-${version}.zip">
             <fileset dir="${package-dir}"/>
         </zip>
+    </target>
+    
+    <target name="dist">
+        <antcall target="clean"/>
+        <antcall target="build"/>
+        <antcall target="package"/>
     </target>
     
     <target name="build-image">
@@ -199,6 +205,10 @@ build-vr:
 host: 
     starts the minimal httpd so we can access the test 
     page
+
+dist:
+    Cleans the environment and creates a distribution 
+    package.
 
 demo: 
     Compiles the sources, builds the test image pyramids,
