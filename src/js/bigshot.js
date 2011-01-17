@@ -45,7 +45,7 @@ if (!self["bigshot"]) {
      * <ul>
      * <li>{@link bigshot.VRPanorama}: The main class for making VR panoramas. See the class docs
      *     for a tutorial.
-     * <li>{@link bigshot.ImageParameters}: Parameters for zoomable images. 
+     * <li>{@link bigshot.VRPanoramaParameters}: Parameters for VR panoramas. 
      * </ul>
      */
     bigshot = {};
@@ -575,7 +575,7 @@ if (!self["bigshot"]) {
      * @param {bigshot.ImageParameters} parameters the associated image parameters
      * @param {number} w the current width in css pixels of the viewport
      * @param {number} h the current height in css pixels of the viewport
-     * @param {bigshot.ImageTileCache} itc the tle cache to use
+     * @param {bigshot.ImageTileCache} itc the tile cache to use
      * @class A tiled, zoomable image layer.
      * @constructor
      */
@@ -2445,7 +2445,7 @@ if (!self["bigshot"]) {
      * @param {bigshot.VRPanoramaParameters} image parameters
      * @param {bigshot.WebGL} _webGl WebGL instance to use
      */
-    bigshot.TileTextureCache = function (onLoaded, parameters, _webGl) {
+    bigshot.TextureTileCache = function (onLoaded, parameters, _webGl) {
         this.webGl = _webGl;
         
         /**
@@ -2838,24 +2838,7 @@ if (!self["bigshot"]) {
             var bottomLeft = this.pt3dMultAdd (this.v, width, topLeft);
             var topRight = this.pt3dMultAdd (this.u, width, topLeft);
             var bottomRight = this.pt3dMultAdd (this.u, width, bottomLeft);
-            
-            var transformedToWorld = [
-                this.owner.renderer.transformToWorld ([topLeft.x, topLeft.y, topLeft.z]),
-                this.owner.renderer.transformToWorld ([topRight.x, topRight.y, topRight.z]),
-                this.owner.renderer.transformToWorld ([bottomRight.x, bottomRight.y, bottomRight.z]),
-                this.owner.renderer.transformToWorld ([bottomLeft.x, bottomLeft.y, bottomLeft.z])
-            ];
-            
-            var numInFront = 0;
-            for (var i = 0; i < transformedToWorld.length; ++i) {
-                if (transformedToWorld[i].e(3) < 0) {
-                    numInFront++;
-                }       
-            }
-            if (numInFront == 0) {
-                return;
-            }
-            
+
             var transformed = [
                 this.owner.renderer.transformToScreen ([topLeft.x, topLeft.y, topLeft.z]),
                 this.owner.renderer.transformToScreen ([topRight.x, topRight.y, topRight.z]),
@@ -3058,7 +3041,7 @@ if (!self["bigshot"]) {
         /**
          * Resets the world transform to the identity transform.
          */
-        this.mvReset = function () {
+        this.reset = function () {
             this.mvMatrix = Matrix.I(4);
         }
         
@@ -3087,14 +3070,15 @@ if (!self["bigshot"]) {
          * @param {number} ang the angle in degrees to rotate
          * @param {number[3]} vector the rotation vector
          */
-        this.mvRotate = function (ang, vector) {
+        this.rotate = function (ang, vector) {
             var arad = ang * Math.PI / 180.0;
             var m = Matrix.Rotation(arad, $V([vector[0], vector[1], vector[2]])).ensure4x4 ();
             this.mvMultiply (m);
         }
         
         /**
-         * Sets the perspective transformation matrix.
+         * Multiplies the current matrix with a 
+         * perspective transformation matrix.
          *
          * @param {number} fovy vertical field of view
          * @param {number} aspect viewport aspect ratio
@@ -3110,7 +3094,7 @@ if (!self["bigshot"]) {
             return this.mvMatrix;
         }
         
-        this.mvReset ();
+        this.reset ();
     }
     
     /**
@@ -3330,14 +3314,7 @@ if (!self["bigshot"]) {
             return world;
         }
         
-        /**
-         * Transforms a vector to screen coordinates.
-         *
-         * @param {vector} vector the vector to transform
-         * @return the transformed vector, or null if the vector is nearer than the near-z plane.
-         */
-        this.transformToScreen = function (vector) {
-            var world = this.transformToWorld (vector);
+        this.transformWorldToScreen = function (world) {
             if (world.e(3) > 0) {
                 return null;
             }
@@ -3348,25 +3325,57 @@ if (!self["bigshot"]) {
             }
             var r = {
                 x: (this.gl.viewportWidth / 2) * screen.e(1) / screen.e(4) + this.gl.viewportWidth / 2, 
-                y: - (this.gl.viewportHeight / 2) * screen.e(2) / screen.e(4) + this.gl.viewportHeight / 2,
-                toString : function () {
-                    return this.x + "," + this.y;
-                }
+                y: - (this.gl.viewportHeight / 2) * screen.e(2) / screen.e(4) + this.gl.viewportHeight / 2
             };
             return r;
+        }
+        
+        /**
+         * Transforms a vector to screen coordinates.
+         *
+         * @param {vector} vector the vector to transform
+         * @return the transformed vector, or null if the vector is nearer than the near-z plane.
+         */
+        this.transformToScreen = function (vector) {
+            var world = this.transformToWorld (vector);
+            return this.transformWorldToScreen (world);
         }
     };
     
     /**
-     * @class Abstract rendering class.
+     * @class Abstract base for 3d rendering system.
      */
     bigshot.VRRenderer = function () {
+        /**
+         * Creates a new bigshot.TileCache, appropriate for the rendering system.
+         */
         this.createTileCache = function (onloaded, parameters) {};
+        
+        /**
+         * Creates a bigshot.TexturedQuadScene.
+         */
         this.createTexturedQuadScene = function () {};
+        
+        /**
+         * Creates a bigshot.TexturedQuad.
+         */
         this.createTexturedQuad = function (p, u, v, texture) {};
+        
+        /**
+         * Returns the viewport width, in pixels.
+         *
+         * @type int
+         */
         this.getViewportWidth = function () {};
+        
+        /**
+         * Returns the viewport height, in pixels.
+         *
+         * @type int
+         */
         this.getViewportHeight = function () {};
         this.transformToWorld = function (v) {};
+        this.transformWorldToScreen = function (worldVector) {};
         this.transformToScreen = function (vector) {};
         this.beginRender = function (y, p, fov) {};
         this.endRender = function () {};
@@ -3375,7 +3384,9 @@ if (!self["bigshot"]) {
     }
     
     /**
-     * @class WebGL renderer.
+     * @class CSS 3D Transform-based renderer.
+     *
+     * @augments bigshot.VRRenderer
      */
     bigshot.CSS3DVRRenderer = function (_container) {
         this.browser = new bigshot.Browser ();
@@ -3445,14 +3456,7 @@ if (!self["bigshot"]) {
             return world;
         }
         
-        /**
-         * Transforms a vector to screen coordinates.
-         *
-         * @param {vector} vector the vector to transform
-         * @return the transformed vector, or null if the vector is nearer than the near-z plane.
-         */
-        this.transformToScreen = function (vector) {
-            var world = this.transformToWorld (vector);
+        this.transformWorldToScreen = function (world) {
             if (world.e(3) > 0) {
                 return null;
             }
@@ -3463,12 +3467,20 @@ if (!self["bigshot"]) {
             }
             var r = {
                 x: (this.getViewportWidth () / 2) * screen.e(1) / screen.e(4) + this.getViewportWidth () / 2, 
-                y: - (this.getViewportHeight () / 2) * screen.e(2) / screen.e(4) + this.getViewportHeight () / 2,
-                toString : function () {
-                    return this.x + "," + this.y;
-                }
+                y: - (this.getViewportHeight () / 2) * screen.e(2) / screen.e(4) + this.getViewportHeight () / 2
             };
             return r;
+        }
+        
+        /**
+         * Transforms a vector to screen coordinates.
+         *
+         * @param {vector} vector the vector to transform
+         * @return the transformed vector, or null if the vector is nearer than the near-z plane.
+         */
+        this.transformToScreen = function (vector) {
+            var world = this.transformToWorld (vector);
+            return this.transformWorldToScreen (world);
         }
         
         this.yaw = 0;
@@ -3485,12 +3497,11 @@ if (!self["bigshot"]) {
             var halfHeight = this.getViewportHeight () / 2;
             var perspectiveDistance = halfHeight / Math.tan (halfFovInRad);
             
-            this.mvMatrix.mvReset ();
-            this.mvMatrix.mvTranslate ([0.0, 0.0, 0.0]);
-            this.mvMatrix.mvRotate (this.pitch, [1, 0, 0]);
-            this.mvMatrix.mvRotate (this.yaw, [0, 1, 0]);
+            this.mvMatrix.reset ();
+            this.mvMatrix.rotate (this.pitch, [1, 0, 0]);
+            this.mvMatrix.rotate (this.yaw, [0, 1, 0]);
             
-            this.pMatrix.mvReset ();
+            this.pMatrix.reset ();
             this.pMatrix.perspective (this.fov, this.getViewportWidth () / this.getViewportHeight (), 0.1, 100.0);
             
             this.canvasOrigin.style.WebkitPerspective= perspectiveDistance + "px";
@@ -3562,6 +3573,7 @@ if (!self["bigshot"]) {
             var ps = scale * 1.0;
             
             this.image.style.position = "absolute";
+            this.image.style.border = "10px solid red";
             world.appendChild (this.image);
             this.image.style.WebkitTransformOrigin = "0px 0px 0px";
             this.image.style.WebkitTransform = 
@@ -3573,12 +3585,15 @@ if (!self["bigshot"]) {
     /**
      * Creates a textured quad scene.
      *
-     * @param {bigshot.WebGL} webGl the webGl instance to use for rendering.
+     * @param {HTMLElement} world element used as container for 
+     * the world coordinate system.
+     * @param {number} scale the scaling factor to use to avoid 
+     * numeric errors.
      *
      * @class A "scene" consisting of a number of quads, all with
      * a unique texture. Used by the {@link bigshot.VRPanorama} to render the VR cube.
      *
-     * @see bigshot.WebGLTexturedQuad
+     * @see bigshot.CSS3DTexturedQuad
      */
     bigshot.CSS3DTexturedQuadScene = function (world, scale) {
         this.quads = new Array ();
@@ -3596,13 +3611,27 @@ if (!self["bigshot"]) {
          * Renders all quads.
          */
         this.render = function () {
+            console.log ("Rendering " + this.quads.length + " quads");
             for (var i = 0; i < this.quads.length; ++i) {
                 this.quads[i].render (this.world, this.scale);
             }
         };
     };
     
-    
+    /**
+     * @class Abstract base for textured quad scenes.
+     */
+    bigshot.TexturedQuadScene = function () {
+        /**
+         * Adds a quad to the scene.
+         */
+        this.addQuad = function (quad) {};
+        
+        /**
+         * Renders the scene.
+         */
+        this.render = function () {};
+    };
     
     /**
      * @class WebGL renderer.
@@ -3622,7 +3651,7 @@ if (!self["bigshot"]) {
         this.webGl.gl.clearDepth(1.0);
         
         this.createTileCache = function (onloaded, parameters) {
-            return new bigshot.TileTextureCache (onloaded, parameters, this.webGl);
+            return new bigshot.TextureTileCache (onloaded, parameters, this.webGl);
         };
         
         this.createTexturedQuadScene = function () {
@@ -3653,18 +3682,20 @@ if (!self["bigshot"]) {
             return this.webGl.transformToScreen (vector);
         };
         
+        this.transformWorldToScreen = function (world) {
+            return this.webGl.transformWorldToScreen (world);
+        }
+        
         this.beginRender = function (y, p, fov) {
             this.webGl.gl.viewport (0, 0, this.webGl.gl.viewportWidth, this.webGl.gl.viewportHeight);
             
-            this.webGl.pMatrix.mvReset ();
+            this.webGl.pMatrix.reset ();
             this.webGl.pMatrix.perspective (fov, this.webGl.gl.viewportWidth / this.webGl.gl.viewportHeight, 0.1, 100.0);
             
-            this.webGl.mvMatrix.mvReset ();
+            this.webGl.mvMatrix.reset ();
             
-            this.webGl.mvMatrix.mvTranslate ([0.0, 0.0, 0.0]);
-            
-            this.webGl.mvMatrix.mvRotate (p, [1, 0, 0]);
-            this.webGl.mvMatrix.mvRotate (y, [0, 1, 0]);
+            this.webGl.mvMatrix.rotate (p, [1, 0, 0]);
+            this.webGl.mvMatrix.rotate (y, [0, 1, 0]);
         }
         
         this.endRender = function () {
@@ -3680,6 +3711,12 @@ if (!self["bigshot"]) {
             this.webGl.onresize ();
         }
     }
+    
+    /**
+     * @class Abstract base for textured quads.
+     */
+    bigshot.TexturedQuad = function () {
+    };
     
     /**
      * Creates a textured quad object.
@@ -4031,12 +4068,21 @@ if (!self["bigshot"]) {
          * var browser = new bigshot.Browser ();
          * browser.stopMouseEventBubbling (document.getElementById ("myBigshotControlDiv"));
          *
-         * @see bigshot.Image#showTouchUI
+         * @see bigshot.VRPanorama#showTouchUI
          *
          * @type boolean
          * @default true
          */
         this.touchUI = true;
+        
+        /**
+         * The rendering back end to use.
+         * Values are "css" and "webgl".
+         * 
+         * @type String
+         * @default null
+         */
+        this.renderer = null;
         
         if (values) {
             for (var k in values) {
@@ -4222,35 +4268,50 @@ if (!self["bigshot"]) {
         this.hotspots = [];
         
         /**
-        * Current camera state.
-        * @private
-        */
+         * Current camera state.
+         * @private
+         */
         this.state = {
             /**
-            * Pitch in degrees.
-            */
+             * Pitch in degrees.
+             * @private
+             */
             p : 0.0,
             
             /**
-            * Yaw in degrees.
-            */
+             * Yaw in degrees.
+             * @private
+             */
             y : 0.0,
             
             /**
-            * Field of view (vertical) in degrees.
-            */
+             * Field of view (vertical) in degrees.
+             * @private
+             */
             fov : 45
         };
         
         /**
-         * WebGL wrapper.
+         * Renderer wrapper.
          * @private
-         * @type bigshot.WebGL
+         * @type bigshot.VRRenderer
          */
-        this.renderer = bigshot.webglutil.isWebGLSupported () ? 
-                new bigshot.WebGLVRRenderer (this.container)
-                :
-                new bigshot.CSS3DVRRenderer (this.container);
+        this.renderer = null;
+        if (this.parameters.renderer) {
+            if (this.parameters.renderer == "css") {
+                this.renderer = new bigshot.CSS3DVRRenderer (this.container);
+            } else if (this.parameters.renderer == "webgl") {
+                this.renderer = new bigshot.WebGLVRRenderer (this.container)
+            } else {
+                throw new Error ("Unknown renderer: " + this.parameters.renderer);
+            }
+        } else {
+            this.renderer = 
+            bigshot.webglutil.isWebGLSupported () ? 
+            new bigshot.WebGLVRRenderer (this.container)
+            :
+            new bigshot.CSS3DVRRenderer (this.container);
+        }
         
         /**
          * Adds a hotstpot.
