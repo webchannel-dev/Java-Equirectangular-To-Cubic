@@ -2740,18 +2740,20 @@ if (!self["bigshot"]) {
          */
         this.intersectWithView = function (transformed) {
             var numNull = 0;
+            var tf = [];
             for (var i = 0; i < transformed.length; ++i) {
                 if (transformed[i] == null) {
                     numNull++;
+                } else {
+                    tf.push (transformed[i]);
                 }
             }
             if (numNull == 4) {
                 return this.VISIBLE_NONE;
             }
-            if (numNull > 0) {
-                return this.VISIBLE_SOME;
-            }
             
+            transformed = tf;
+                        
             var min = {
                 x : transformed[0].x,
                 y : transformed[0].y
@@ -2816,7 +2818,7 @@ if (!self["bigshot"]) {
             if (p0 == null || p1 == null) {
                 // arbitrarily high number, because I don't really
                 // want to use Inf or NaN unless I must.
-                return 1000000;
+                return 0;
             }
             return Math.max (Math.abs (p0.x - p1.x), Math.abs (p0.y - p1.y));
         }
@@ -2855,7 +2857,7 @@ if (!self["bigshot"]) {
             var dmax = 0;
             for (var i = 0; i < transformed.length; ++i) {
                 var next = (i + 1) % 4;
-                dmax = Math.max (this.screenDistance (transformed[i], transformed[next]));
+                dmax = Math.max (this.screenDistance (transformed[i], transformed[next]), dmax);
             }
             
             if (divisions < this.minDivisions 
@@ -3573,7 +3575,6 @@ if (!self["bigshot"]) {
             var ps = scale * 1.0;
             
             this.image.style.position = "absolute";
-            this.image.style.border = "10px solid red";
             world.appendChild (this.image);
             this.image.style.WebkitTransformOrigin = "0px 0px 0px";
             this.image.style.WebkitTransform = 
@@ -3611,7 +3612,6 @@ if (!self["bigshot"]) {
          * Renders all quads.
          */
         this.render = function () {
-            console.log ("Rendering " + this.quads.length + " quads");
             for (var i = 0; i < this.quads.length; ++i) {
                 this.quads[i].render (this.world, this.scale);
             }
