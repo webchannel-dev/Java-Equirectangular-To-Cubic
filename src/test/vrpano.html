@@ -60,8 +60,10 @@
             
             function vrpano () {
                 var hotspot = document.getElementById ("hotspot");
-                var canvas = document.getElementById ("canvas");
-                var linear = bigshot.webglutil.createContext (canvas).LINEAR;
+                var linear = null;
+                if (bigshot.webglutil.isWebGLSupported ()) {
+                    linear = bigshot.webglutil.createContext (document.createElement ("canvas")).LINEAR;
+                }
                 bvr = new bigshot.VRPanorama (
                     new bigshot.VRPanoramaParameters ({
                             container : document.getElementById ("container"),
@@ -78,7 +80,7 @@
                     s.innerHTML = bvr.getPitch ().toFixed (3);
                 }
                 //bvr.autoRotateWhenIdle (3);
-                bvr.autoResizeContainer (document.getElementById ("container"));
+                bvr.autoResizeContainer (document.getElementById ("outerContainer"));
                 bvr.onresize ();
                 bvr.addHotspot (new bigshot.VRRectangleHotspot (bvr, 0, -20, 29, 2, hotspot));
                 bvr.render ();
@@ -158,25 +160,24 @@
                     <h2>
                         Bigshot VR
                     </h2>
-                    <div style="background:black; height:480px;" id="container">
-                        <div style="width:0px; height:0px; position:absolute; z-index:1;">
-                            <div class="hotspot" id="hotspot" style="text-align:center;"
-                                onclick="alert('Clicked on hotspot!');">
-                                <div style="position:absolute; left: 50%; top:100%;">
-                                    <div class="hotspot_label" style="position:absolute; width:300em; left: -150em; top: 16px; text-align:center">
-                                        <span style="background:black; color:white; padding:4px; font-family:arial; font-size: 10pt;">
-                                            Parliament Building ("Riksdagen")
-                                        </span>
+                    <div style="background:black; height:480px; width:100%;" id="outerContainer">
+                        <div style="background:black; height:480px;" id="container">
+                            <div style="width:0px; height:0px; position:absolute; z-index:1;">
+                                <div class="hotspot" id="hotspot" style="text-align:center;"
+                                    onclick="alert('Clicked on hotspot!');">
+                                    <div style="position:absolute; left: 50%; top:100%;">
+                                        <div class="hotspot_label" style="position:absolute; width:300em; left: -150em; top: 16px; text-align:center">
+                                            <span style="background:black; color:white; padding:4px; font-family:arial; font-size: 10pt;">
+                                                Parliament Building ("Riksdagen")
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
+                            <div style="width:0px; left:50%; height:0px; position:absolute; z-index:1;">
+                                <div style="width:32px; height:32px; position: relative; top:240px; border-top:1px solid red; border-left:1px solid red;">&#160;</div>
+                            </div>
                         </div>
-                        <div style="width:0px; left:50%; height:0px; position:absolute; z-index:1;">
-                            <div style="width:32px; height:32px; position: relative; top:240px; border-top:1px solid red; border-left:1px solid red;">&#160;</div>
-                        </div>
-                        <canvas style="position:absolute;" id="canvas" width="480" height="480">
-                            This demo requires a web browser that supports HTML5 canvas and WebGL.
-                        </canvas>
                     </div>
                     <p>
                     <a href="#" onclick="redraw()"><button type="button">Redraw</button></a>

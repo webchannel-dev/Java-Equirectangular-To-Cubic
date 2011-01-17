@@ -3482,7 +3482,7 @@ if (!self["bigshot"]) {
             this.fov = fov;
             
             var halfFovInRad = 0.5 * fov * Math.PI / 180;
-            var halfHeight = this.getViewportHeight ();
+            var halfHeight = this.getViewportHeight () / 2;
             var perspectiveDistance = halfHeight / Math.tan (halfFovInRad);
             
             this.mvMatrix.mvReset ();
@@ -3500,6 +3500,7 @@ if (!self["bigshot"]) {
                 "rotate3d(1,0,0," + (-p) + "deg) " +
             "rotate3d(0,1,0," + y + "deg) ";
             this.world.style.WebkitTransformStyle = "preserve-3d";
+            this.world.style.WebKitBackfaceVisibility = "hidden";
             
             this.viewport.style.WebkitTransform = 
                 "translateZ(" + perspectiveDistance + "px)";
@@ -3557,7 +3558,7 @@ if (!self["bigshot"]) {
          * Renders the quad.
          */
         this.render = function (world, scale) {
-            var s = scale / this.image.width;
+            var s = scale / (this.image.width - 1);
             var ps = scale * 1.0;
             
             this.image.style.position = "absolute";
@@ -4246,7 +4247,10 @@ if (!self["bigshot"]) {
          * @private
          * @type bigshot.WebGL
          */
-        this.renderer = new bigshot.CSS3DVRRenderer (this.container);
+        this.renderer = bigshot.webglutil.isWebGLSupported () ? 
+                new bigshot.WebGLVRRenderer (this.container)
+                :
+                new bigshot.CSS3DVRRenderer (this.container);
         
         /**
          * Adds a hotstpot.
@@ -4951,7 +4955,7 @@ if (!self["bigshot"]) {
                 if (!that.sizeContainer) {
                     that.container.style.width = savedSize.width;
                     that.container.style.height = savedSize.height;
-                }
+                }                
                 savedParent.appendChild (that.container);
                 document.body.removeChild (div);
                 that.isFullScreen = false;
