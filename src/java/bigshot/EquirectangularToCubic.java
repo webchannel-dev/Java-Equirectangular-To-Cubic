@@ -55,7 +55,7 @@ public class EquirectangularToCubic {
             
             System.out.println ("Transforming to " + output.getName () + " = " + y + ", " + p + ", " + r);
             
-            Process nona = new ProcessBuilder ("C:\\Program Files (x86)\\Hugin\\bin\\nona.exe",
+            Process nona = new ProcessBuilder ("C:\\Program Files\\Hugin\\bin\\nona.exe",
                 "-o", output.getPath (),
                 script.getPath ())
                 .redirectErrorStream (true)
