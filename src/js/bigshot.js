@@ -2410,6 +2410,33 @@ if (!self["bigshot"]) {
     }
     
     /**
+     * @class Abstract base.
+     */
+    bigshot.VRTileCache = function () {
+        this.getTexture = function (tileX, tileY, zoomLevel) {};
+        this.purge = function () {};
+    }
+    
+    /**
+     * @class Img impl.
+     */
+    bigshot.ImageVRTileCache = function (onloaded, parameters) {
+        this.imageTileCache = new bigshot.ImageTileCache (onloaded, parameters);
+        
+        this.imageTileCache.setMaxTiles (999999, 999999);
+        
+        this.getTexture = function (tileX, tileY, zoomLevel) {
+            var res = this.imageTileCache.getImage (tileX, tileY, zoomLevel);
+            return res;
+        }
+        
+        this.purge = function () {
+            this.imageTileCache.resetUsed ();
+        };
+    }
+    
+    
+    /**
      * Creates a new cache instance.
      *
      * @class Tile texture cache for a {@link bigshot.VRFace}.
@@ -2656,10 +2683,10 @@ if (!self["bigshot"]) {
          *
          * @private
          */
-        this.tileCache = new bigshot.TileTextureCache (function () { 
+        this.tileCache = owner.renderer.createTileCache (function () { 
                 that.updated = true;
                 owner.renderUpdated ();
-            }, this.parameters, this.owner.webGl);
+            }, this.parameters);
         
         this.fullSize = this.parameters.width;
         this.overlap = this.parameters.overlap;
@@ -2678,7 +2705,7 @@ if (!self["bigshot"]) {
         this.generateFace = function (scene, topLeft, width, tx, ty, divisions) {
             width *= this.tileSize / (this.tileSize - this.overlap);
             var texture = this.tileCache.getTexture (tx, ty, -this.maxDivisions + divisions);
-            scene.addQuad (new bigshot.WebGLTexturedQuad (
+            scene.addQuad (this.owner.renderer.createTexturedQuad (
                     topLeft,
                     this.pt3dMult (this.u, width),
                     this.pt3dMult (this.v, width),
@@ -2739,8 +2766,8 @@ if (!self["bigshot"]) {
                 y : 0
             };
             var viewMax = {
-                x : this.owner.webGl.gl.viewportWidth,
-                y : this.owner.webGl.gl.viewportHeight
+                x : this.owner.renderer.getViewportWidth (),
+                y : this.owner.renderer.getViewportHeight ()
             };
             
             var pointsInViewport = 0;
@@ -2812,11 +2839,28 @@ if (!self["bigshot"]) {
             var topRight = this.pt3dMultAdd (this.u, width, topLeft);
             var bottomRight = this.pt3dMultAdd (this.u, width, bottomLeft);
             
+            var transformedToWorld = [
+                this.owner.renderer.transformToWorld ([topLeft.x, topLeft.y, topLeft.z]),
+                this.owner.renderer.transformToWorld ([topRight.x, topRight.y, topRight.z]),
+                this.owner.renderer.transformToWorld ([bottomRight.x, bottomRight.y, bottomRight.z]),
+                this.owner.renderer.transformToWorld ([bottomLeft.x, bottomLeft.y, bottomLeft.z])
+            ];
+            
+            var numInFront = 0;
+            for (var i = 0; i < transformedToWorld.length; ++i) {
+                if (transformedToWorld[i].e(3) < 0) {
+                    numInFront++;
+                }       
+            }
+            if (numInFront == 0) {
+                return;
+            }
+            
             var transformed = [
-                this.owner.webGl.transformToScreen ([topLeft.x, topLeft.y, topLeft.z]),
-                this.owner.webGl.transformToScreen ([topRight.x, topRight.y, topRight.z]),
-                this.owner.webGl.transformToScreen ([bottomRight.x, bottomRight.y, bottomRight.z]),
-                this.owner.webGl.transformToScreen ([bottomLeft.x, bottomLeft.y, bottomLeft.z])
+                this.owner.renderer.transformToScreen ([topLeft.x, topLeft.y, topLeft.z]),
+                this.owner.renderer.transformToScreen ([topRight.x, topRight.y, topRight.z]),
+                this.owner.renderer.transformToScreen ([bottomRight.x, bottomRight.y, bottomRight.z]),
+                this.owner.renderer.transformToScreen ([bottomLeft.x, bottomLeft.y, bottomLeft.z])
             ];
             
             var numVisible = this.intersectWithView (transformed);
@@ -2962,6 +3006,113 @@ if (!self["bigshot"]) {
         }
     }
     
+    bigshot.TransformStack = function () {
+        /**
+         * The current transform matrix.
+         *
+         * @type Matrix
+         */
+        this.mvMatrix = null;
+        
+        /**
+         * The object-to-world transform matrix stack.
+         *
+         * @type Matrix[]
+         */
+        this.mvMatrixStack = [];
+        
+        /**
+         * Pushes the current world transform onto the stack
+         * and returns a new, identical one.
+         *
+         * @return the new world transform matrix
+         * @param {Matrix} [matrix] the new world transform. 
+         * If omitted, the current is used
+         * @type Matrix
+         */
+        this.mvPushMatrix = function (matrix) {
+            if (matrix) {
+                this.mvMatrixStack.push (matrix.dup());
+                this.mvMatrix = matrix.dup();
+                return mvMatrix;
+            } else {
+                this.mvMatrixStack.push (this.mvMatrix.dup());
+                return mvMatrix;
+            }
+        }
+        
+        /**
+         * Pops the last-pushed world transform off the stack, thereby restoring it.
+         *
+         * @type Matrix
+         * @return the previously-pushed matrix
+         */
+        this.mvPopMatrix = function () {
+            if (this.mvMatrixStack.length == 0) {
+                throw new Error ("Invalid popMatrix!");
+            }
+            this.mvMatrix = this.mvMatrixStack.pop();
+            return mvMatrix;
+        }
+        
+        /**
+         * Resets the world transform to the identity transform.
+         */
+        this.mvReset = function () {
+            this.mvMatrix = Matrix.I(4);
+        }
+        
+        /**
+         * Multiplies the current world transform with a matrix.
+         *
+         * @param {Matrix} matrix the matrix to multiply with
+         */
+        this.mvMultiply = function (matrix) {
+            this.mvMatrix = this.mvMatrix.x (matrix);
+        }
+        
+        /**
+         * Adds a translation to the world transform matrix.
+         *
+         * @param {number[3]} vector the translation vector
+         */
+        this.mvTranslate = function (vector) {
+            var m = Matrix.Translation($V([vector[0], vector[1], vector[2]])).ensure4x4 ();
+            this.mvMultiply (m);
+        }
+        
+        /**
+         * Adds a rotation to the world transform matrix.
+         *
+         * @param {number} ang the angle in degrees to rotate
+         * @param {number[3]} vector the rotation vector
+         */
+        this.mvRotate = function (ang, vector) {
+            var arad = ang * Math.PI / 180.0;
+            var m = Matrix.Rotation(arad, $V([vector[0], vector[1], vector[2]])).ensure4x4 ();
+            this.mvMultiply (m);
+        }
+        
+        /**
+         * Sets the perspective transformation matrix.
+         *
+         * @param {number} fovy vertical field of view
+         * @param {number} aspect viewport aspect ratio
+         * @param {number} znear near image plane
+         * @param {number} zfar far image plane
+         */
+        this.perspective = function (fovy, aspect, znear, zfar) {
+            var m = makePerspective (fovy, aspect, znear, zfar);
+            this.mvMultiply (m);
+        }
+        
+        this.matrix = function () {
+            return this.mvMatrix;
+        }
+        
+        this.mvReset ();
+    }
+    
     /**
      * Creates a new WebGL wrapper instance.
      *
@@ -3098,109 +3249,18 @@ if (!self["bigshot"]) {
         /**
          * The current object-to-world transform matrix.
          *
-         * @type Matrix
+         * @type bigshot.TransformStack
          */
-        this.mvMatrix = null;
+        this.mvMatrix = new bigshot.TransformStack ();
         
-        /**
-         * The object-to-world transform matrix stack.
-         *
-         * @type Matrix[]
-         */
-        this.mvMatrixStack = [];
-        
-        /**
-         * Pushes the current world transform onto the stack
-         * and returns a new, identical one.
-         *
-         * @return the new world transform matrix
-         * @param {Matrix} [matrix] the new world transform. 
-         * If omitted, the current is used
-         * @type Matrix
-         */
-        this.mvPushMatrix = function (matrix) {
-            if (matrix) {
-                this.mvMatrixStack.push (matrix.dup());
-                this.mvMatrix = matrix.dup();
-                return mvMatrix;
-            } else {
-                this.mvMatrixStack.push (this.mvMatrix.dup());
-                return mvMatrix;
-            }
-        }
-        
-        /**
-         * Pops the last-pushed world transform off the stack, thereby restoring it.
-         *
-         * @type Matrix
-         * @return the previously-pushed matrix
-         */
-        this.mvPopMatrix = function () {
-            if (this.mvMatrixStack.length == 0) {
-                throw new Error ("Invalid popMatrix!");
-            }
-            this.mvMatrix = this.mvMatrixStack.pop();
-            return mvMatrix;
-        }
-        
-        /**
-         * Resets the world transform to the identity transform.
-         */
-        this.mvReset = function () {
-            this.mvMatrix = Matrix.I(4);
-        }
-        
-        /**
-         * Multiplies the current world transform with a matrix.
-         *
-         * @param {Matrix} matrix the matrix to multiply with
-         */
-        this.mvMultiply = function (matrix) {
-            this.mvMatrix = this.mvMatrix.x (matrix);
-        }
-        
-        /**
-         * Adds a translation to the world transform matrix.
-         *
-         * @param {number[3]} vector the translation vector
-         */
-        this.mvTranslate = function (vector) {
-            var m = Matrix.Translation($V([vector[0], vector[1], vector[2]])).ensure4x4 ();
-            this.mvMultiply (m);
-        }
-        
-        /**
-         * Adds a rotation to the world transform matrix.
-         *
-         * @param {number} ang the angle in degrees to rotate
-         * @param {number[3]} vector the rotation vector
-         */
-        this.mvRotate = function (ang, vector) {
-            var arad = ang * Math.PI / 180.0;
-            var m = Matrix.Rotation(arad, $V([vector[0], vector[1], vector[2]])).ensure4x4 ();
-            this.mvMultiply (m);
-        }
-        
-        this.pMatrix = null;
-        
-        /**
-         * Sets the perspective transformation matrix.
-         *
-         * @param {number} fovy vertical field of view
-         * @param {number} aspect viewport aspect ratio
-         * @param {number} znear near image plane
-         * @param {number} zfar far image plane
-         */
-        this.perspective = function (fovy, aspect, znear, zfar) {
-            this.pMatrix = makePerspective (fovy, aspect, znear, zfar);
-        }
+        this.pMatrix = new bigshot.TransformStack ();
         
         /**
          * Sets the matrix parameters ("uniforms", since the variables are declared as uniform) in the shaders.
          */
         this.setMatrixUniforms = function () {
-            this.gl.uniformMatrix4fv(this.shaderProgram.pMatrixUniform, false, new Float32Array(this.pMatrix.flatten()));
-            this.gl.uniformMatrix4fv(this.shaderProgram.mvMatrixUniform, false, new Float32Array(this.mvMatrix.flatten()));
+            this.gl.uniformMatrix4fv(this.shaderProgram.pMatrixUniform, false, new Float32Array(this.pMatrix.matrix().flatten()));
+            this.gl.uniformMatrix4fv(this.shaderProgram.mvMatrixUniform, false, new Float32Array(this.mvMatrix.matrix().flatten()));
         }
         
         /**
@@ -3266,7 +3326,7 @@ if (!self["bigshot"]) {
          */
         this.transformToWorld = function (vector) {
             var sylvesterVector = $V([vector[0], vector[1], vector[2], 1.0]);
-            var world = this.mvMatrix.x (sylvesterVector);
+            var world = this.mvMatrix.matrix ().x (sylvesterVector);
             return world;
         }
         
@@ -3282,7 +3342,7 @@ if (!self["bigshot"]) {
                 return null;
             }
             
-            var screen = this.pMatrix.x (world);
+            var screen = this.pMatrix.matrix ().x (world);
             if (Math.abs (screen.e(4)) < Sylvester.precision) {
                 return null;
             }
@@ -3296,6 +3356,329 @@ if (!self["bigshot"]) {
             return r;
         }
     };
+    
+    /**
+     * @class Abstract rendering class.
+     */
+    bigshot.VRRenderer = function () {
+        this.createTileCache = function (onloaded, parameters) {};
+        this.createTexturedQuadScene = function () {};
+        this.createTexturedQuad = function (p, u, v, texture) {};
+        this.getViewportWidth = function () {};
+        this.getViewportHeight = function () {};
+        this.transformToWorld = function (v) {};
+        this.transformToScreen = function (vector) {};
+        this.beginRender = function (y, p, fov) {};
+        this.endRender = function () {};
+        this.onresize = function () {};
+        this.resize = function (w, h) {};
+    }
+    
+    /**
+     * @class WebGL renderer.
+     */
+    bigshot.CSS3DVRRenderer = function (_container) {
+        this.browser = new bigshot.Browser ();
+        this.container = _container;
+        this.canvasOrigin = document.createElement ("div");
+        this.canvasOrigin.style.WebkitTransformOrigin = "0px 0px 0px";
+        this.canvasOrigin.style.WebkitTransformStyle = "preserve-3;";
+        this.canvasOrigin.style.WebkitPerspective= "600px";
+        
+        this.canvasOrigin.style.position = "relative";
+        this.canvasOrigin.style.left = "50%";
+        this.canvasOrigin.style.top = "50%";
+        
+        this.container.appendChild (this.canvasOrigin);
+        
+        this.viewport = document.createElement ("div");
+        this.viewport.style.WebkitTransformOrigin = "0px 0px 0px";
+        this.viewport.style.WebkitTransformStyle = "preserve-3d";
+        this.canvasOrigin.appendChild (this.viewport);
+        
+        this.world = document.createElement ("div");
+        this.world.style.WebkitTransformOrigin = "0px 0px 0px";
+        this.world.style.WebkitTransformStyle = "preserve-3d";
+        this.viewport.appendChild (this.world);
+        
+        this.createTileCache = function (onloaded, parameters) {
+            return new bigshot.ImageVRTileCache (onloaded, parameters);
+        };
+        
+        this.createTexturedQuadScene = function () {
+            return new bigshot.CSS3DTexturedQuadScene (this.world, 128);
+        };
+        
+        this.createTexturedQuad = function (p, u, v, texture) {
+            return new bigshot.CSS3DTexturedQuad (p, u, v, texture);
+        };
+        
+        this.supportsUpdate = function () {
+            return false;
+        }
+        
+        this.getViewportWidth = function () {
+            return this.browser.getElementSize (this.container).w;
+        };
+        
+        this.getViewportHeight = function () {
+            return this.browser.getElementSize (this.container).h;
+        };
+        
+        this.resize = function (w, h) {
+        };
+        
+        this.onresize = function () {
+        };
+        
+        this.mvMatrix = new bigshot.TransformStack ();
+        
+        /**
+         * Transforms a vector to world coordinates.
+         *
+         * @param {vector} vector the vector to transform
+         */
+        this.transformToWorld = function (vector) {
+            var sylvesterVector = $V([vector[0], vector[1], vector[2], 1.0]);
+            
+            var world = this.mvMatrix.matrix ().x (sylvesterVector);
+            return world;
+        }
+        
+        /**
+         * Transforms a vector to screen coordinates.
+         *
+         * @param {vector} vector the vector to transform
+         * @return the transformed vector, or null if the vector is nearer than the near-z plane.
+         */
+        this.transformToScreen = function (vector) {
+            var world = this.transformToWorld (vector);
+            if (world.e(3) > 0) {
+                return null;
+            }
+            
+            var screen = this.pMatrix.matrix ().x (world);
+            if (Math.abs (screen.e(4)) < Sylvester.precision) {
+                return null;
+            }
+            var r = {
+                x: (this.getViewportWidth () / 2) * screen.e(1) / screen.e(4) + this.getViewportWidth () / 2, 
+                y: - (this.getViewportHeight () / 2) * screen.e(2) / screen.e(4) + this.getViewportHeight () / 2,
+                toString : function () {
+                    return this.x + "," + this.y;
+                }
+            };
+            return r;
+        }
+        
+        this.yaw = 0;
+        this.pitch = 0;
+        this.fov = 0;
+        this.pMatrix = new bigshot.TransformStack ();
+        
+        this.beginRender = function (y, p, fov) {
+            this.yaw = y;
+            this.pitch = p;
+            this.fov = fov;
+            
+            var halfFovInRad = 0.5 * fov * Math.PI / 180;
+            var halfHeight = this.getViewportHeight ();
+            var perspectiveDistance = halfHeight / Math.tan (halfFovInRad);
+            
+            this.mvMatrix.mvReset ();
+            this.mvMatrix.mvTranslate ([0.0, 0.0, 0.0]);
+            this.mvMatrix.mvRotate (this.pitch, [1, 0, 0]);
+            this.mvMatrix.mvRotate (this.yaw, [0, 1, 0]);
+            
+            this.pMatrix.mvReset ();
+            this.pMatrix.perspective (this.fov, this.getViewportWidth () / this.getViewportHeight (), 0.1, 100.0);
+            
+            this.canvasOrigin.style.WebkitPerspective= perspectiveDistance + "px";
+            
+            this.browser.removeAllChildren (this.world);
+            this.world.style.WebkitTransform = 
+                "rotate3d(1,0,0," + (-p) + "deg) " +
+            "rotate3d(0,1,0," + y + "deg) ";
+            this.world.style.WebkitTransformStyle = "preserve-3d";
+            
+            this.viewport.style.WebkitTransform = 
+                "translateZ(" + perspectiveDistance + "px)";
+        }
+        
+        this.endRender = function () {
+            
+        }    
+    }
+    
+    /**
+     * Creates a textured quad object.
+     *
+     * @class An abstraction for textured quads. Used in the
+     * {@link bigshot.CSS3DTexturedQuadScene}.
+     *
+     * @param {point} p the top-left corner of the quad
+     * @param {vector} u vector pointing from p along the top edge of the quad
+     * @param {vector} v vector pointing from p along the left edge of the quad
+     * @param {HTMLImageElement} the image to use.
+     */
+    bigshot.CSS3DTexturedQuad = function (p, u, v, image) {
+        this.p = p;
+        this.u = u;
+        this.v = v;
+        this.image = image;
+        
+        this.crossProduct = function (a,b) {
+            var x = [
+                a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]
+            ];
+            return x;
+        }
+        
+        this.vecToStr = function (u) {
+            return (u[0]) + "," + (u[1]) + "," + (u[2]);
+        }
+        
+        this.quadTransform = function (tl, u, v) {
+            var w = this.crossProduct (u, v);
+            var res = 
+                "matrix3d(" + 
+                this.vecToStr (u) + ",0," + 
+            this.vecToStr (v) + ",0," + 
+            this.vecToStr (w) + ",0," + 
+            this.vecToStr (tl) + ",1)";
+            return res;
+        }
+        
+        this.norm = function (vec) {
+            return Math.sqrt (vec.x * vec.x + vec.y * vec.y + vec.z * vec.z);
+        }
+        
+        /**
+         * Renders the quad.
+         */
+        this.render = function (world, scale) {
+            var s = scale / this.image.width;
+            var ps = scale * 1.0;
+            
+            this.image.style.position = "absolute";
+            world.appendChild (this.image);
+            this.image.style.WebkitTransformOrigin = "0px 0px 0px";
+            this.image.style.WebkitTransform = 
+                this.quadTransform ([p.x * ps, -p.y * ps, p.z * ps], [u.x * s, -u.y * s, u.z * s], [v.x * s, -v.y * s, v.z * s]);
+            
+        };
+    }
+    
+    /**
+     * Creates a textured quad scene.
+     *
+     * @param {bigshot.WebGL} webGl the webGl instance to use for rendering.
+     *
+     * @class A "scene" consisting of a number of quads, all with
+     * a unique texture. Used by the {@link bigshot.VRPanorama} to render the VR cube.
+     *
+     * @see bigshot.WebGLTexturedQuad
+     */
+    bigshot.CSS3DTexturedQuadScene = function (world, scale) {
+        this.quads = new Array ();
+        this.world = world;
+        this.scale = scale;
+        
+        /** 
+         * Adds a new quad to the scene.
+         */
+        this.addQuad = function (quad) {
+            this.quads.push (quad);
+        }
+        
+        /** 
+         * Renders all quads.
+         */
+        this.render = function () {
+            for (var i = 0; i < this.quads.length; ++i) {
+                this.quads[i].render (this.world, this.scale);
+            }
+        };
+    };
+    
+    
+    
+    /**
+     * @class WebGL renderer.
+     */
+    bigshot.WebGLVRRenderer = function (container) {
+        this.canvas = document.createElement ("canvas");
+        this.canvas.width = 480;
+        this.canvas.height = 480;
+        this.canvas.style.position = "absolute";
+        container.appendChild (this.canvas);
+        this.webGl = new bigshot.WebGL (this.canvas);
+        this.webGl.initShaders();
+        this.webGl.gl.clearColor(0.0, 0.0, 0.0, 1.0);
+        this.webGl.gl.blendFunc (this.webGl.gl.ONE, this.webGl.gl.ZERO);
+        this.webGl.gl.enable (this.webGl.gl.BLEND);
+        this.webGl.gl.disable(this.webGl.gl.DEPTH_TEST);
+        this.webGl.gl.clearDepth(1.0);
+        
+        this.createTileCache = function (onloaded, parameters) {
+            return new bigshot.TileTextureCache (onloaded, parameters, this.webGl);
+        };
+        
+        this.createTexturedQuadScene = function () {
+            return new bigshot.WebGLTexturedQuadScene (this.webGl);
+        };
+        
+        this.supportsUpdate = function () {
+            return true;
+        }
+        
+        this.createTexturedQuad = function (p, u, v, texture) {
+            return new bigshot.WebGLTexturedQuad (p, u, v, texture);
+        };
+        
+        this.getViewportWidth = function () {
+            return this.webGl.gl.viewportWidth;
+        };
+        
+        this.getViewportHeight = function () {
+            return this.webGl.gl.viewportHeight;
+        };
+        
+        this.transformToWorld = function (v) {
+            return this.webGl.transformToWorld (v);
+        };
+        
+        this.transformToScreen = function (vector) {
+            return this.webGl.transformToScreen (vector);
+        };
+        
+        this.beginRender = function (y, p, fov) {
+            this.webGl.gl.viewport (0, 0, this.webGl.gl.viewportWidth, this.webGl.gl.viewportHeight);
+            
+            this.webGl.pMatrix.mvReset ();
+            this.webGl.pMatrix.perspective (fov, this.webGl.gl.viewportWidth / this.webGl.gl.viewportHeight, 0.1, 100.0);
+            
+            this.webGl.mvMatrix.mvReset ();
+            
+            this.webGl.mvMatrix.mvTranslate ([0.0, 0.0, 0.0]);
+            
+            this.webGl.mvMatrix.mvRotate (p, [1, 0, 0]);
+            this.webGl.mvMatrix.mvRotate (y, [0, 1, 0]);
+        }
+        
+        this.endRender = function () {
+            
+        }
+        
+        this.resize = function (w, h) {
+            this.canvas.width = w;
+            this.canvas.height = h;
+        }
+        
+        this.onresize = function () {
+            this.webGl.onresize ();
+        }
+    }
     
     /**
      * Creates a textured quad object.
@@ -3863,15 +4246,7 @@ if (!self["bigshot"]) {
          * @private
          * @type bigshot.WebGL
          */
-        this.webGl = new bigshot.WebGL (this.container);
-        this.webGl.initShaders();
-        this.webGl.gl.clearColor(0.0, 0.0, 0.0, 1.0);
-        this.webGl.gl.blendFunc (this.webGl.gl.ONE, this.webGl.gl.ZERO);
-        this.webGl.gl.enable (this.webGl.gl.BLEND);
-        this.webGl.gl.disable(this.webGl.gl.DEPTH_TEST);
-        
-        
-        this.webGl.gl.clearDepth(1.0);
+        this.renderer = new bigshot.CSS3DVRRenderer (this.container);
         
         /**
          * Adds a hotstpot.
@@ -4024,15 +4399,7 @@ if (!self["bigshot"]) {
          * Sets up transformation matrices etc.
          */
         this.beginRender = function () {
-            this.webGl.gl.viewport (0, 0, this.webGl.gl.viewportWidth, this.webGl.gl.viewportHeight);
-            
-            this.webGl.perspective (this.state.fov, this.webGl.gl.viewportWidth / this.webGl.gl.viewportHeight, 0.1, 100.0);
-            this.webGl.mvReset ();
-            
-            this.webGl.mvTranslate ([0.0, 0.0, 0.0]);
-            
-            this.webGl.mvRotate (this.state.p, [1, 0, 0]);
-            this.webGl.mvRotate (this.state.y, [0, 1, 0]);
+            this.renderer.beginRender (this.state.y, this.state.p, this.state.fov);
         }
         
         /**
@@ -4061,13 +4428,13 @@ if (!self["bigshot"]) {
         this.render = function () {
             this.beginRender ();
             
-            var scene = new bigshot.WebGLTexturedQuadScene (this.webGl);
+            var scene = this.renderer.createTexturedQuadScene ();
             
             for (var f in this.vrFaces) {
                 this.vrFaces[f].render (scene);
             }
             
-            scene.render (this.webGl);
+            scene.render ();
             
             for (var i = 0; i < this.hotspots.length; ++i) {
                 this.hotspots[i].layout ();
@@ -4080,23 +4447,27 @@ if (!self["bigshot"]) {
          * Render updated faces. Called as tiles are loaded from the server.
          */
         this.renderUpdated = function () {
-            this.beginRender ();
-            
-            var scene = new bigshot.WebGLTexturedQuadScene (this.webGl);
-            
-            for (var f in this.vrFaces) {
-                if (this.vrFaces[f].isUpdated ()) {
-                    this.vrFaces[f].render (scene);
+            if (this.renderer.supportsUpdate ()) {
+                this.beginRender ();
+                
+                var scene = this.renderer.createTexturedQuadScene ();
+                
+                for (var f in this.vrFaces) {
+                    if (this.vrFaces[f].isUpdated ()) {
+                        this.vrFaces[f].render (scene);
+                    }
                 }
+                
+                scene.render ();
+                
+                for (var i = 0; i < this.hotspots.length; ++i) {
+                    this.hotspots[i].layout ();
+                }
+                
+                this.endRender ();
+            } else {
+                this.render ();
             }
-            
-            scene.render (this.webGl);
-            
-            for (var i = 0; i < this.hotspots.length; ++i) {
-                this.hotspots[i].layout ();
-            }
-            
-            this.endRender ();
         };
         
         /**
@@ -4140,7 +4511,7 @@ if (!self["bigshot"]) {
             if (this.dragStart != null) {
                 if (this.dragMode == this.DRAG_GRAB) {
                     this.smoothRotate ();
-                    var scale = this.state.fov / this.container.height;
+                    var scale = this.state.fov / this.renderer.getViewportHeight ();
                     var dx = e.clientX - this.dragStart.clientX;
                     var dy = e.clientY - this.dragStart.clientY;
                     this.setYaw (this.getYaw () - dx * scale);
@@ -4148,14 +4519,15 @@ if (!self["bigshot"]) {
                     this.render ();
                     this.dragStart = e;
                 } else {
-                    var scale = 0.1 * this.state.fov / this.container.height;
+                    var scale = 0.1 * this.state.fov / this.renderer.getViewportHeight ();
                     var dx = e.clientX - this.dragStart.clientX;
                     var dy = e.clientY - this.dragStart.clientY;
                     this.smoothRotate (
                         function () {
-                            return dy * scale;
-                        }, function () {
                             return dx * scale;
+                        },
+                        function () {
+                            return dy * scale;
                         });
                 }
             }
@@ -4176,7 +4548,7 @@ if (!self["bigshot"]) {
          * vr cube texture more than the given {@link bigshot.VRPanoramaParameters#maxTextureMagnification}
          */
         this.getMinFovFromViewportAndImage = function () {
-            var halfHeight = this.container.height / 2;
+            var halfHeight = this.renderer.getViewportHeight () / 2;
             
             var minFaceHeight = this.vrFaces[0].parameters.height;
             for (var i in this.vrFaces) {
@@ -4201,13 +4573,13 @@ if (!self["bigshot"]) {
          * @param {int} y the y-coordinate, in pixels from the top edge
          */
         this.smoothRotateToXY = function (x, y) {
-            var halfHeight = this.container.height / 2;
-            var halfWidth = this.container.width / 2;
+            var halfHeight = this.renderer.getViewportHeight () / 2;
+            var halfWidth = this.renderer.getViewportWidth () / 2;
             var x = (x - halfWidth);
             var y = (y - halfHeight);
             
             var edgeSizeY = Math.tan ((this.state.fov / 2) * Math.PI / 180);
-            var edgeSizeX = edgeSizeY * this.container.width / this.container.height;
+            var edgeSizeX = edgeSizeY * this.renderer.getViewportWidth () / this.renderer.getViewportHeight ();
             
             var wy = y * edgeSizeY / halfHeight;
             var wx = x * edgeSizeX / halfWidth;
@@ -4625,15 +4997,13 @@ if (!self["bigshot"]) {
             if (!this.isFullScreen) {
                 if (this.sizeContainer) {
                     var s = this.browser.getElementSize (this.sizeContainer);
-                    this.container.width = s.w;
-                    this.container.height = s.h;
+                    this.renderer.resize (s.w, s.h);
                 }
             } else {
                 var s = this.browser.getElementSize (this.container);
-                this.container.width = s.w;
-                this.container.height = s.h;
+                this.renderer.resize (s.w, s.h);
             }
-            this.webGl.onresize ();
+            this.renderer.onresize ();
             this.renderAsap ();            
         };
         
@@ -4758,8 +5128,8 @@ if (!self["bigshot"]) {
                 var r = {
                     x0 : Math.max (p.x, 0),
                     y0 : Math.max (p.y, 0),
-                    x1 : Math.min (p.x + s.w, panorama.webGl.gl.viewportWidth),
-                    y1 : Math.min (p.y + s.h, panorama.webGl.gl.viewportHeight)
+                    x1 : Math.min (p.x + s.w, panorama.renderer.getViewportWidth ()),
+                    y1 : Math.min (p.y + s.h, panorama.renderer.getViewportHeight ())
                 };
                 var full = s.w * s.h;
                 var visible = Math.abs ((r.x1 - r.x0) * (r.y1 - r.y0));
@@ -4779,8 +5149,8 @@ if (!self["bigshot"]) {
                     x : p.x + s.w / 2,
                     y : p.y + s.h / 2
                 };
-                return c.x >= 0 && c.x < panorama.webGl.gl.viewportWidth && 
-                    c.y >= 0 && c.y < panorama.webGl.gl.viewportHeight;
+                return c.x >= 0 && c.x < panorama.renderer.getViewportWidth () && 
+                c.y >= 0 && c.y < panorama.renderer.getViewportHeight ();
             }
         }
         
@@ -4800,17 +5170,17 @@ if (!self["bigshot"]) {
                     s.h -= -p.y;
                     p.y = 0;
                 }
-                if (p.x + s.w > panorama.webGl.gl.viewportWidth) {
-                    s.w = panorama.webGl.gl.viewportWidth - p.x - 1;
+                if (p.x + s.w > panorama.renderer.getViewportWidth ()) {
+                    s.w = panorama.renderer.getViewportWidth () - p.x - 1;
                 }
-                if (p.y + s.h > panorama.webGl.gl.viewportHeight) {
-                    s.h = panorama.webGl.gl.viewportHeight - p.y - 1;
+                if (p.y + s.h > panorama.renderer.getViewportHeight ()) {
+                    s.h = panorama.renderer.getViewportHeight () - p.y - 1;
                 }
                 
                 return s.w > 0 && s.h > 0;
             }
         }
-
+        
         /**
          * The method to use for dealing with hotspots that extend outside the 
          * viewport. Note that {@link #CLIP_ADJUST} et al are functions, not constants.
@@ -4871,7 +5241,7 @@ if (!self["bigshot"]) {
          * @type point
          */
         this.toScreen = function (p) {
-            return panorama.webGl.transformToScreen (p);
+            return panorama.renderer.transformToScreen (p);
         }
         
         /**

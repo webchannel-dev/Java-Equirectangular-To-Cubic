@@ -1,7 +1,7 @@
 <html>
     <head>
         <title>
-            Test of Bigshot VRPanorama
+            Test of Bigshot CSS VRPanorama
         </title>
         <style>
             h2 {
@@ -60,15 +60,11 @@
             
             function vrpano () {
                 var hotspot = document.getElementById ("hotspot");
-                var canvas = document.getElementById ("canvas");
-                var linear = bigshot.webglutil.createContext (canvas).LINEAR;
                 bvr = new bigshot.VRPanorama (
                     new bigshot.VRPanoramaParameters ({
                             container : document.getElementById ("container"),
                             basePath : "../../temp/vr.bigshot/",
                             fileSystemType : "dzi",
-                            textureMinFilter : linear,
-                            textureMagFilter : linear,
                             maxTextureMagnification : 1.0
                         }));
                 bvr.onrender = function () {
@@ -78,10 +74,13 @@
                     s.innerHTML = bvr.getPitch ().toFixed (3);
                 }
                 //bvr.autoRotateWhenIdle (3);
+                /*
                 bvr.autoResizeContainer (document.getElementById ("container"));
                 bvr.onresize ();
                 bvr.addHotspot (new bigshot.VRRectangleHotspot (bvr, 0, -20, 29, 2, hotspot));
+                */
                 bvr.render ();
+                
             }
             
             var frame = 0;
@@ -156,27 +155,10 @@
             <tr>
                 <td class="playerContainer playerContainerLeft" width="100%"  valign="top">
                     <h2>
-                        Bigshot VR
+                        Bigshot CSS VR
                     </h2>
-                    <div style="background:black; height:480px;" id="container">
-                        <div style="width:0px; height:0px; position:absolute; z-index:1;">
-                            <div class="hotspot" id="hotspot" style="text-align:center;"
-                                onclick="alert('Clicked on hotspot!');">
-                                <div style="position:absolute; left: 50%; top:100%;">
-                                    <div class="hotspot_label" style="position:absolute; width:300em; left: -150em; top: 16px; text-align:center">
-                                        <span style="background:black; color:white; padding:4px; font-family:arial; font-size: 10pt;">
-                                            Parliament Building ("Riksdagen")
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div style="width:0px; left:50%; height:0px; position:absolute; z-index:1;">
-                            <div style="width:32px; height:32px; position: relative; top:240px; border-top:1px solid red; border-left:1px solid red;">&#160;</div>
-                        </div>
-                        <canvas style="position:absolute;" id="canvas" width="480" height="480">
-                            This demo requires a web browser that supports HTML5 canvas and WebGL.
-                        </canvas>
+                    <div style="background:black; height:240px; width:240px;" id="container">
+                        
                     </div>
                     <p>
                     <a href="#" onclick="redraw()"><button type="button">Redraw</button></a>
