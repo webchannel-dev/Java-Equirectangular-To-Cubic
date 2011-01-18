@@ -2799,7 +2799,7 @@ if (!self["bigshot"]) {
                 y : Math.min (max.y, viewMax.y)
             };
             
-            if (imin.x < imax.x && imin.y < imax.y) {
+            if (imin.x <= imax.x && imin.y <= imax.y) {
                 return this.VISIBLE_SOME;
             }            
             
