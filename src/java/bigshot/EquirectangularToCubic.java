@@ -273,7 +273,7 @@ public class EquirectangularToCubic {
         return output;
     }
     
-    public static File[] transformToFaces (File imageName, File outputBase, int outputSize) throws Exception {
+    public static File[] transformToFaces (File imageName, File outputBase, int outputSize, double frontAt) throws Exception {
         int[] inputSize = imageSize (imageName);
         
         System.out.println ("Transforming to " + outputSize + "x" + outputSize + " cube map faces.");
@@ -289,12 +289,12 @@ public class EquirectangularToCubic {
             new File (outputBase, "face_d.png")
             };
         
-        transform (in, 90,   0,   0, 0, outputSize, outputSize).write (files[0]);
-        transform (in, 90,  90,   0, 0, outputSize, outputSize).write (files[1]);
-        transform (in, 90, 180,   0, 0, outputSize, outputSize).write (files[2]);
-        transform (in, 90, -90,   0, 0, outputSize, outputSize).write (files[3]);
-        transform (in, 90,   0,  90, 0, outputSize, outputSize).write (files[4]);
-        transform (in, 90,   0, -90, 0, outputSize, outputSize).write (files[5]);
+        transform (in, 90,   0 + frontAt,   0, 0, outputSize, outputSize).write (files[0]);
+        transform (in, 90,  90 + frontAt,   0, 0, outputSize, outputSize).write (files[1]);
+        transform (in, 90, 180 + frontAt,   0, 0, outputSize, outputSize).write (files[2]);
+        transform (in, 90, -90 + frontAt,   0, 0, outputSize, outputSize).write (files[3]);
+        transform (in, 90,   0 + frontAt,  90, 0, outputSize, outputSize).write (files[4]);
+        transform (in, 90,   0 + frontAt, -90, 0, outputSize, outputSize).write (files[5]);
         
         return files;
     }

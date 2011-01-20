@@ -308,7 +308,11 @@ public class MakeImagePyramid {
             facesOut.delete ();
             facesOut.mkdirs ();
             try {
-                File[] faces = EquirectangularToCubic.transformToFaces (input, facesOut, getParameterAsInt (parameters, "face-size", 2048) + getParameterAsInt (parameters, "overlap", 0));
+                File[] faces = EquirectangularToCubic.transformToFaces (
+                    input, facesOut, 
+                    getParameterAsInt (parameters, "face-size", 2048) + getParameterAsInt (parameters, "overlap", 0),
+                    getParameterAsDouble (parameters, "front-at", 0.0)
+                    );
                 parameters.remove ("format");
                 parameters.remove ("folder-layout");
                 
@@ -363,12 +367,32 @@ public class MakeImagePyramid {
             }
             output.configure (parameters);
             
+            DescriptorOutput descriptor = null;
+            String descriptorFormat = getParameter (parameters, "descriptor-format", "bigshot");
+            if ("bigshot".equals (descriptorFormat)) {
+                descriptor = new BigshotDescriptorOutput ();
+            } else if ("dzi".equals (descriptorFormat)) {
+                descriptor = new DziDescriptorOutput ();
+            } else {
+                System.err.println ("Unknown descriptor format: \"" + descriptorFormat + "\". Using Bigshot.");
+                descriptor = new BigshotDescriptorOutput ();
+            }
+            descriptor.configure (parameters);
+            
+            descriptor.setSuffix (output.getSuffix ());
+            descriptor.setFullSize (outputSizeW, outputSizeH);
+            descriptor.setTileSize (0, 0, 0);
+            
+            double frontAt = getParameterAsDouble (parameters, "front-at", 0.0);
+            
             EquirectangularToCubic.Image in = EquirectangularToCubic.Image.read (input);
             for (int i = 0; i < steps; ++i) {
                 File outFile = new File (pyramidBase, String.valueOf (i) + output.getSuffix ());
-                EquirectangularToCubic.Image outImage = EquirectangularToCubic.transform (in, fov, i * 360 / steps, 0, 0, outputSizeW, outputSizeH);
+                EquirectangularToCubic.Image outImage = EquirectangularToCubic.transform (in, fov, frontAt + i * 360 / steps, 0, 0, outputSizeW, outputSizeH);
                 output.write (outImage.toBuffered (), outFile);
             }
+            
+            descriptor.output (pyramidBase);
             
             if (archive) {
                 pack (pyramidBase, outputBase);
