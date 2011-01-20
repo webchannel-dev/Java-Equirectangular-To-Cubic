@@ -2753,7 +2753,7 @@ if (!self["bigshot"]) {
             }
             
             transformed = tf;
-                        
+            
             var min = {
                 x : transformed[0].x,
                 y : transformed[0].y
@@ -2840,7 +2840,7 @@ if (!self["bigshot"]) {
             var bottomLeft = this.pt3dMultAdd (this.v, width, topLeft);
             var topRight = this.pt3dMultAdd (this.u, width, topLeft);
             var bottomRight = this.pt3dMultAdd (this.u, width, bottomLeft);
-
+            
             var transformed = [
                 this.owner.renderer.transformToScreen ([topLeft.x, topLeft.y, topLeft.z]),
                 this.owner.renderer.transformToScreen ([topRight.x, topRight.y, topRight.z]),
@@ -3053,7 +3053,7 @@ if (!self["bigshot"]) {
          * @param {Matrix} matrix the matrix to multiply with
          */
         this.mvMultiply = function (matrix) {
-            this.mvMatrix = this.mvMatrix.x (matrix);
+            this.mvMatrix = matrix.x (this.mvMatrix);
         }
         
         /**
@@ -3500,8 +3500,8 @@ if (!self["bigshot"]) {
             var perspectiveDistance = halfHeight / Math.tan (halfFovInRad);
             
             this.mvMatrix.reset ();
-            this.mvMatrix.rotate (this.pitch, [1, 0, 0]);
             this.mvMatrix.rotate (this.yaw, [0, 1, 0]);
+            this.mvMatrix.rotate (this.pitch, [1, 0, 0]);
             
             this.pMatrix.reset ();
             this.pMatrix.perspective (this.fov, this.getViewportWidth () / this.getViewportHeight (), 0.1, 100.0);
@@ -3694,8 +3694,8 @@ if (!self["bigshot"]) {
             
             this.webGl.mvMatrix.reset ();
             
-            this.webGl.mvMatrix.rotate (p, [1, 0, 0]);
             this.webGl.mvMatrix.rotate (y, [0, 1, 0]);
+            this.webGl.mvMatrix.rotate (p, [1, 0, 0]);
         }
         
         this.endRender = function () {
@@ -4307,7 +4307,7 @@ if (!self["bigshot"]) {
             }
         } else {
             this.renderer = 
-            bigshot.webglutil.isWebGLSupported () ? 
+                bigshot.webglutil.isWebGLSupported () ? 
             new bigshot.WebGLVRRenderer (this.container)
             :
             new bigshot.CSS3DVRRenderer (this.container);
@@ -5294,9 +5294,10 @@ if (!self["bigshot"]) {
          */
         this.toVector = function (yaw, pitch) {
             var point = $V([0, 0, -1, 1]);
-            point = this.rotate (-yaw, [0, 1, 0], point);
             point = this.rotate (-pitch, [1, 0, 0], point);
-            return [point.e(1), point.e(2), point.e(3)];
+            point = this.rotate (-yaw, [0, 1, 0], point);
+            var res = [point.e(1), point.e(2), point.e(3)];
+            return res;
         }
         
         /**
@@ -5306,7 +5307,8 @@ if (!self["bigshot"]) {
          * @type point
          */
         this.toScreen = function (p) {
-            return panorama.renderer.transformToScreen (p);
+            var res = panorama.renderer.transformToScreen (p)
+            return res;
         }
         
         /**
