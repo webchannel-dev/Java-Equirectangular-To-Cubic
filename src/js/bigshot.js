@@ -5405,8 +5405,6 @@ if (!self["bigshot"]) {
             var p = this.toScreen (this.point0);
             var p1 = this.toScreen (this.point1);
             
-            
-            
             var visible = false;
             if (p != null && p1 != null) {
                 var s = {

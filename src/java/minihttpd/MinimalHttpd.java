@@ -119,8 +119,13 @@ public class MinimalHttpd {
                         File f = new File (root, filename);
                         if (entry != null) {
                             int[] extents = getExtents (f, entry);
-                            startRange = extents[0];
-                            lengthRange = extents[1];
+                            if (extents == null) {
+                                System.err.println (entry + " not found in " + f.getPath ());
+                                return;
+                            } else {
+                                startRange = extents[0];
+                                lengthRange = extents[1];
+                            }
                         }
                         
                         OutputStream os = sock.getOutputStream ();
@@ -154,10 +159,15 @@ public class MinimalHttpd {
                         } else {
                             os.write ("HTTP/1.0 404 Not found\r\n\r\n".getBytes ());
                         }
-                        os.flush ();
-                        sock.close ();
+                        os.flush ();                        
                     } catch (Throwable t) {
                         t.printStackTrace ();
+                    } finally {
+                        try {
+                            sock.close ();
+                        } catch (Exception e) {
+                            e.printStackTrace ();
+                        }
                     }
                 }
             }.start ();

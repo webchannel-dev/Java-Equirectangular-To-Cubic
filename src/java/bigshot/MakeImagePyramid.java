@@ -319,10 +319,10 @@ public class MakeImagePyramid {
                     pyramidBase.mkdirs ();
                 }
                 
-                for (File f : faces) {
-                    System.out.println ("Making pyramid for " + f.getName ());
-                    File face = new File (f.getPath () + ".png");
-                    File out = new File (pyramidBase, f.getName ());
+                for (File face : faces) {
+                    System.out.println ("Making pyramid for " + face.getName ());
+                    String noExt = face.getName ().substring (0, face.getName ().lastIndexOf ('.'));
+                    File out = new File (pyramidBase, noExt);
                     makePyramid (face, out, parameters);
                     face.delete ();
                 }
@@ -333,6 +333,46 @@ public class MakeImagePyramid {
                 }
             } finally {
                 deleteAll (facesOut);
+            }
+        } else if ("carousel".equals (parameters.get ("transform"))) {
+            boolean archive = "archive".equals (parameters.get ("format"));
+            
+            File pyramidBase = outputBase;
+            if (archive) {
+                pyramidBase = File.createTempFile ("makeimagepyramid", "bigshot");
+                pyramidBase.delete ();
+                pyramidBase.mkdirs ();
+            }
+            
+            int steps = getParameterAsInt (parameters, "carousel-steps", 24);
+            double fov = getParameterAsDouble (parameters, "carousel-fov", 60);
+            int outputSizeW = getParameterAsInt (parameters, "carousel-output-width", 360);
+            int outputSizeH = getParameterAsInt (parameters, "carousel-output-width", 240);
+            
+            pyramidBase.mkdirs ();
+            
+            Output output = null;
+            String imageFormat = getParameter (parameters, "image-format", "jpg");
+            if ("jpg".equals (imageFormat)) {
+                output = new JpegOutput ();
+            } else if ("png".equals (imageFormat)) {
+                output = new PngOutput ();
+            } else {
+                System.err.println ("Unknown image format: \"" + imageFormat + "\". Using JPEG.");
+                output = new JpegOutput ();
+            }
+            output.configure (parameters);
+            
+            EquirectangularToCubic.Image in = EquirectangularToCubic.Image.read (input);
+            for (int i = 0; i < steps; ++i) {
+                File outFile = new File (pyramidBase, String.valueOf (i) + output.getSuffix ());
+                EquirectangularToCubic.Image outImage = EquirectangularToCubic.transform (in, fov, i * 360 / steps, 0, 0, outputSizeW, outputSizeH);
+                output.write (outImage.toBuffered (), outFile);
+            }
+            
+            if (archive) {
+                pack (pyramidBase, outputBase);
+                deleteAll (pyramidBase);
             }
         } else {
             makePyramid (input, outputBase, parameters);

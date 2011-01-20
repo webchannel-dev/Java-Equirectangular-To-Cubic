@@ -35,66 +35,266 @@ public class EquirectangularToCubic {
         }
     }
     
-    public static String getTransform (File image, int[] inputSize, int y, int p, int r) {
-        return "i f4 h" + inputSize[1] + " n\"" + image.getPath () + "\" p" + p + " r" + r + " v360 w" + inputSize[0] + " y" + y;
-    }
-    
-    public static void doTransform (File imageName, File output, int[] inputSize, int outputSize, int y, int p, int r) throws Exception {
-        File script = File.createTempFile ("pyramid", "tocube.pto");
-        try {
-            PrintStream ps = new PrintStream (new FileOutputStream (script));
-            try {
-                ps.println ("p E0 f0 h" + outputSize + " n\"PNG\" u0 v90 w" + outputSize);
-                ps.println ("m g1.0 i0");
-                ps.println (getTransform (imageName, inputSize, y, p, r));
-            } finally {
-                ps.close ();
+    public static class Image {
+        private int width;
+        private int height;
+        private int[] data;
+        
+        public Image (int width, int height) {
+            this.width = width;
+            this.height = height;
+            this.data = new int[width * height];
+        }
+        
+        public Image (int width, int height, int[] data) {
+            this.width = width;
+            this.height = height;
+            this.data = data;
+        }
+        
+        public int value (int x, int y) {
+            x %= width;
+            if (x < 0) {
+                x += width;
             }
-            
-            output.getParentFile ().mkdirs ();
-            
-            System.out.println ("Transforming to " + output.getName () + " = " + y + ", " + p + ", " + r);
-            
-            Process nona = new ProcessBuilder ("C:\\Program Files\\Hugin\\bin\\nona.exe",
-                "-o", output.getPath (),
-                script.getPath ())
-                .redirectErrorStream (true)
-                .start ();
-            InputStream is = nona.getInputStream ();
-            while (true) {
-                int read = is.read ();
-                if (read == -1) {
-                    break;
-                }
-                System.out.print ((char) read);
+            if (y >= height) {
+                y = height - 1;
             }
-            nona.waitFor ();
-        } finally {
-            script.delete ();
+            if (y < 0) {
+                y = 0;
+            }
+            return data[y * width + x];
+        }
+        
+        public int componentValue (int x, int y, int shift) {
+            return (value (x, y) >> shift) & 0xff;
+        }
+        
+        protected double lerp (double a, double b, double x) {
+            return (1 - x) * a + (x) * b;
+        }
+        
+        protected int sample (double x, double y, int shift) {
+            int x0 = (int) x;
+            int y0 = (int) y;
+            double xf = x - x0;
+            double yf = y - y0;
+            
+            double out = lerp (
+                lerp (componentValue (x0, y0, shift),     componentValue (x0 + 1, y0, shift), xf),
+                lerp (componentValue (x0, y0 + 1, shift), componentValue (x0 + 1, y0 + 1, shift), xf),
+                yf);
+            
+            return (int) out;
+        }
+        
+        public int sample (double x, double y) {
+            int r = sample (x, y, 16);
+            int g = sample (x, y, 8);
+            int b = sample (x, y, 0);
+            return (r << 16) | (g << 8) | b;
+        }
+        
+        public void value (int x, int y, int v) {
+            data[y * width + x] = v;
+        }
+        
+        public int width () {
+            return width;
+        }
+        
+        public int height () {
+            return height;
+        }
+        
+        public void write (File file) throws Exception {
+            BufferedImage output = toBuffered ();
+            
+            ImageIO.write (output, "png", file);
+        }
+        
+        public BufferedImage toBuffered () throws Exception {
+            BufferedImage output = new BufferedImage (width, height, BufferedImage.TYPE_INT_RGB);
+            output.setRGB (0, 0, width, height, data, 0, width);
+            return output;
+        }
+        
+        public static Image read (File file) throws Exception {
+            BufferedImage input = ImageIO.read (file);
+            
+            int width = input.getWidth ();
+            int height = input.getHeight ();
+            
+            int[] data = new int[width * height];
+            input.getRGB (0, 0, width, height, data, 0, width);
+            return new Image (width, height, data);
         }
     }
     
+    
+    private static class Point3D {
+        public double x;
+        public double y;
+        public double z;
+        
+        public Point3D (double x, double y, double z) {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+        }
+        
+        public void rotateX (double angle) {
+            double nx = x;
+            double ny = y * Math.cos (angle) - z * Math.sin (angle);
+            double nz = y * Math.sin (angle) + z * Math.cos (angle);
+            this.x = nx;
+            this.y = ny;
+            this.z = nz;
+        }
+        
+        public void rotateY (double angle) {
+            double nx = x * Math.cos (angle) + z * Math.sin (angle);
+            double ny = y;
+            double nz = - x * Math.sin (angle) + z * Math.cos (angle);
+            this.x = nx;
+            this.y = ny;
+            this.z = nz;
+        }
+        
+        public void rotateZ (double angle) {
+            double nx = x * Math.cos (angle) - y * Math.sin (angle);
+            double ny = x * Math.sin (angle) + y * Math.cos (angle);
+            double nz = z;
+            this.x = nx;
+            this.y = ny;
+            this.z = nz;
+        }
+        
+        public void scale (double s) {
+            this.x *= s;
+            this.y *= s;
+            this.z *= s;
+        }
+        
+        public void translate2D (double dx, double dy) {
+            this.x += dx;
+            this.y += dy;
+        }
+        
+        public void translate3D (double dx, double dy, double dz) {
+            this.x += dx;
+            this.y += dy;
+            this.z += dz;
+        }
+        
+        public void translateZ (double d) {
+            this.z += d;
+        }
+        
+        public void project (double f) {
+            x /= (z / f);
+            y /= (z / f);
+        }
+        
+        public double norm () {
+            return Math.sqrt (x * x + y * y + z * z);
+        }
+        
+        public String toString () {
+            return "[" + x + ", " + y + ", " + z + "]";
+        }
+    }
+    
+    public static double toRad (double deg) {
+        return deg * Math.PI / 180;
+    }
+    
+    public static double toDeg (double rad) {
+        return rad * 180 / Math.PI;
+    }
+    
+    public static int clamp (int a, int x, int b) {
+        if (x < a) {
+            return a;
+        } else if (x > b) {
+            return b;
+        } else {
+            return x;
+        }
+    }
+    
+    protected static Image transform (Image input, double vfov, double yaw, double pitch, double roll, int width, int height) throws Exception {
+        Image output = new Image (width, height);
+        
+        vfov = toRad (vfov);
+        Point3D topLeft = new Point3D (-Math.tan (vfov / 2) * width / height, -Math.tan (vfov / 2), 1.0);
+        Point3D uv = new Point3D (- 2 * topLeft.x / width, - 2 * topLeft.y / height, 0.0);
+        
+        for (int x = 0; x < width; ++x) {
+            for (int y = 0; y < height; ++y) {
+                Point3D point = new Point3D (topLeft.x, topLeft.y, topLeft.z);
+                point.translate3D (x * uv.x, y * uv.y, 0.0);
+                
+                point.rotateZ (toRad (roll));
+                point.rotateX (toRad (pitch));
+                point.rotateY (toRad (yaw));
+                
+                double r = point.norm ();
+                
+                double theta = 0.0;
+                double phi = 0.0;
+                
+                double nxz = new Point3D (point.x, 0.0, point.z).norm ();
+                if (nxz < Double.MIN_NORMAL) {
+                    if (point.y > 0) {
+                        phi = toRad (90);
+                    } else {
+                        phi = toRad (-90);
+                    }
+                } else {
+                    phi = Math.atan (point.y / nxz);
+                    theta = Math.acos (point.z / nxz);
+                    if (point.x < 0) {
+                        theta = -theta;
+                    }
+                }
+                
+                double inX = (theta / Math.PI) * (input.width () / 2) + input.width () / 2;
+                double inY = (phi / (Math.PI / 2)) * (input.height () / 2) + input.height () / 2;
+                
+                if (inY >= input.height () - 1) {
+                    output.value (x, y, input.value ((int) inX, (int) inY));
+                } else {
+                    output.value (x, y, input.sample (inX, inY));
+                }
+            }
+        }
+        
+        return output;
+    }
     
     public static File[] transformToFaces (File imageName, File outputBase, int outputSize) throws Exception {
         int[] inputSize = imageSize (imageName);
         
         System.out.println ("Transforming to " + outputSize + "x" + outputSize + " cube map faces.");
         
+        Image in = Image.read (imageName);
+        
         File[] files = new File[]{
-            new File (outputBase, "face_f"),
-            new File (outputBase, "face_r"),
-            new File (outputBase, "face_b"),
-            new File (outputBase, "face_l"),
-            new File (outputBase, "face_u"),
-            new File (outputBase, "face_d")
+            new File (outputBase, "face_f.png"),
+            new File (outputBase, "face_r.png"),
+            new File (outputBase, "face_b.png"),
+            new File (outputBase, "face_l.png"),
+            new File (outputBase, "face_u.png"),
+            new File (outputBase, "face_d.png")
             };
         
-        doTransform (imageName, files[0], inputSize, outputSize,  0,   0, 0);
-        doTransform (imageName, files[1], inputSize, outputSize, -90,   0, 0);
-        doTransform (imageName, files[2], inputSize, outputSize, 180,   0, 0);
-        doTransform (imageName, files[3], inputSize, outputSize,  90,   0, 0);
-        doTransform (imageName, files[4], inputSize, outputSize,   0, -90, 0);
-        doTransform (imageName, files[5], inputSize, outputSize,   0,  90, 0);
+        transform (in, 90,   0,   0, 0, outputSize, outputSize).write (files[0]);
+        transform (in, 90,  90,   0, 0, outputSize, outputSize).write (files[1]);
+        transform (in, 90, 180,   0, 0, outputSize, outputSize).write (files[2]);
+        transform (in, 90, -90,   0, 0, outputSize, outputSize).write (files[3]);
+        transform (in, 90,   0,  90, 0, outputSize, outputSize).write (files[4]);
+        transform (in, 90,   0, -90, 0, outputSize, outputSize).write (files[5]);
         
         return files;
     }

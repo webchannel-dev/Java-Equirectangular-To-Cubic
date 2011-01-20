@@ -73,7 +73,9 @@
     </target>
     
     <target name="package">
+        <!--
         <antcall target="docs"/>
+        -->
         <jar destfile="${package-dir}/bigshot.jar">
             <fileset dir="${temp}/classes/" includes="bigshot/**"/>
             <fileset dir="${src}/java/" includes="bigshot/**.txt"/>
@@ -141,6 +143,19 @@
         </java>
     </target>
     
+    <target name="build-carousel">
+        <java fork="yes" jar="${package-dir}/bigshot.jar"
+            dir="${basedir}">
+            <arg value="${basedir}/test/vr-sample.jpg"/>
+            <arg value="${temp}/carousel.bigshot"/>
+            <arg value="--transform"/>
+            <arg value="carousel"/>
+            <arg value="--format"/>
+            <arg value="archive"/>
+            <jvmarg value="-Xmx1024M"/>
+        </java>
+    </target>
+    
     <target name="build-vr">
         <mkdir dir="${temp}/vr.bigshot"/>
         <delete includeEmptyDirs="true">
@@ -152,7 +167,9 @@
             <arg value="${temp}/vr.bigshot"/>
             <arg value="--preset"/>
             <arg value="dzi-cubemap"/>
-            <jvmarg value="-Xmx768M"/>
+            <arg value="--format"/>
+            <arg value="archive"/>
+            <jvmarg value="-Xmx1024M"/>
         </java>
     </target>
     
