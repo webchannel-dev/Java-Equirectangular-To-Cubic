@@ -1057,9 +1057,8 @@ if (!self["bigshot"]) {
         
         /**
          * For {@link bigshot.Image}, the {@code div} to use as a container for the image.
-         * For {@link bigshot.VRPanorama}, the {@code canvas} to render into.
          *
-         * @type HTMLDivElement or HTMLCanvasElement
+         * @type HTMLDivElement
          */
         this.container = null;
         
@@ -2395,7 +2394,7 @@ if (!self["bigshot"]) {
      * {@link bigshot.ImageParameters#fileSystemType} member is used to create a new 
      * {@link bigshot.FileSystem} instance and set it.
      *
-     * @param {bigshot.ImageParameters or bigshot.VRPanoramaParameters} parameters the parameters object to populate
+     * @param {bigshot.ImageParameters or bigshot.VRPanoramaParameters or bigshot.ImageCarouselPanoramaParameters} parameters the parameters object to populate
      */
     bigshot.setupFileSystem = function (parameters) {
         if (!parameters.fileSystem) {
@@ -3893,9 +3892,9 @@ if (!self["bigshot"]) {
         this.height = 0;
         
         /**
-         * For {@link bigshot.VRPanorama}, the {@code canvas} to render into.
+         * For {@link bigshot.VRPanorama}, the {@code div} to render into.
          *
-         * @type HTMLDivElement or HTMLCanvasElement
+         * @type HTMLDivElement
          */
         this.container = null;
         
@@ -5197,9 +5196,15 @@ if (!self["bigshot"]) {
                     y1 : Math.min (p.y + s.h, panorama.renderer.getViewportHeight ())
                 };
                 var full = s.w * s.h;
-                var visible = Math.abs ((r.x1 - r.x0) * (r.y1 - r.y0));
-                
-                return (visible / full) >= frac;
+                var visibleWidth = (r.x1 - r.x0);
+                var visibleHeight = (r.y1 - r.y0);
+                if (visibleWidth > 0 && visibleHeight > 0) {
+                    var visible = visibleWidth * visibleHeight;
+                    
+                    return (visible / full) >= frac;
+                } else {
+                    return false;
+                }
             }
         }
         
@@ -5243,6 +5248,53 @@ if (!self["bigshot"]) {
                 }
                 
                 return s.w > 0 && s.h > 0;
+            }
+        }
+        
+        this.CLIP_ZOOM = function (s, maxDistanceInViewportHeights) {
+            return function (p, cs) {
+                if (p.x >= 0 && p.y >= 0 && (p.x + s.w) < panorama.renderer.getViewportWidth ()
+                        && (p.y + s.h) < panorama.renderer.getViewportHeight ()) {
+                            return true;
+                        }
+                
+                var distance = 0;
+                if (p.x < 0) {
+                    distance = Math.max (-p.x, distance);
+                }
+                if (p.y < 0) {
+                    distance = Math.max (-p.y, distance);
+                }
+                if (p.x + s.w > panorama.renderer.getViewportWidth ()) {
+                    distance = Math.max (p.x + s.w - panorama.renderer.getViewportWidth (), distance);
+                }
+                if (p.y + s.h > panorama.renderer.getViewportHeight ()) {
+                    distance = Math.max (p.y + s.h - panorama.renderer.getViewportHeight (), distance);
+                }
+                
+                distance /= panorama.renderer.getViewportHeight ();
+                if (distance > maxDistanceInViewportHeights) {
+                    return false;
+                }
+                
+                var scale = 1 / (1 + distance);
+                
+                cs.w = s.w * scale;
+                cs.h = s.w * scale;
+                if (p.x < 0) {
+                    p.x = 0;
+                }
+                if (p.y < 0) {
+                    p.y = 0;
+                }
+                if (p.x + cs.w > panorama.renderer.getViewportWidth ()) {
+                    p.x = panorama.renderer.getViewportWidth () - cs.w;
+                }
+                if (p.y + cs.h > panorama.renderer.getViewportHeight ()) {
+                    p.y = panorama.renderer.getViewportHeight () - cs.h;
+                }
+                
+                return true;
             }
         }
         
@@ -5348,7 +5400,7 @@ if (!self["bigshot"]) {
      */
     bigshot.VRPointHotspot = function (panorama, yaw, pitch, element, offsetX, offsetY) {
         this.layout = function () {
-            var p = this.toScreen ();
+            var p = this.toScreen (this.point);
             
             var visible = false;
             if (p != null) {
@@ -5358,8 +5410,10 @@ if (!self["bigshot"]) {
                 p.y += offsetY;
                 
                 if (this.clip (p, s)) {
-                    element.style.top = (p.y + offsetY) + "px";
-                    element.style.left = (p.x + offsetX) + "px";
+                    element.style.top = (p.y) + "px";
+                    element.style.left = (p.x) + "px";
+                    element.style.width = (s.w) + "px";
+                    element.style.height = (s.h) + "px";
                     element.style.visibility = "inherit";
                     visible = true;
                 }
@@ -5442,5 +5496,347 @@ if (!self["bigshot"]) {
         }
         
         return bigshot.object.extend (new bigshot.VRHotspot (panorama), this).initialize ();
+    }
+    
+    /**
+    * @class Simple Transform-based renderer.
+    *
+    * @augments bigshot.VRRenderer
+    */
+    bigshot.ImageCarouselPanoramaVRRenderer = function (parameters) {
+        this.browser = new bigshot.Browser ();
+        this.container = parameters.container;
+        
+        this.createTileCache = function (onloaded, parameters) {
+            return null;
+        };
+        
+        this.createTexturedQuadScene = function () {
+            return null;
+        };
+        
+        this.createTexturedQuad = function (p, u, v, texture) {
+            return null;
+        };
+        
+        this.supportsUpdate = function () {
+            return false;
+        }
+        
+        this.getViewportWidth = function () {
+            return this.browser.getElementSize (this.container).w;
+        };
+        
+        this.getViewportHeight = function () {
+            return this.browser.getElementSize (this.container).h;
+        };
+        
+        this.resize = function (w, h) {
+        };
+        
+        this.onresize = function () {
+        };
+        
+        this.mvMatrix = new bigshot.TransformStack ();
+        
+        /**
+            * Transforms a vector to world coordinates.
+            *
+            * @param {vector} vector the vector to transform
+            */
+        this.transformToWorld = function (vector) {
+            var sylvesterVector = $V([vector[0], vector[1], vector[2], 1.0]);
+            
+            var world = this.mvMatrix.matrix ().x (sylvesterVector);
+            return world;
+        }
+        
+        this.transformWorldToScreen = function (world) {
+            if (world.e(3) > 0) {
+                return null;
+            }
+            
+            var screen = this.pMatrix.matrix ().x (world);
+            if (Math.abs (screen.e(4)) < Sylvester.precision) {
+                return null;
+            }
+            var r = {
+                x: (this.getViewportWidth () / 2) * screen.e(1) / screen.e(4) + this.getViewportWidth () / 2, 
+                y: - (this.getViewportHeight () / 2) * screen.e(2) / screen.e(4) + this.getViewportHeight () / 2
+            };
+            return r;
+        }
+        
+        /**
+            * Transforms a vector to screen coordinates.
+            *
+            * @param {vector} vector the vector to transform
+            * @return the transformed vector, or null if the vector is nearer than the near-z plane.
+            */
+        this.transformToScreen = function (vector) {
+            var world = this.transformToWorld (vector);
+            return this.transformWorldToScreen (world);
+        }
+        
+        this.yaw = 0;
+        this.pitch = 0;
+        this.fov = 0;
+        this.pMatrix = new bigshot.TransformStack ();
+        
+        this.beginRender = function (y, p, fov) {
+            this.yaw = y;
+            this.pitch = p;
+            this.fov = fov;
+            
+            this.mvMatrix.reset ();
+            this.mvMatrix.rotate (this.yaw, [0, 1, 0]);
+            this.mvMatrix.rotate (this.pitch, [1, 0, 0]);
+            
+            this.pMatrix.reset ();
+            this.pMatrix.perspective (this.fov, this.getViewportWidth () / this.getViewportHeight (), 0.1, 100.0);
+        }
+        
+        this.endRender = function () {
+            
+        }    
+    }
+    
+    
+    bigshot.ImageCarouselPanoramaParameters = function (values) {
+        /**
+         * Suffix to append to the tile filenames. Typically <code>".jpg"</code> or 
+         * <code>".png"</code>.
+         *
+         * @default <i>Optional</i> set by MakeImagePyramid and loaded from descriptor
+         * @type String
+         */
+        this.suffix = null;
+        
+        /**
+         * For {@link bigshot.ImageCarouselPanorama}, the {@code div} to render into.
+         *
+         * @type HTMLDivElement
+         */
+        this.container = null;
+        
+        /**
+         * Base path for the image. This is filesystem dependent; but for the two most common cases
+         * the following should be set
+         *
+         * <ul>
+         * <li><b>archive</b>= The basePath is <code>"&lt;path&gt;/bigshot.php?file=&lt;path-to-bigshot-archive-relative-to-bigshot.php&gt;"</code>;
+         *     for example; <code>"/bigshot.php?file=images/bigshot-sample.bigshot"</code>.
+         * <li><b>folder</b>= The basePath is <code>"&lt;path-to-image-folder&gt;"</code>;
+         *     for example; <code>"/images/bigshot-sample"</code>.
+         * </ul>
+         *
+         * @type String
+         */
+        this.basePath = null;
+        
+        /**
+         * The file system type. Used to create a filesystem instance unless
+         * the fileSystem field is set. Possible values are <code>"archive"</code> or 
+         * <code>"folder"</code>
+         *
+         * @type String
+         * @default "folder"
+         */
+        this.fileSystemType = "folder";
+        
+        /**
+         * A reference to a filesystem implementation. If set; it overrides the
+         * fileSystemType field.
+         *
+         * @default set depending on value of bigshot.VRPanoramaParameters#fileSystemType
+         * @type bigshot.FileSystem
+         */
+        this.fileSystem = null;
+        
+        this.steps = 0;
+        
+        if (values) {
+            for (var k in values) {
+                this[k] = values[k];
+            }
+        }
+        
+        this.merge = function (values, overwrite) {
+            for (var k in values) {
+                if (overwrite || !this[k]) {
+                    this[k] = values[k];
+                }
+            }
+        }
+        return this;        
+        
+    }
+    
+    /**
+     * Creates a new panorama.
+     *
+     * @class A panorama viewer using a fixed set of images, suitable for
+     * low-power devices. Only allows rotation around the yaw axis.
+     *
+     * @param {bigshot.ImageCarouselPanoramaParameters} parameters the panorama parameters
+     */
+    bigshot.ImageCarouselPanorama = function (parameters) {
+        bigshot.setupFileSystem (parameters);
+        
+        parameters.merge (parameters.fileSystem.getDescriptor (), false);
+        
+        this.renderer = new bigshot.ImageCarouselPanoramaVRRenderer (parameters);
+        this.fileSystem = parameters.fileSystem;
+        this.container = parameters.container;
+        this.basePath = parameters.basePath;
+        this.yaw = 0;
+        this.steps = parameters.steps;
+        this.suffix = parameters.suffix;
+        this.browser = new bigshot.Browser ();
+        var that = this;
+        
+        this.images = [];
+        
+        this.hotspots = [];
+        
+        var dragStart = null;
+        
+        /**
+        * Adds a hotstpot.
+        *
+        * @param {bigshot.VRHotspot} hs the hotspot to add
+        */
+        this.addHotspot = function (hs) {
+            this.hotspots.push (hs);
+        }
+        
+        this.dragMouseDown = function (e) {
+            this.dragStart = {
+                clientX : e.clientX,
+                clientY : e.clientY
+            };
+        }
+        
+        this.dragMouseMove = function (e) {
+            if (this.dragStart) {
+                var dx = e.clientX - this.dragStart.clientX;
+                var scale = this.browser.getElementSize (this.container).w / (this.steps / 4);
+                var stepsMoved = Math.round (dx / scale);
+                var pixelsMoved = Math.round (stepsMoved * scale);
+                this.dragStart.clientX += pixelsMoved;
+                if (stepsMoved > 0) {
+                    this.yaw -= stepsMoved;
+                    if (this.yaw < 0) {
+                        this.yaw %= this.steps;
+                        this.yaw += this.steps;
+                    }
+                    this.render ();
+                } else if (stepsMoved < 0) {
+                    this.yaw -= stepsMoved;
+                    if (this.yaw >= this.steps) {
+                        this.yaw %= this.steps;
+                    }
+                    this.render ();
+                }       
+            }
+        }
+        
+        this.dragMouseUp = function (e) {
+            this.dragStart = null;
+        }
+        
+        /**
+         * Renders the panorama and any hotspots.
+         */
+        this.render = function () {
+            this.renderer.beginRender (this.yaw * 360 / this.steps, 0, 60);
+            this.browser.removeAllChildren (this.innerContainer);
+            var s = this.browser.getElementSize (this.container);
+            var img = this.images[this.yaw];
+            this.innerContainer.appendChild (img);
+            img.style.position = "relative";
+            img.style.top = "0px";
+            img.style.left = "0px";
+            img.style.width = s.w + "px";
+            img.style.height = s.h + "px";
+            
+            for (var i = 0; i < this.hotspots.length; ++i) {
+                this.hotspots[i].layout ();
+            }
+            
+            this.renderer.endRender ();
+        }
+        
+        /**
+        * Helper function to consume events.
+        * @private
+        */
+        var consumeEvent = function (event) {
+            if (event.preventDefault) {
+                event.preventDefault ();
+            }
+            return false;
+        };
+        
+        /**
+            * Helper function to translate touch events to mouse-like events.
+            * @private
+            */
+        var translateEvent = function (event) {
+            if (event.clientX) {
+                return event;
+            } else {
+                return {
+                    clientX : event.changedTouches[0].clientX,
+                    clientY : event.changedTouches[0].clientY
+                };
+            };
+        };
+        
+        this.innerContainer = document.createElement ("div");
+        this.innerContainer.style.position = "absolute";
+        this.container.appendChild (this.innerContainer);
+        
+        this.glassPane = document.createElement ("div");
+        this.glassPane.style.position = "relative";
+        this.glassPane.style.width = "100%";
+        this.glassPane.style.height = "100%";
+        this.glassPane.style.zIndex = "1";
+        this.container.appendChild (this.glassPane);
+        
+        this.browser.registerListener (this.glassPane, "mousedown", function (e) {
+                that.dragMouseDown (e);
+                return consumeEvent (e);
+            }, false);
+        this.browser.registerListener (this.glassPane, "touchstart", function (e) {
+                that.dragMouseDown (translateEvent (e));
+                return consumeEvent (e);
+            }, false);
+        this.browser.registerListener (this.glassPane, "mouseup", function (e) {
+                that.dragMouseUp (e);
+                return consumeEvent (e);
+            }, false);
+        this.browser.registerListener (this.glassPane, "touchend", function (e) {
+                that.dragMouseUp (translateEvent (e));
+                return consumeEvent (e);
+            }, false);
+        this.browser.registerListener (this.glassPane, 'mousemove', function (e) {
+                that.dragMouseMove (e);
+                return consumeEvent (e);
+            }, false);
+        this.browser.registerListener (this.glassPane, 'mouseout', function (e) {
+                return consumeEvent (e);
+            }, false);
+        this.browser.registerListener (this.glassPane, 'touchmove', function (e) {
+                that.dragMouseMove (translateEvent (e));
+                return consumeEvent (e);
+            }, false);
+        
+        for (var i = 0; i < this.steps; ++i) {
+            var img = document.createElement ("img");
+            img.src = this.fileSystem.getFilename (i + this.suffix);
+            
+            this.images.push (img);
+        }
     }
 }
