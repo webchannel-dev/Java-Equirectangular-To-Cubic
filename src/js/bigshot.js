@@ -5255,6 +5255,8 @@ if (!self["bigshot"]) {
             return function (p, cs) {
                 if (p.x >= 0 && p.y >= 0 && (p.x + s.w) < panorama.renderer.getViewportWidth ()
                         && (p.y + s.h) < panorama.renderer.getViewportHeight ()) {
+                            cs.w = s.w;
+                            cs.h = s.h;
                             return true;
                         }
                 
