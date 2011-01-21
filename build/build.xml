@@ -73,9 +73,7 @@
     </target>
     
     <target name="package">
-        <!--
         <antcall target="docs"/>
-        -->
         <jar destfile="${package-dir}/bigshot.jar">
             <fileset dir="${temp}/classes/" includes="bigshot/**"/>
             <fileset dir="${src}/java/" includes="bigshot/**.txt"/>
@@ -95,7 +93,7 @@
             <arg value="${package-dir}/bigshot.js"/>
         </java>
         
-        <concat destfile="${temp}/bigshot-full.js">
+        <concat destfile="${package-dir}/bigshot-full.js">
             <filelist dir="${src}/js/webgl/" files="sylvester.js"/>
             <filelist dir="${src}/js/webgl/" files="glUtils.js"/>
             <filelist dir="${src}/js/" files="bigshot.js"/>
@@ -104,10 +102,10 @@
             dir="${basedir}">
             <arg value="-o"/>
             <arg value="${package-dir}/bigshot-full-compressed.js"/>
-            <arg value="${temp}/bigshot-full.js"/>
+            <arg value="${package-dir}/bigshot-full.js"/>
         </java>
         
-        <concat destfile="${temp}/bigshot-full-and-optional.js">
+        <concat destfile="${package-dir}/bigshot-full-and-optional.js">
             <filelist dir="${src}/js/webgl/" files="sylvester.js"/>
             <filelist dir="${src}/js/webgl/" files="glUtils.js"/>
             <filelist dir="${src}/js/webgl/" files="webgl-debug.js"/>
@@ -117,7 +115,7 @@
             dir="${basedir}">
             <arg value="-o"/>
             <arg value="${package-dir}/bigshot-full-and-optional-compressed.js"/>
-            <arg value="${temp}/bigshot-full-and-optional.js"/>
+            <arg value="${package-dir}/bigshot-full-and-optional.js"/>
         </java>
         <zip destfile="${final}/bigshot-${version}.zip">
             <fileset dir="${package-dir}"/>
