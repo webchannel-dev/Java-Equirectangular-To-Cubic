@@ -5,7 +5,11 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.PrintStream;
 import java.io.FileOutputStream;
+import java.io.FileInputStream;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
 import javax.imageio.stream.ImageInputStream;
@@ -13,28 +17,10 @@ import javax.imageio.ImageReader;
 
 import java.util.StringTokenizer;
 import java.util.Iterator;
+import java.util.Arrays;
 
 public class EquirectangularToCubic {
-    
-    public static int[] imageSize (File input) throws Exception {
-        ImageInputStream in = ImageIO.createImageInputStream (input);
-        try {
-            final Iterator<ImageReader> readers = ImageIO.getImageReaders(in);
-            while (readers.hasNext()) {
-                ImageReader reader = readers.next();
-                try {
-                    reader.setInput(in);
-                    return new int[]{ reader.getWidth(0), reader.getHeight(0) };
-                } finally {
-                    reader.dispose();
-                }
-            }
-            return null;
-        } finally {
-            in.close();
-        }
-    }
-    
+
     public static class Image {
         private int width;
         private int height;
@@ -110,7 +96,12 @@ public class EquirectangularToCubic {
         public void write (File file) throws Exception {
             BufferedImage output = toBuffered ();
             
-            ImageIO.write (output, "png", file);
+            OutputStream os = new BufferedOutputStream (new FileOutputStream (file), 2048*1024);
+            try {
+                ImageIO.write (output, "png", os);
+            } finally {
+                os.close ();
+            }
         }
         
         public BufferedImage toBuffered () throws Exception {
@@ -120,7 +111,13 @@ public class EquirectangularToCubic {
         }
         
         public static Image read (File file) throws Exception {
-            BufferedImage input = ImageIO.read (file);
+            BufferedImage input = null;
+            InputStream is = new BufferedInputStream (new FileInputStream (file), 2048*1024);
+            try {
+                input = ImageIO.read (is);
+            } finally {
+                is.close ();
+            }
             
             int width = input.getWidth ();
             int height = input.getHeight ();
@@ -131,6 +128,66 @@ public class EquirectangularToCubic {
         }
     }
     
+    private static class Point3DTransform {
+        private final double[][] matrix = new double[3][3];
+        
+        public Point3DTransform () {
+            matrix[0][0] = 1.0;
+            matrix[1][1] = 1.0;
+            matrix[2][2] = 1.0;
+        }
+        
+        public void prepend (double[][] xform) {
+            double[][] result = new double[3][3];
+            for (int i = 0; i < 3; ++i) {
+                for (int j = 0; j < 3; ++j) {
+                    for (int k = 0; k < 3; ++k) {
+                        result[i][j] += xform[i][k] * matrix[k][j];
+                    }
+                }
+            }
+            
+            for (int i = 0; i < 3; ++i) {
+                for (int j = 0; j < 3; ++j) {
+                    matrix[i][j] = result[i][j];
+                }
+            }
+        }
+        
+        public void rotateX (double angle) {
+            prepend (new double[][]{
+                    new double[]{ 1, 0, 0 },
+                    new double[]{ 0, Math.cos (angle), -Math.sin (angle) },
+                    new double[]{ 0, Math.sin (angle),  Math.cos (angle) }
+                });
+        }
+        
+        public void rotateY (double angle) {
+            prepend (new double[][]{
+                    new double[]{ Math.cos (angle), 0, Math.sin (angle) },
+                    new double[]{ 0, 1, 0 },
+                    new double[]{ -Math.sin (angle), 0, Math.cos (angle) }
+                });
+        }
+        
+        public void rotateZ (double angle) {
+            prepend (new double[][]{
+                    new double[]{ Math.cos (angle), -Math.sin (angle), 0 },
+                    new double[]{ Math.sin (angle),  Math.cos (angle), 0 },
+                    new double[]{ 0, 0, 1 }
+                });
+        }
+        
+        public Point3D transform (Point3D input) {
+            double nx = input.x * matrix[0][0] + input.y * matrix[0][1] + input.z * matrix[0][2];
+            double ny = input.x * matrix[1][0] + input.y * matrix[1][1] + input.z * matrix[1][2];
+            double nz = input.x * matrix[2][0] + input.y * matrix[2][1] + input.z * matrix[2][2];
+            input.x = nx;
+            input.y = ny;
+            input.z = nz;
+            return input;
+        }
+    }
     
     private static class Point3D {
         public double x;
@@ -223,6 +280,69 @@ public class EquirectangularToCubic {
         }
     }
     
+    protected static class FastTrigInverse {
+        
+        protected final double[] lookup;
+        protected final double step;
+        
+        public FastTrigInverse (int resolution) {
+            lookup = new double[resolution + 1];
+            step = Math.PI / resolution;
+        }
+        
+        public double f (double v) {
+            int index = Arrays.binarySearch (lookup, v);
+            if (index >= 0) {
+                return index * step;
+            } else {
+                int insertionPoint = - index - 1;
+                if (insertionPoint == 0) {
+                    return 0;
+                }
+                if (insertionPoint == lookup.length) {
+                    return lookup.length * step;
+                }
+                double a = lookup[insertionPoint - 1];
+                double b = lookup[insertionPoint];
+                double n = (v - a) / (b - a);
+                return (insertionPoint - 1 + n) * step;
+            }
+        }
+    }
+    
+    protected static class FastAcos extends FastTrigInverse {
+        
+        public FastAcos (int resolution) {
+            super (resolution);
+            for (int i = 0; i < resolution; ++i) {
+                double a = step * i;
+                lookup[i] = -Math.cos (a);
+            }
+            lookup[resolution] = 1;
+        }
+        
+        public double f (double v) {
+            return super.f (-v);
+        }
+    }
+    
+    protected static class FastAtan extends FastTrigInverse {
+        
+        public FastAtan (int resolution) {
+            super (resolution);
+            for (int i = 1; i < resolution; ++i) {
+                double a = - (Math.PI / 2) + step * i;
+                lookup[i] = Math.tan (a);
+            }
+            lookup[0] = Math.tan (step / 2 - Math.PI / 2);
+            lookup[resolution] = Math.tan (-step / 2 + Math.PI / 2);
+        }
+        
+        public double f (double v) {
+            return super.f (v) - (Math.PI / 2);
+        }
+    }
+    
     protected static Image transform (Image input, double vfov, double yaw, double pitch, double roll, int width, int height) throws Exception {
         Image output = new Image (width, height);
         
@@ -230,16 +350,20 @@ public class EquirectangularToCubic {
         Point3D topLeft = new Point3D (-Math.tan (vfov / 2) * width / height, -Math.tan (vfov / 2), 1.0);
         Point3D uv = new Point3D (- 2 * topLeft.x / width, - 2 * topLeft.y / height, 0.0);
         
+        Point3DTransform transform = new Point3DTransform ();
+        transform.rotateZ (toRad (roll));
+        transform.rotateX (toRad (pitch));
+        transform.rotateY (toRad (yaw));
+        
+        final FastAcos fastAcos = new FastAcos (input.width () * 2);
+        final FastAtan fastAtan = new FastAtan (input.height () * 2);
+        
         for (int x = 0; x < width; ++x) {
             for (int y = 0; y < height; ++y) {
                 Point3D point = new Point3D (topLeft.x, topLeft.y, topLeft.z);
                 point.translate3D (x * uv.x, y * uv.y, 0.0);
                 
-                point.rotateZ (toRad (roll));
-                point.rotateX (toRad (pitch));
-                point.rotateY (toRad (yaw));
-                
-                double r = point.norm ();
+                transform.transform (point);
                 
                 double theta = 0.0;
                 double phi = 0.0;
@@ -252,8 +376,8 @@ public class EquirectangularToCubic {
                         phi = toRad (-90);
                     }
                 } else {
-                    phi = Math.atan (point.y / nxz);
-                    theta = Math.acos (point.z / nxz);
+                    phi = fastAtan.f (point.y / nxz);
+                    theta = fastAcos.f (point.z / nxz); //Math.acos (
                     if (point.x < 0) {
                         theta = -theta;
                     }
@@ -273,9 +397,13 @@ public class EquirectangularToCubic {
         return output;
     }
     
+    public static void transformToFace (File imageName, File output, int outputSize, double frontAt, double vfov, double yaw, double pitch, double roll) throws Exception {
+        Image in = Image.read (imageName);
+        transform (in, vfov,   yaw + frontAt,   pitch, roll, outputSize, outputSize).write (output);
+    }
+    
+    
     public static File[] transformToFaces (File imageName, File outputBase, int outputSize, double frontAt) throws Exception {
-        int[] inputSize = imageSize (imageName);
-        
         System.out.println ("Transforming to " + outputSize + "x" + outputSize + " cube map faces.");
         
         Image in = Image.read (imageName);
@@ -289,12 +417,18 @@ public class EquirectangularToCubic {
             new File (outputBase, "face_d.png")
             };
         
+        long start = System.currentTimeMillis ();
+        
         transform (in, 90,   0 + frontAt,   0, 0, outputSize, outputSize).write (files[0]);
         transform (in, 90,  90 + frontAt,   0, 0, outputSize, outputSize).write (files[1]);
         transform (in, 90, 180 + frontAt,   0, 0, outputSize, outputSize).write (files[2]);
         transform (in, 90, -90 + frontAt,   0, 0, outputSize, outputSize).write (files[3]);
         transform (in, 90,   0 + frontAt,  90, 0, outputSize, outputSize).write (files[4]);
         transform (in, 90,   0 + frontAt, -90, 0, outputSize, outputSize).write (files[5]);
+        
+        long end = System.currentTimeMillis ();
+        long delta = end - start;
+        System.out.println ("Transform took: " + delta + " ms");
         
         return files;
     }
