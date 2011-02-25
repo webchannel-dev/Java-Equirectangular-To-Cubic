@@ -136,7 +136,16 @@ public class MinimalHttpd {
                                 os.write (("Content-Type: " + type + "\r\n").getBytes ());
                             } else if (filename.endsWith ("rss.xml")) {
                                 os.write ("Content-Type: application/rss+xml\r\n".getBytes ());
+                            } else if (filename.endsWith (".html")) {
+                                os.write ("Content-Type: text/html\r\n".getBytes ());
+                            } else if (filename.endsWith (".jpg")) {
+                                os.write ("Content-Type: image/jpeg\r\n".getBytes ());
+                            } else if (filename.endsWith (".png")) {
+                                os.write ("Content-Type: image/png\r\n".getBytes ());
+                            } else if (filename.endsWith (".swf")) {
+                                os.write ("Content-Type: application/x-shockwave-flash\r\n".getBytes ());
                             }
+                            
                             os.write ("\r\n".getBytes ());
                             byte[] buffer = new byte[32768];
                             while (startRange > 0) {

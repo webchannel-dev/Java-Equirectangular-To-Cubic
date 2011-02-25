@@ -358,9 +358,12 @@ public class EquirectangularToCubic {
         final FastAcos fastAcos = new FastAcos (input.width () * 2);
         final FastAtan fastAtan = new FastAtan (input.height () * 2);
         
+final Point3D point = new Point3D (0,0,0);
         for (int x = 0; x < width; ++x) {
             for (int y = 0; y < height; ++y) {
-                Point3D point = new Point3D (topLeft.x, topLeft.y, topLeft.z);
+                point.x = topLeft.x;
+		point.y = topLeft.y;
+		point.z = topLeft.z;
                 point.translate3D (x * uv.x, y * uv.y, 0.0);
                 
                 transform.transform (point);
@@ -368,7 +371,7 @@ public class EquirectangularToCubic {
                 double theta = 0.0;
                 double phi = 0.0;
                 
-                double nxz = new Point3D (point.x, 0.0, point.z).norm ();
+                double nxz = Math.sqrt (point.x * point.x + point.z * point.z);
                 if (nxz < Double.MIN_NORMAL) {
                     if (point.y > 0) {
                         phi = toRad (90);

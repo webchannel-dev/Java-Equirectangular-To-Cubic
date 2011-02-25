@@ -73,7 +73,6 @@
     </target>
     
     <target name="package">
-        <antcall target="docs"/>
         <jar destfile="${package-dir}/bigshot.jar">
             <fileset dir="${temp}/classes/" includes="bigshot/**"/>
             <fileset dir="${src}/java/" includes="bigshot/**.txt"/>
@@ -125,6 +124,7 @@
     <target name="dist">
         <antcall target="clean"/>
         <antcall target="build"/>
+        <antcall target="docs"/>
         <antcall target="package"/>
     </target>
     
@@ -155,10 +155,12 @@
     </target>
     
     <target name="build-vr">
+        <!--
         <mkdir dir="${temp}/vr.bigshot"/>
         <delete includeEmptyDirs="true">
             <fileset dir="${temp}/vr.bigshot"/>
         </delete>
+        -->
         <java fork="yes" jar="${package-dir}/bigshot.jar"
             dir="${basedir}">
             <arg value="${basedir}/test/vr-sample.jpg"/>
