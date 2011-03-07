@@ -1388,6 +1388,42 @@ if (!self["bigshot"]) {
             return this.minZoom;
         };
         
+        this.currentGesture = null;
+        
+        /**
+         * Begins a potential drag event.
+         *
+         * @private
+         */
+        this.gestureStart = function (event) {
+            this.currentGesture = {
+                startZoom : this.zoom,
+                scale : event.scale
+            };            
+        };
+        
+        /**
+         * Begins a potential drag event.
+         *
+         * @private
+         */
+        this.gestureEnd = function (event) {
+            this.currentGesture = null;
+        };
+        
+        /**
+         * Begins a potential drag event.
+         *
+         * @private
+         */
+        this.gestureChange = function (event) {
+            if (this.currentGesture) {
+                var newZoom = this.currentGesture.startZoom + Math.log (event.scale) / Math.log (2);
+                this.setZoom (newZoom);
+                this.layout ();
+            }
+        };
+                
         /**
          * Begins a potential drag event.
          *
@@ -1408,7 +1444,7 @@ if (!self["bigshot"]) {
          * @private
          */
         this.dragMouseMove = function (event) {
-            if (this.dragStart != null) {
+            if (this.currentGesture == null && this.dragStart != null) {
                 var delta = {
                     x : event.clientX - this.dragStart.x,
                     y : event.clientY - this.dragStart.y
@@ -2079,6 +2115,18 @@ if (!self["bigshot"]) {
             }, false);
         this.browser.registerListener (parameters.container, "mousedown", function (e) {
                 that.dragMouseDown (e);
+                return consumeEvent (e);
+            }, false);
+        this.browser.registerListener (parameters.container, "gesturestart", function (e) {
+                that.gestureStart (e);
+                return consumeEvent (e);
+            }, false);
+        this.browser.registerListener (parameters.container, "gesturechange", function (e) {
+                that.gestureChange (e);
+                return consumeEvent (e);
+            }, false);
+        this.browser.registerListener (parameters.container, "gestureend", function (e) {
+                that.gestureEnd (e);
                 return consumeEvent (e);
             }, false);
         this.browser.registerListener (parameters.container, "touchstart", function (e) {
