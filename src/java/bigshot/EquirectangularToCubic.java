@@ -20,7 +20,7 @@ import java.util.Iterator;
 import java.util.Arrays;
 
 public class EquirectangularToCubic {
-
+    
     public static class Image {
         private int width;
         private int height;
@@ -358,12 +358,12 @@ public class EquirectangularToCubic {
         final FastAcos fastAcos = new FastAcos (input.width () * 2);
         final FastAtan fastAtan = new FastAtan (input.height () * 2);
         
-final Point3D point = new Point3D (0,0,0);
+        final Point3D point = new Point3D (0,0,0);
         for (int x = 0; x < width; ++x) {
             for (int y = 0; y < height; ++y) {
                 point.x = topLeft.x;
-		point.y = topLeft.y;
-		point.z = topLeft.z;
+                point.y = topLeft.y;
+                point.z = topLeft.z;
                 point.translate3D (x * uv.x, y * uv.y, 0.0);
                 
                 transform.transform (point);

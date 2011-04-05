@@ -1423,7 +1423,7 @@ if (!self["bigshot"]) {
                 this.layout ();
             }
         };
-                
+        
         /**
          * Begins a potential drag event.
          *
@@ -2743,6 +2743,7 @@ if (!self["bigshot"]) {
         var fullZoom = Math.log (this.fullSize - this.overlap) / Math.LN2;
         var singleTile = Math.log (this.tileSize - this.overlap) / Math.LN2;
         this.maxDivisions = Math.floor (fullZoom - singleTile);
+        this.maxTesselation = this.parameters.maxTesselation > 0 ? this.parameters.maxTesselation : this.maxDivisions;
         
         /**
          * Creates a textured quad.
@@ -2912,7 +2913,7 @@ if (!self["bigshot"]) {
                     (
                         (
                             dmax > this.owner.maxTextureMagnification * (this.tileSize - this.overlap) 
-                        ) && divisions < this.maxDivisions
+                        ) && divisions < this.maxDivisions && divisions < this.maxTesselation
                     )
                 ) {
                     var center = this.pt3dMultAdd ({x: this.u.x + this.v.x, y: this.u.y + this.v.y, z: this.u.z + this.v.z }, width / 2, topLeft);
@@ -3947,15 +3948,12 @@ if (!self["bigshot"]) {
         this.container = null;
         
         /**
-         * The minimum zoom value. Zoom values are specified as a magnification; where
-         * 2<sup>n</sup> is the magnification and n is the zoom value. So a zoom value of
-         * 2 means a 4x magnification of the full image. -3 means showing an image that
-         * is a quarter (1/8 or 1/2<sup>3</sup>) of the full size.
+         * The maximum number of times to split a cube face into four quads.
          *
-         * @type number
+         * @type int
          * @default <i>Optional</i> set by MakeImagePyramid and loaded from descriptor
          */
-        this.minZoom = 0.0;
+        this.maxTesselation = -1;
         
         /**
          * Size of one tile in pixels.
@@ -5206,10 +5204,22 @@ if (!self["bigshot"]) {
                 that.mouseDoubleClick (e);
                 return consumeEvent (e);
             }, false);
-        this.browser.registerListener (parameters.container, "touchend", function (e) {
-                that.mouseDoubleClick (translateEvent (e));
+        this.browser.registerListener (parameters.container, "touchstart", function (e) {
+                that.resetIdle ();
+                that.dragMouseDown (translateEvent (e));
                 return consumeEvent (e);
             }, false);
+        this.browser.registerListener (parameters.container, "touchend", function (e) {
+                that.resetIdle ();
+                that.dragMouseUp (translateEvent (e));
+                return consumeEvent (e);
+            }, false);
+        this.browser.registerListener (parameters.container, 'touchmove', function (e) {
+                that.resetIdle ();
+                that.dragMouseMove (translateEvent (e));
+                return consumeEvent (e);
+            }, false);
+        
         this.browser.registerListener (window, 'resize', this.onresizeHandler, false);
         
         this.setPitch (0.0);

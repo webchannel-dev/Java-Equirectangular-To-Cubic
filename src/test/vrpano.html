@@ -71,6 +71,7 @@
                             fileSystemType : "dzi",
                             textureMinFilter : linear,
                             textureMagFilter : linear,
+                            maxTesselation : 2,
                             maxTextureMagnification : 1.5
                         }));
                 bvr.onrender = function () {
@@ -80,6 +81,7 @@
                     s.innerHTML = bvr.getPitch ().toFixed (3);
                 }
                 //bvr.autoRotateWhenIdle (3);
+                bvr.setDragMode (bvr.DRAG_GRAB);
                 bvr.autoResizeContainer (document.getElementById ("outerContainer"));
                 bvr.onresize ();
                 bvr.addHotspot (new bigshot.VRRectangleHotspot (bvr, 170, -8, 190, 2, hotspot));
@@ -90,6 +92,20 @@
             
             function redraw () {
                 bvr.render ();
+            }
+            
+            function benchmark () {
+                var FRAMES = 100;
+                var start = new Date ().getTime ();
+                for (var i = 0; i < FRAMES; ++i) {
+                    bvr.render ();
+                }
+                var end = new Date ().getTime ();
+                var delta = (end - start);
+                var fps = 1000 * FRAMES / delta;
+                var mspf = delta / FRAMES;
+                alert ("FPS:" + fps + "\n" + 
+                    "ms/f:" + mspf);
             }
             
             function autorotate () {
@@ -118,9 +134,10 @@
                                 fileSystemType : "dzi"
                             }));
                     bvr.autoRotateWhenIdle (3);
+                    bvr.setDragMode (bvr.DRAG_GRAB);
                     bvr.autoResizeContainer (container);
                     bvr.onresize ();
-                    bvr.render ();
+                    bvr.render ();                                        
                 } else {
                     var canvas = document.getElementById ("canvasName");
                     if (canvas.parentNode) {
@@ -183,13 +200,14 @@
                     <a href="#" onclick="redraw()"><button type="button">Redraw</button></a>
                     <a href="#" onclick="autorotate()"><button type="button">Autorotate</button></a>
                     <a href="#" onclick="fullScreen()"><button type="button">Fullscreen</button></a>
+                    <a href="#" onclick="benchmark()"><button type="button">Benchmark</button></a>
                     <a href="#" onclick="bvr.setFov (bvr.getMinFovFromViewportAndImage ()); bvr.render ();"><button type="button">computedMinZoom</button></a>
                     </p>
                     
                     <p>
                     Drag mode:
-                    <input type="radio" name="panMode" value="drag" onchange="bvr.setDragMode (bvr.DRAG_PAN);" checked="true"/> Pan
-                    <input type="radio" name="panMode" value="grab" onchange="bvr.setDragMode (bvr.DRAG_GRAB);"/> Grab
+                    <input type="radio" name="panMode" value="drag" onchange="bvr.setDragMode (bvr.DRAG_PAN);"/> Pan
+                    <input type="radio" name="panMode" value="grab" onchange="bvr.setDragMode (bvr.DRAG_GRAB);" checked="true"/> Grab
                     </p>
                     
                     <p>
