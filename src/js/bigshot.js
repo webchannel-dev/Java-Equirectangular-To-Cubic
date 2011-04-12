@@ -2743,7 +2743,7 @@ if (!self["bigshot"]) {
         var fullZoom = Math.log (this.fullSize - this.overlap) / Math.LN2;
         var singleTile = Math.log (this.tileSize - this.overlap) / Math.LN2;
         this.maxDivisions = Math.floor (fullZoom - singleTile);
-        this.maxTesselation = this.parameters.maxTesselation > 0 ? this.parameters.maxTesselation : this.maxDivisions;
+        this.maxTesselation = this.parameters.maxTesselation >= 0 ? this.parameters.maxTesselation : this.maxDivisions;
         
         /**
          * Creates a textured quad.
@@ -3462,6 +3462,8 @@ if (!self["bigshot"]) {
         this.world.style.WebkitTransformStyle = "preserve-3d";
         this.viewport.appendChild (this.world);
         
+        this.browser.removeAllChildren (this.world);
+        
         this.createTileCache = function (onloaded, parameters) {
             return new bigshot.ImageVRTileCache (onloaded, parameters);
         };
@@ -3556,7 +3558,10 @@ if (!self["bigshot"]) {
             
             this.canvasOrigin.style.WebkitPerspective= perspectiveDistance + "px";
             
-            this.browser.removeAllChildren (this.world);
+            for (var i = this.world.children.length - 1; i >= 0; --i) {
+                this.world.children[i].inWorld = 1;
+            }
+            
             this.world.style.WebkitTransform = 
                 "rotate3d(1,0,0," + (-p) + "deg) " +
             "rotate3d(0,1,0," + y + "deg) ";
@@ -3568,7 +3573,13 @@ if (!self["bigshot"]) {
         }
         
         this.endRender = function () {
-            
+            for (var i = this.world.children.length - 1; i >= 0; --i) {
+                var child = this.world.children[i];
+                if (!child.inWorld || child.inWorld != 2) {
+                    delete child.inWorld;
+                    this.world.removeChild (child);
+                }
+            }
         }    
     }
     
@@ -3623,7 +3634,10 @@ if (!self["bigshot"]) {
             var ps = scale * 1.0;
             
             this.image.style.position = "absolute";
-            world.appendChild (this.image);
+            if (!this.image.inWorld || this.image.inWorld != 1) {
+                world.appendChild (this.image);
+            }
+            this.image.inWorld = 2;
             this.image.style.WebkitTransformOrigin = "0px 0px 0px";
             this.image.style.WebkitTransform = 
                 this.quadTransform ([p.x * ps, -p.y * ps, p.z * ps], [u.x * s, -u.y * s, u.z * s], [v.x * s, -v.y * s, v.z * s]);
@@ -4527,6 +4541,7 @@ if (!self["bigshot"]) {
             for (var f in this.vrFaces) {
                 this.vrFaces[f].endRender ();
             }
+            this.renderer.endRender ();
             if (this.onrender) {
                 this.onrender ();
             }
@@ -4551,7 +4566,7 @@ if (!self["bigshot"]) {
             }
             
             this.endRender ();
-        }
+        };
         
         /**
          * Render updated faces. Called as tiles are loaded from the server.
@@ -4618,7 +4633,7 @@ if (!self["bigshot"]) {
         }
         
         this.dragMouseMove = function (e) {
-            if (this.dragStart != null) {
+            if (this.dragStart != null && this.currentGesture == null) {
                 if (this.dragMode == this.DRAG_GRAB) {
                     this.smoothRotate ();
                     var scale = this.state.fov / this.renderer.getViewportHeight ();
@@ -4626,7 +4641,7 @@ if (!self["bigshot"]) {
                     var dy = e.clientY - this.dragStart.clientY;
                     this.setYaw (this.getYaw () - dx * scale);
                     this.setPitch (this.getPitch () - dy * scale);
-                    this.render ();
+                    this.renderAsap ();
                     this.dragStart = e;
                 } else {
                     var scale = 0.1 * this.state.fov / this.renderer.getViewportHeight ();
@@ -4647,6 +4662,40 @@ if (!self["bigshot"]) {
             var pos = this.browser.getElementPosition (this.container);
             this.smoothRotateToXY (e.clientX - pos.x, e.clientY - pos.y);
         }
+        
+        /**
+         * Begins a potential drag event.
+         *
+         * @private
+         */
+        this.gestureStart = function (event) {
+            this.currentGesture = {
+                startFov : this.getFov (),
+                scale : event.scale
+            };            
+        };
+        
+        /**
+         * Begins a potential drag event.
+         *
+         * @private
+         */
+        this.gestureEnd = function (event) {
+            this.currentGesture = null;
+        };
+        
+        /**
+         * Begins a potential drag event.
+         *
+         * @private
+         */
+        this.gestureChange = function (event) {
+            if (this.currentGesture) {
+                var newFov = this.currentGesture.startFov / event.scale;
+                this.setFov (newFov);
+                this.renderAsap ();
+            }
+        };
         
         /**
          * Computes the minimum field of view where the resulting image will not
@@ -4886,7 +4935,7 @@ if (!self["bigshot"]) {
                         that.setFov (that.getFov () + df());
                     }
                     that.render ();
-                    window.setTimeout (stepper, 5);
+                    window.setTimeout (stepper, 1);
                 }
             };
             stepper ();
@@ -5117,15 +5166,21 @@ if (!self["bigshot"]) {
             this.renderAsap ();            
         };
         
+        this.renderAsapPermitTaken = false;
+        
         /**
          * Posts a render() call via a timeout. Use when the render call must be
          * done as soon as possible, but can't be done in the current call context.
          */
         this.renderAsap = function () {
-            var that = this;
-            setTimeout (function () {
-                    that.render ();
-                }, 1);
+            if (!this.renderAsapPermitTaken) {
+                this.renderAsapPermitTaken = true;
+                var that = this;
+                setTimeout (function () {
+                        that.renderAsapPermitTaken = false;
+                        that.render ();                    
+                    }, 1);
+            }
         }
         
         /**
@@ -5190,6 +5245,19 @@ if (!self["bigshot"]) {
                 that.dragMouseMove (e);
                 return consumeEvent (e);
             }, false);
+        this.browser.registerListener (parameters.container, "gesturestart", function (e) {
+                that.gestureStart (e);
+                return consumeEvent (e);
+            }, false);
+        this.browser.registerListener (parameters.container, "gesturechange", function (e) {
+                that.gestureChange (e);
+                return consumeEvent (e);
+            }, false);
+        this.browser.registerListener (parameters.container, "gestureend", function (e) {
+                that.gestureEnd (e);
+                return consumeEvent (e);
+            }, false);
+        
         this.browser.registerListener (parameters.container, "DOMMouseScroll", function (e) {
                 that.resetIdle ();
                 that.mouseWheel (e);
