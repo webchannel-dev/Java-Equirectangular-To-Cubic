@@ -1970,10 +1970,10 @@ if (!self["bigshot"]) {
             
             var div = document.createElement ("div");
             div.style.position = "fixed";
-            div.style.top = "0px";
-            div.style.left = "0px";
-            div.style.width = "100%";
-            div.style.height = "100%";
+            div.style.top = window.pageYOffset + "px";
+            div.style.left = window.pageXOffset + "px";
+            div.style.width = window.innerWidth + "px";
+            div.style.height = window.innerHeight + "px";
             div.style.zIndex = "9998";
             
             var savedParent = this.container.parentNode;
@@ -2047,6 +2047,8 @@ if (!self["bigshot"]) {
                 }, 3500);
             
             this.onresize ();
+            
+            return this.exitFullScreenHandler;
         };
         
         /**
@@ -3721,7 +3723,7 @@ if (!self["bigshot"]) {
         };
         
         this.supportsUpdate = function () {
-            return true;
+            return false;
         }
         
         this.createTexturedQuad = function (p, u, v, texture) {
@@ -5146,6 +5148,8 @@ if (!self["bigshot"]) {
                 }, 3500);
             
             this.onresize ();
+            
+            return this.exitFullScreenHandler;
         };
         
         /**

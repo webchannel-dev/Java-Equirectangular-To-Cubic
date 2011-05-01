@@ -365,7 +365,7 @@ public class EquirectangularToCubic {
         }
     }
     
-    protected static Image transform (final Image input, double vfov, double yaw, double pitch, double roll, int width, int height) throws Exception {
+    protected static Image transform (final Image input, double vfov, final double yaw, final double pitch, final double roll, final int width, final int height) throws Exception {
         final Image output = new Image (width, height);
         
         vfov = toRad (vfov);
@@ -380,44 +380,66 @@ public class EquirectangularToCubic {
         final FastAcos fastAcos = new FastAcos (input.width () * 2);
         final FastAtan fastAtan = new FastAtan (input.height () * 2);
         
-        for (int y = 0; y < height; ++y) {
-            final Point3D point = new Point3D (0,0,0);
-            for (int x = 0; x < width; ++x) {
-                point.x = topLeft.x;
-                point.y = topLeft.y;
-                point.z = topLeft.z;
-                point.translate3D (x * uv.x, y * uv.y, 0.0);
-                
-                transform.transform (point);
-                
-                double theta = 0.0;
-                double phi = 0.0;
-                
-                double nxz = Math.sqrt (point.x * point.x + point.z * point.z);
-                if (nxz < Double.MIN_NORMAL) {
-                    if (point.y > 0) {
-                        phi = toRad (90);
-                    } else {
-                        phi = toRad (-90);
+        final int STEPS = Runtime.getRuntime ().availableProcessors () * 2;
+        final int STEP = Math.max (height / STEPS, 256);
+        
+        ExecutorService es = Executors.newFixedThreadPool (Runtime.getRuntime ().availableProcessors ());
+        List<Callable<Object>> callables = new ArrayList<Callable<Object>> ();
+        
+        for (int topLine = 0; topLine < height; topLine += STEP) {
+            final int startY = topLine;
+            final int endY = Math.min (startY + STEP, height);
+            callables.add (new Callable<Object> () {
+                    public Object call () throws Exception {
+                        final Point3D point = new Point3D (0,0,0);
+                        System.out.println ("Rendering lines " + startY + " to " + endY);
+                        for (int y = startY; y < endY; ++y) {
+                            for (int x = 0; x < width; ++x) {
+                                point.x = topLeft.x;
+                                point.y = topLeft.y;
+                                point.z = topLeft.z;
+                                point.translate3D (x * uv.x, y * uv.y, 0.0);
+                                
+                                transform.transform (point);
+                                
+                                double theta = 0.0;
+                                double phi = 0.0;
+                                
+                                double nxz = Math.sqrt (point.x * point.x + point.z * point.z);
+                                if (nxz < Double.MIN_NORMAL) {
+                                    if (point.y > 0) {
+                                        phi = toRad (90);
+                                    } else {
+                                        phi = toRad (-90);
+                                    }
+                                } else {
+                                    phi = fastAtan.f (point.y / nxz);
+                                    theta = fastAcos.f (point.z / nxz); //Math.acos (
+                                    if (point.x < 0) {
+                                        theta = -theta;
+                                    }
+                                }
+                                
+                                double inX = (theta / Math.PI) * (input.width () / 2) + input.width () / 2;
+                                double inY = (phi / (Math.PI / 2)) * (input.height () / 2) + input.height () / 2;
+                                
+                                if (inY >= input.height () - 1) {
+                                    output.value (x, y, input.value ((int) inX, (int) inY));
+                                } else {
+                                    output.value (x, y, input.sample (inX, inY));
+                                }
+                            }
+                        }
+                        return null;
                     }
-                } else {
-                    phi = fastAtan.f (point.y / nxz);
-                    theta = fastAcos.f (point.z / nxz); //Math.acos (
-                    if (point.x < 0) {
-                        theta = -theta;
-                    }
-                }
-                
-                double inX = (theta / Math.PI) * (input.width () / 2) + input.width () / 2;
-                double inY = (phi / (Math.PI / 2)) * (input.height () / 2) + input.height () / 2;
-                
-                if (inY >= input.height () - 1) {
-                    output.value (x, y, input.value ((int) inX, (int) inY));
-                } else {
-                    output.value (x, y, input.sample (inX, inY));
-                }
-            }
+                });
         }
+        
+        for (Future<Object> f : es.invokeAll (callables)) {
+            f.get ();
+        }
+        es.shutdown ();
+        es.awaitTermination (20, TimeUnit.SECONDS);
         
         return output;
     }
@@ -444,49 +466,12 @@ public class EquirectangularToCubic {
         
         long start = System.currentTimeMillis ();
         
-        ExecutorService es = Executors.newFixedThreadPool (Runtime.getRuntime ().availableProcessors ());
-        List<Callable<Object>> callables = new ArrayList<Callable<Object>> ();
-        callables.add (new Callable<Object> () {
-                public Object call () throws Exception {
-                    transform (in, 90,   0 + frontAt,   0, 0, outputSize, outputSize).write (files[0]);
-                    return null;
-                }
-            });
-        callables.add (new Callable<Object> () {
-                public Object call () throws Exception {
-                    transform (in, 90,  90 + frontAt,   0, 0, outputSize, outputSize).write (files[1]);
-                    return null;
-                }
-            });
-        callables.add (new Callable<Object> () {
-                public Object call () throws Exception {
-                    transform (in, 90, 180 + frontAt,   0, 0, outputSize, outputSize).write (files[2]);
-                    return null;
-                }
-            });
-        callables.add (new Callable<Object> () {
-                public Object call () throws Exception {
-                    transform (in, 90, -90 + frontAt,   0, 0, outputSize, outputSize).write (files[3]);
-                    return null;
-                }
-            });
-        callables.add (new Callable<Object> () {
-                public Object call () throws Exception {
-                    transform (in, 90,   0 + frontAt,  90, 0, outputSize, outputSize).write (files[4]);
-                    return null;
-                }
-            });
-        callables.add (new Callable<Object> () {
-                public Object call () throws Exception {
-                    transform (in, 90,   0 + frontAt, -90, 0, outputSize, outputSize).write (files[5]);
-                    return null;
-                }
-            });
-        for (Future<Object> f : es.invokeAll (callables)) {
-            f.get ();
-        }
-        es.shutdown ();
-        es.awaitTermination (20, TimeUnit.SECONDS);
+        transform (in, 90,   0 + frontAt,   0, 0, outputSize, outputSize).write (files[0]);
+        transform (in, 90,  90 + frontAt,   0, 0, outputSize, outputSize).write (files[1]);
+        transform (in, 90, 180 + frontAt,   0, 0, outputSize, outputSize).write (files[2]);
+        transform (in, 90, -90 + frontAt,   0, 0, outputSize, outputSize).write (files[3]);
+        transform (in, 90,   0 + frontAt,  90, 0, outputSize, outputSize).write (files[4]);
+        transform (in, 90,   0 + frontAt, -90, 0, outputSize, outputSize).write (files[5]);
         
         long end = System.currentTimeMillis ();
         long delta = end - start;
