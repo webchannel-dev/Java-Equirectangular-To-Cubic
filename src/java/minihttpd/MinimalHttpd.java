@@ -82,6 +82,24 @@ public class MinimalHttpd {
         }
     }
     
+    protected static String mimeType (String filename) {
+        if (filename.endsWith ("rss.xml")) {
+            return "application/rss+xml";
+        } else if (filename.endsWith (".html")) {
+            return "text/html";
+        } else if (filename.endsWith (".jpg")) {
+            return "image/jpeg";
+        } else if (filename.endsWith (".png")) {
+            return "image/png";
+        } else if (filename.endsWith (".xml")) {
+            return "text/xml";
+        } else if (filename.endsWith (".swf")) {
+            return "application/x-shockwave-flash";
+        } else {
+            return null;
+        }
+    }
+    
     public static void main (String[] args) throws Exception {
         final File root = new File (args[0]);
         ServerSocket serverSocket = new ServerSocket (80);
@@ -99,6 +117,7 @@ public class MinimalHttpd {
                         String request = readLine (is);
                         while (readLine (is).length () > 0) {
                         }
+                        
                         String[] path = request.split (" ");
                         if (path[1].equals ("/")) {
                             path[1] = "/index.html";
@@ -107,7 +126,7 @@ public class MinimalHttpd {
                         
                         String[] parameters = file.split ("\\?|&");
                         String filename = getParameter (parameters, "file", parameters[0]);
-                        String type = getParameter (parameters, "type", null);
+                        String type = getParameter (parameters, "type", mimeType (filename));
                         String entry = getParameter (parameters, "entry", null);
                         int startRange = getParameter (parameters, "start", 0);
                         int lengthRange = getParameter (parameters, "length", Integer.MAX_VALUE);
@@ -118,6 +137,7 @@ public class MinimalHttpd {
                         
                         File f = new File (root, filename);
                         if (entry != null) {
+                            type = mimeType (entry);                            
                             int[] extents = getExtents (f, entry);
                             if (extents == null) {
                                 System.err.println (entry + " not found in " + f.getPath ());
@@ -132,18 +152,8 @@ public class MinimalHttpd {
                         if (f.exists () && !f.isDirectory ()) {
                             FileInputStream fis = new FileInputStream (f);
                             os.write ("HTTP/1.0 200 OK\r\n".getBytes ());
-                            if (type != null) {
+                            if (type != null) {                                
                                 os.write (("Content-Type: " + type + "\r\n").getBytes ());
-                            } else if (filename.endsWith ("rss.xml")) {
-                                os.write ("Content-Type: application/rss+xml\r\n".getBytes ());
-                            } else if (filename.endsWith (".html")) {
-                                os.write ("Content-Type: text/html\r\n".getBytes ());
-                            } else if (filename.endsWith (".jpg")) {
-                                os.write ("Content-Type: image/jpeg\r\n".getBytes ());
-                            } else if (filename.endsWith (".png")) {
-                                os.write ("Content-Type: image/png\r\n".getBytes ());
-                            } else if (filename.endsWith (".swf")) {
-                                os.write ("Content-Type: application/x-shockwave-flash\r\n".getBytes ());
                             }
                             
                             os.write ("\r\n".getBytes ());

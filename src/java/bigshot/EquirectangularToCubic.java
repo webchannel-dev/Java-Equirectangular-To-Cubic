@@ -1,3 +1,18 @@
+/*
+ * Copyright 2010 Leo Sutic <leo.sutic@gmail.com>
+ *  
+ * Licensed under the Apache License, Version 2.0 (the "License"); 
+ * you may not use this file except in compliance with the License. 
+ * You may obtain a copy of the License at 
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0 
+ *     
+ * Unless required by applicable law or agreed to in writing, software 
+ * distributed under the License is distributed on an "AS IS" BASIS, 
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
+ * See the License for the specific language governing permissions and 
+ * limitations under the License. 
+ */
 package bigshot;
 
 import java.io.File;
@@ -14,10 +29,17 @@ import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
 import javax.imageio.stream.ImageInputStream;
 import javax.imageio.ImageReader;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 
 import java.util.StringTokenizer;
 import java.util.Iterator;
 import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
 
 public class EquirectangularToCubic {
     
@@ -343,14 +365,14 @@ public class EquirectangularToCubic {
         }
     }
     
-    protected static Image transform (Image input, double vfov, double yaw, double pitch, double roll, int width, int height) throws Exception {
-        Image output = new Image (width, height);
+    protected static Image transform (final Image input, double vfov, double yaw, double pitch, double roll, int width, int height) throws Exception {
+        final Image output = new Image (width, height);
         
         vfov = toRad (vfov);
-        Point3D topLeft = new Point3D (-Math.tan (vfov / 2) * width / height, -Math.tan (vfov / 2), 1.0);
-        Point3D uv = new Point3D (- 2 * topLeft.x / width, - 2 * topLeft.y / height, 0.0);
+        final Point3D topLeft = new Point3D (-Math.tan (vfov / 2) * width / height, -Math.tan (vfov / 2), 1.0);
+        final Point3D uv = new Point3D (- 2 * topLeft.x / width, - 2 * topLeft.y / height, 0.0);
         
-        Point3DTransform transform = new Point3DTransform ();
+        final Point3DTransform transform = new Point3DTransform ();
         transform.rotateZ (toRad (roll));
         transform.rotateX (toRad (pitch));
         transform.rotateY (toRad (yaw));
@@ -358,9 +380,9 @@ public class EquirectangularToCubic {
         final FastAcos fastAcos = new FastAcos (input.width () * 2);
         final FastAtan fastAtan = new FastAtan (input.height () * 2);
         
-        final Point3D point = new Point3D (0,0,0);
-        for (int x = 0; x < width; ++x) {
-            for (int y = 0; y < height; ++y) {
+        for (int y = 0; y < height; ++y) {
+            final Point3D point = new Point3D (0,0,0);
+            for (int x = 0; x < width; ++x) {
                 point.x = topLeft.x;
                 point.y = topLeft.y;
                 point.z = topLeft.z;
@@ -406,12 +428,12 @@ public class EquirectangularToCubic {
     }
     
     
-    public static File[] transformToFaces (File imageName, File outputBase, int outputSize, double frontAt) throws Exception {
+    public static File[] transformToFaces (File imageName, File outputBase, final int outputSize, final double frontAt) throws Exception {
         System.out.println ("Transforming to " + outputSize + "x" + outputSize + " cube map faces.");
         
-        Image in = Image.read (imageName);
+        final Image in = Image.read (imageName);
         
-        File[] files = new File[]{
+        final File[] files = new File[]{
             new File (outputBase, "face_f.png"),
             new File (outputBase, "face_r.png"),
             new File (outputBase, "face_b.png"),
@@ -422,12 +444,49 @@ public class EquirectangularToCubic {
         
         long start = System.currentTimeMillis ();
         
-        transform (in, 90,   0 + frontAt,   0, 0, outputSize, outputSize).write (files[0]);
-        transform (in, 90,  90 + frontAt,   0, 0, outputSize, outputSize).write (files[1]);
-        transform (in, 90, 180 + frontAt,   0, 0, outputSize, outputSize).write (files[2]);
-        transform (in, 90, -90 + frontAt,   0, 0, outputSize, outputSize).write (files[3]);
-        transform (in, 90,   0 + frontAt,  90, 0, outputSize, outputSize).write (files[4]);
-        transform (in, 90,   0 + frontAt, -90, 0, outputSize, outputSize).write (files[5]);
+        ExecutorService es = Executors.newFixedThreadPool (Runtime.getRuntime ().availableProcessors ());
+        List<Callable<Object>> callables = new ArrayList<Callable<Object>> ();
+        callables.add (new Callable<Object> () {
+                public Object call () throws Exception {
+                    transform (in, 90,   0 + frontAt,   0, 0, outputSize, outputSize).write (files[0]);
+                    return null;
+                }
+            });
+        callables.add (new Callable<Object> () {
+                public Object call () throws Exception {
+                    transform (in, 90,  90 + frontAt,   0, 0, outputSize, outputSize).write (files[1]);
+                    return null;
+                }
+            });
+        callables.add (new Callable<Object> () {
+                public Object call () throws Exception {
+                    transform (in, 90, 180 + frontAt,   0, 0, outputSize, outputSize).write (files[2]);
+                    return null;
+                }
+            });
+        callables.add (new Callable<Object> () {
+                public Object call () throws Exception {
+                    transform (in, 90, -90 + frontAt,   0, 0, outputSize, outputSize).write (files[3]);
+                    return null;
+                }
+            });
+        callables.add (new Callable<Object> () {
+                public Object call () throws Exception {
+                    transform (in, 90,   0 + frontAt,  90, 0, outputSize, outputSize).write (files[4]);
+                    return null;
+                }
+            });
+        callables.add (new Callable<Object> () {
+                public Object call () throws Exception {
+                    transform (in, 90,   0 + frontAt, -90, 0, outputSize, outputSize).write (files[5]);
+                    return null;
+                }
+            });
+        for (Future<Object> f : es.invokeAll (callables)) {
+            f.get ();
+        }
+        es.shutdown ();
+        es.awaitTermination (20, TimeUnit.SECONDS);
         
         long end = System.currentTimeMillis ();
         long delta = end - start;
