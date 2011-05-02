@@ -1970,10 +1970,8 @@ if (!self["bigshot"]) {
             
             var div = document.createElement ("div");
             div.style.position = "fixed";
-            div.style.top = window.pageYOffset + "px";
-            div.style.left = window.pageXOffset + "px";
-            div.style.width = window.innerWidth + "px";
-            div.style.height = window.innerHeight + "px";
+            div.style.width = Math.min (window.innerWidth, document.documentElement.clientWidth) + "px";
+            div.style.height = Math.min (window.innerHeight, document.documentElement.clientHeight) + "px";
             div.style.zIndex = "9998";
             
             var savedParent = this.container.parentNode;
@@ -5069,10 +5067,11 @@ if (!self["bigshot"]) {
             
             var div = document.createElement ("div");
             div.style.position = "fixed";
-            div.style.top = "0px";
-            div.style.left = "0px";
-            div.style.width = "100%";
-            div.style.height = "100%";
+            div.style.top = window.pageYOffset + "px";
+            div.style.left = window.pageXOffset + "px";
+            
+            div.style.width = Math.min (window.innerWidth, document.documentElement.clientWidth) + "px";
+            div.style.height = Math.min (window.innerHeight, document.documentElement.clientHeight) + "px";
             div.style.zIndex = "9998";
             
             var savedParent = this.container.parentNode;
