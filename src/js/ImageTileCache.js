@@ -1,0 +1,191 @@
+/*
+ * Copyright 2010 Leo Sutic <leo.sutic@gmail.com>
+ *  
+ * Licensed under the Apache License, Version 2.0 (the "License"); 
+ * you may not use this file except in compliance with the License. 
+ * You may obtain a copy of the License at 
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0 
+ *     
+ * Unless required by applicable law or agreed to in writing, software 
+ * distributed under the License is distributed on an "AS IS" BASIS, 
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
+ * See the License for the specific language governing permissions and 
+ * limitations under the License. 
+ */
+
+/**
+ * Creates a new cache instance.
+ *
+ * @class Tile cache for the {@link bigshot.TileLayer}.
+ * @constructor
+ */
+bigshot.ImageTileCache = function (onLoaded, parameters) {
+    /**
+      * Reduced-resolution preview of the full image.
+      * Loaded from the "poster" image created by 
+      * MakeImagePyramid
+      *
+      * @private
+      * @type HTMLImageElement
+      */
+    this.fullImage = document.createElement ("img");
+    this.fullImage.src = parameters.fileSystem.getPosterFilename ();
+    
+    /**
+     * Maximum number of tiles in the cache.
+     * @private
+     * @type int
+     */
+    this.maxCacheSize = 512;
+    this.maxTileX = 0;
+    this.maxTileY = 0;
+    this.cachedImages = {};
+    this.requestedImages = {};
+    this.usedImages = {};
+    this.lastOnLoadFiredAt = 0;
+    this.imageRequests = 0;
+    this.lruMap = new bigshot.LRUMap ();
+    this.onLoaded = onLoaded;
+    this.browser = new bigshot.Browser ();
+    this.partialImageSize = parameters.tileSize / 8;
+    
+    this.resetUsed = function () {
+        this.usedImages = {};
+    };
+    
+    this.setMaxTiles = function (mtx, mty) {
+        this.maxTileX = mtx;
+        this.maxTileY = mty;
+    };
+    
+    this.getPartialImage = function (tileX, tileY, zoomLevel) {
+        if (this.fullImage.complete) {
+            var canvas = document.createElement ("canvas");
+            if (!canvas["width"]) {
+                return null;
+            }
+            canvas.width = this.partialImageSize;
+            canvas.height = this.partialImageSize;
+            var ctx = canvas.getContext('2d'); 
+            
+            var posterScale = parameters.posterSize / Math.max (parameters.width, parameters.height);
+            
+            var posterWidth = Math.floor (posterScale * parameters.width);
+            var posterHeight = Math.floor (posterScale * parameters.height);
+            
+            var tileSizeAtZoom = posterScale * parameters.tileSize / Math.pow (2, zoomLevel);    
+            var sx = Math.floor (tileSizeAtZoom * tileX);
+            var sy = Math.floor (tileSizeAtZoom * tileY);
+            var sw = Math.floor (tileSizeAtZoom);
+            var sh = Math.floor (tileSizeAtZoom);
+            var dw = this.partialImageSize + 2;
+            var dh = this.partialImageSize + 2;
+            
+            if (sx + sw > posterWidth) {
+                sw = posterWidth - sx;
+                dw = this.partialImageSize * (sw / Math.floor (tileSizeAtZoom));
+            }
+            if (sy + sh > posterHeight) {
+                sh = posterHeight - sy;
+                dh = this.partialImageSize * (sh / Math.floor (tileSizeAtZoom));
+            }
+            
+            ctx.drawImage (this.fullImage, sx, sy, sw, sh, -1, -1, dw, dh);
+            var tile = document.createElement ("img");
+            tile.src = canvas.toDataURL ();
+            return tile;
+        } else {
+            return null;
+        }
+    };
+    
+    this.getEmptyImage = function () {
+        var tile = document.createElement ("img");
+        if (parameters.emptyImage) {
+            tile.src = parameters.emptyImage;
+        } else {
+            tile.src = "data:image/gif,GIF89a%01%00%01%00%80%00%00%00%00%00%FF%FF%FF!%F9%04%00%00%00%00%00%2C%00%00%00%00%01%00%01%00%00%02%02D%01%00%3B";
+        }
+        return tile;
+    };
+    
+    this.getImage = function (tileX, tileY, zoomLevel) {
+        if (tileX < 0 || tileY < 0 || tileX >= this.maxTileX || tileY >= this.maxTileY) {
+            return this.getEmptyImage ();
+        }
+        
+        var key = this.getImageKey (tileX, tileY, zoomLevel);
+        this.lruMap.access (key);
+        
+        if (this.cachedImages[key]) {
+            if (this.usedImages[key]) {
+                var tile = document.createElement ("img");
+                tile.src = this.getImageFilename (tileX, tileY, zoomLevel);
+                return tile;
+            } else {
+                this.usedImages[key] = true;
+                return this.cachedImages[key];
+            }
+        } else {
+            var img = this.getPartialImage (tileX, tileY, zoomLevel);
+            if (img != null) {
+                this.cachedImages[key] = img;
+            } else {
+                img = this.getEmptyImage ();
+            }
+            this.requestImage (tileX, tileY, zoomLevel);
+            return img;
+        }
+    };
+    
+    this.requestImage = function (tileX, tileY, zoomLevel) {
+        var key = this.getImageKey (tileX, tileY, zoomLevel);
+        if (!this.requestedImages[key]) {
+            this.imageRequests++;
+            var tile = document.createElement ("img");
+            var that = this;
+            this.browser.registerListener (tile, "load", function () {                        
+                    that.cachedImages[key] = tile;
+                    delete that.requestedImages[key];
+                    that.imageRequests--;
+                    var now = new Date();
+                    if (that.imageRequests == 0 || now.getTime () > (that.lastOnLoadFiredAt + 50)) {
+                        that.purgeCache ();
+                        that.lastOnLoadFiredAt = now.getTime ();
+                        that.onLoaded ();
+                    }
+                }, false);
+            this.requestedImages[key] = tile;
+            tile.src = this.getImageFilename (tileX, tileY, zoomLevel);                    
+        }            
+    };
+    
+    /**
+     * Removes the least-recently used objects from the cache,
+     * if the size of the cache exceeds the maximum cache size.
+     * A maximum of four objects will be removed per call.
+     *
+     * @private
+     */
+    this.purgeCache = function () {
+        for (var i = 0; i < 4; ++i) {
+            if (this.lruMap.getSize () > this.maxCacheSize) {
+                var leastUsed = this.lruMap.leastUsed ();
+                this.lruMap.remove (leastUsed);
+                delete this.cachedImages[leastUsed];                    
+            }
+        }
+    };
+    
+    this.getImageKey = function (tileX, tileY, zoomLevel) {
+        return "I" + tileX + "_" + tileY + "_" + zoomLevel;
+    };
+    
+    this.getImageFilename = function (tileX, tileY, zoomLevel) {
+        var f = parameters.fileSystem.getImageFilename (tileX, tileY, zoomLevel);
+        return f;
+    };
+    
+    return this;
+};

@@ -128,6 +128,7 @@ public class MinimalHttpd {
                         String filename = getParameter (parameters, "file", parameters[0]);
                         String type = getParameter (parameters, "type", mimeType (filename));
                         String entry = getParameter (parameters, "entry", null);
+                        boolean includeProcessor = getParameter (parameters, "preprocessor", "false").equals ("true");
                         int startRange = getParameter (parameters, "start", 0);
                         int lengthRange = getParameter (parameters, "length", Integer.MAX_VALUE);
                         
@@ -149,7 +150,16 @@ public class MinimalHttpd {
                         }
                         
                         OutputStream os = sock.getOutputStream ();
-                        if (f.exists () && !f.isDirectory ()) {
+                        if (includeProcessor) {
+                            os.write ("HTTP/1.0 200 OK\r\n".getBytes ());
+                            if (type != null) {                                
+                                os.write (("Content-Type: " + type + "\r\n").getBytes ());
+                            }
+                            
+                            os.write ("\r\n".getBytes ());
+                            
+                            new IncludeProcessor ().process (f, new File[]{ f.getParentFile () }, os);
+                        } else if (f.exists () && !f.isDirectory ()) {
                             FileInputStream fis = new FileInputStream (f);
                             os.write ("HTTP/1.0 200 OK\r\n".getBytes ());
                             if (type != null) {                                

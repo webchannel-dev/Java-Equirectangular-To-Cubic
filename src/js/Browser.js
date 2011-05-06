@@ -1,0 +1,226 @@
+/*
+ * Copyright 2010 Leo Sutic <leo.sutic@gmail.com>
+ *  
+ * Licensed under the Apache License, Version 2.0 (the "License"); 
+ * you may not use this file except in compliance with the License. 
+ * You may obtain a copy of the License at 
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0 
+ *     
+ * Unless required by applicable law or agreed to in writing, software 
+ * distributed under the License is distributed on an "AS IS" BASIS, 
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
+ * See the License for the specific language governing permissions and 
+ * limitations under the License. 
+ */
+
+bigshot.Browser = function () {
+    /**
+    * Removes all children from an element.
+    * 
+    * @public
+    * @param {HTMLElement} element the element whose children are to be removed.
+    */
+    this.removeAllChildren = function (element) {
+        if (element.children.length > 0) {
+            for (var i = element.children.length - 1; i >= 0; --i) {
+                element.removeChild (element.children[i]);
+            }
+        }
+    };
+    
+    /**
+    * Thunk to implement a faked "mouseenter" event.
+    * @private
+    */
+    this.mouseEnter = function (_fn) {
+        var isAChildOf = this.isAChildOf;
+        return function(_evt)
+        {
+            var relTarget = _evt.relatedTarget;
+            if (this === relTarget || isAChildOf (this, relTarget))
+            { return; }
+            
+            _fn.call (this, _evt);
+        }
+    };
+    
+    this.isAChildOf = function (_parent, _child) {
+        if (_parent === _child) { return false; }
+        while (_child && _child !== _parent)
+        { _child = _child.parentNode; }
+        
+        return _child === _parent;
+    };
+    
+    /**
+    * Unregisters a listener from an element.
+    *
+    * @param {HTMLElement} elem the element
+    * @param {String} eventName the event name ("click", "mouseover", etc.)
+    * @param {function(e)} fn the callback function to detach
+    * @param {boolean} useCapture specifies if we should unregister a listener from the capture chain.
+    */
+    this.unregisterListener = function (elem, eventName, fn, useCapture) {
+        if (typeof (elem.removeEventListener) != 'undefined') {
+            elem.removeEventListener (eventName, fn, useCapture);
+        } else if (typeof (elem.detachEvent) != 'undefined') {
+            elem.detachEvent('on' + eventName, fn);
+        }
+    };
+    
+    /**
+    * Registers a listener to an element.
+    *
+    * @param {HTMLElement} elem the element
+    * @param {String} eventName the event name ("click", "mouseover", etc.)
+    * @param {function(e)} fn the callback function to attach
+    * @param {boolean} useCapture specifies if we want to initiate capture.
+    * See <a href="https://developer.mozilla.org/en/DOM/element.addEventListener">element.addEventListener</a>
+    * on MDN for an explanation.
+    */
+    this.registerListener = function (_elem, _evtName, _fn, _useCapture) {
+        if (typeof _elem.addEventListener != 'undefined')
+        {
+            if (_evtName === 'mouseenter')
+            { _elem.addEventListener('mouseover', this.mouseEnter(_fn), _useCapture); }
+            else if (_evtName === 'mouseleave')
+            { _elem.addEventListener('mouseout', this.mouseEnter(_fn), _useCapture); }
+            else
+            { _elem.addEventListener(_evtName, _fn, _useCapture); }
+        }
+        else if (typeof _elem.attachEvent != 'undefined')
+        {
+            _elem.attachEvent('on' + _evtName, _fn);
+        }
+        else
+        {
+            _elem['on' + _evtName] = _fn;
+        }
+    };
+    
+    /**
+    * Stops an event from bubbling.
+    *
+    * @param {Event} eventObject the event object
+    */
+    this.stopEventBubbling = function (eventObject) {
+        if (eventObject) {
+            if (eventObject.stopPropagation) {
+                eventObject.stopPropagation ();
+            } else { 
+                eventObject.cancelBubble = true; 
+            }
+        }
+    };
+    
+    /**
+    * Creates a callback function that simply stops the event from bubbling.
+    *
+    * @example
+    * var browser = new bigshot.Browser ();
+    * browser.registerListener (element, 
+    *     "mousedown", 
+    *     browser.stopEventBubblingHandler (), 
+    *     false);
+    * @type function(event)
+    * @return a new function that can be used to stop an event from bubbling
+    */
+    this.stopEventBubblingHandler = function () {
+        var that = this;
+        return function (event) {
+            that.stopEventBubbling (event);
+            return false;
+        };
+    }
+    
+    /**
+        * Stops bubbling for all mouse events on the element.
+        *
+        * @param {HTMLElement} element the element
+        */
+    this.stopMouseEventBubbling = function (element) {
+        this.registerListener (element, "mousedown", this.stopEventBubblingHandler (), false);
+        this.registerListener (element, "mouseup", this.stopEventBubblingHandler (), false);
+        this.registerListener (element, "mousemove", this.stopEventBubblingHandler (), false);
+    };
+    
+    /**
+        * Returns the size in pixels of the element
+        *
+        * @param {HTMLElement} obj the element
+        * @return a size object with two integer members, w and h, for width and height respectively.
+        */
+    this.getElementSize = function (obj) {
+        var size = new Object();
+        if (obj.clientWidth) {
+            size.w = obj.clientWidth;
+        }
+        if (obj.clientHeight) {
+            size.h = obj.clientHeight;
+        }
+        return size;
+    };
+    
+    /**
+        * Returns the position in pixels of the element relative
+        * to the top left corner of the document.
+        *
+        * @param {HTMLElement} obj the element
+        * @return a position object with two integer members, x and y.
+        */
+    this.getElementPosition = function (obj) {
+        var position = new Object();
+        position.x = 0;
+        position.y = 0;
+        
+        var o = obj;
+        while (o) {
+            position.x += o.offsetLeft;
+            position.y += o.offsetTop;
+            if (o.clientLeft) {
+                position.x += o.clientLeft;
+            }
+            if (o.clientTop) {
+                position.y += o.clientTop;
+            }
+            
+            if (o.x) {
+                position.x += o.x;
+            }
+            if (o.y) {
+                position.y += o.y;
+            }
+            o = o.offsetParent;
+        }
+        return position;
+    };
+    
+    /**
+     * Creates an XMLHttpRequest object.
+     *
+     * @type XMLHttpRequest
+     * @return a XMLHttpRequest object.
+     */
+    this.createXMLHttpRequest = function  () {
+        try { 
+            return new ActiveXObject("Msxml2.XMLHTTP"); 
+        } catch (e) {
+        }
+        
+        try { 
+            return new ActiveXObject("Microsoft.XMLHTTP"); 
+        } catch (e) {
+        }
+        
+        try { 
+            return new XMLHttpRequest(); 
+        } catch(e) {
+        }
+        
+        alert("XMLHttpRequest not supported");
+        
+        return null;
+    };
+    return this;
+};
