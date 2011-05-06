@@ -148,6 +148,14 @@ bigshot.VRPanoramaParameters = function (values) {
     this.fileSystem = null;
     
     /**
+     * Object used to load data files.
+     *
+     * @default bigshot.DefaultDataLoader
+     * @type bigshot.DataLoader
+     */
+    this.dataLoader = new bigshot.DefaultDataLoader ();
+    
+    /**
      * The maximum magnification for the texture tiles making up the VR cube.
      * Used for level-of-detail tesselation.
      * A value of 1.0 means that textures will never be stretched (one texture pixel will

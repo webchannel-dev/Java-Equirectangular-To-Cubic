@@ -172,6 +172,14 @@ bigshot.ImageParameters = function (values) {
     this.fileSystem = null;
     
     /**
+     * Object used to load data files.
+     *
+     * @default bigshot.DefaultDataLoader
+     * @type bigshot.DataLoader
+     */
+    this.dataLoader = new bigshot.DefaultDataLoader ();
+    
+    /**
      * Enable the touch-friendly ui. The touch-friendly UI splits the viewport into
      * three click-sensitive regions:
      * <p style="text-align:center"><img src="../images/touch-ui.png"/></p>
@@ -196,6 +204,7 @@ bigshot.ImageParameters = function (values) {
      *
      * @type boolean
      * @default true
+     * @depreciated
      */
     this.touchUI = true;
     

@@ -31,33 +31,25 @@ bigshot.DeepZoomImageFileSystem = function (parameters) {
     this.posterName = "";
     
     this.getDescriptor = function () {
-        this.browser = new bigshot.Browser ();
-        var req = this.browser.createXMLHttpRequest ();
-        
-        req.open("GET", parameters.basePath + this.prefix + ".xml", false);   
-        req.send(null); 
         var descriptor = {};
-        if(req.status == 200) {
-            var xml = req.responseXML;
-            var image = xml.getElementsByTagName ("Image")[0];
-            var size = xml.getElementsByTagName ("Size")[0];
-            descriptor.width = parseInt (size.getAttribute ("Width"));
-            descriptor.height = parseInt (size.getAttribute ("Height"));
-            descriptor.tileSize = parseInt (image.getAttribute ("TileSize"));
-            descriptor.overlap = parseInt (image.getAttribute ("Overlap"));
-            descriptor.suffix = "." + image.getAttribute ("Format")
-            descriptor.posterSize = descriptor.tileSize;
-            
-            this.suffix = descriptor.suffix;
-            this.fullZoomLevel = Math.ceil (Math.log (Math.max (descriptor.width, descriptor.height)) / Math.LN2);
-            
-            descriptor.minZoom = -this.fullZoomLevel;
-            var posterZoomLevel = Math.ceil (Math.log (descriptor.tileSize) / Math.LN2);
-            this.posterName = this.getImageFilename (0, 0, posterZoomLevel - this.fullZoomLevel);
-            return descriptor;
-        } else {
-            throw new Error ("Unable to find descriptor.");
-        }
+        
+        var xml = parameters.dataLoader.loadXml (parameters.basePath + this.prefix + ".xml", false);
+        var image = xml.getElementsByTagName ("Image")[0];
+        var size = xml.getElementsByTagName ("Size")[0];
+        descriptor.width = parseInt (size.getAttribute ("Width"));
+        descriptor.height = parseInt (size.getAttribute ("Height"));
+        descriptor.tileSize = parseInt (image.getAttribute ("TileSize"));
+        descriptor.overlap = parseInt (image.getAttribute ("Overlap"));
+        descriptor.suffix = "." + image.getAttribute ("Format")
+        descriptor.posterSize = descriptor.tileSize;
+        
+        this.suffix = descriptor.suffix;
+        this.fullZoomLevel = Math.ceil (Math.log (Math.max (descriptor.width, descriptor.height)) / Math.LN2);
+        
+        descriptor.minZoom = -this.fullZoomLevel;
+        var posterZoomLevel = Math.ceil (Math.log (descriptor.tileSize) / Math.LN2);
+        this.posterName = this.getImageFilename (0, 0, posterZoomLevel - this.fullZoomLevel);
+        return descriptor;
     }
     
     this.setPrefix = function (prefix) {

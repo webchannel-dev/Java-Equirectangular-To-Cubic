@@ -143,9 +143,8 @@ bigshot.ImageTileCache = function (onLoaded, parameters) {
         var key = this.getImageKey (tileX, tileY, zoomLevel);
         if (!this.requestedImages[key]) {
             this.imageRequests++;
-            var tile = document.createElement ("img");
             var that = this;
-            this.browser.registerListener (tile, "load", function () {                        
+            parameters.dataLoader.loadImage (this.getImageFilename (tileX, tileY, zoomLevel), function (tile) {
                     that.cachedImages[key] = tile;
                     delete that.requestedImages[key];
                     that.imageRequests--;
@@ -155,9 +154,8 @@ bigshot.ImageTileCache = function (onLoaded, parameters) {
                         that.lastOnLoadFiredAt = now.getTime ();
                         that.onLoaded ();
                     }
-                }, false);
-            this.requestedImages[key] = tile;
-            tile.src = this.getImageFilename (tileX, tileY, zoomLevel);                    
+                });
+            this.requestedImages[key] = true;
         }            
     };
     

@@ -51,6 +51,9 @@ if (!self["bigshot"]) {
     bigshot = {};
     
     #include Browser.js
+    #include DataLoader.js
+    #include DefaultDataLoader.js
+    #include CachingDataLoader.js
     #include object.js
     #include Hotspot.js
     #include LabeledHotspot.js
