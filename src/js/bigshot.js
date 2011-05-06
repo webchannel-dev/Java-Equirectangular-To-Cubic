@@ -985,8 +985,8 @@ if (!self["bigshot"]) {
      *
      * @class ImageParameters parameter object.
      * You need not set any fields that can be read from the image descriptor that 
-     * MakeImagePyramid creates. See the {@link bigshot.Image} and {@link bigshot.VRPanorama}
-     * documentation for required parameters.
+     * MakeImagePyramid creates. See the {@link bigshot.Image} documentation for 
+     * required parameters.
      *
      * <p>Usage:
      *
@@ -998,15 +998,8 @@ if (!self["bigshot"]) {
      *         container : document.getElementById ("bigshot_div")
      *         }));
      * 
-     * var bvr = new bigshot.VRPanorama (
-     *     new bigshot.ImageParameters ({
-     *         basePath : "/bigshot.php?file=myvr.bigshot",
-     *         fileSystemType : "archive",
-     *         container : document.getElementById ("bigshot_canvas")
-     *         }));
      * @param values named parameter map, see the fields below for parameter names and types.
      * @see bigshot.Image
-     * @see bigshot.VRPanorama
      */
     bigshot.ImageParameters = function (values) {
         /**
@@ -3109,7 +3102,7 @@ if (!self["bigshot"]) {
          *
          * @param {number[3]} vector the translation vector
          */
-        this.mvTranslate = function (vector) {
+        this.translate = function (vector) {
             var m = Matrix.Translation($V([vector[0], vector[1], vector[2]])).ensure4x4 ();
             this.mvMultiply (m);
         }
@@ -3427,7 +3420,7 @@ if (!self["bigshot"]) {
         this.transformToWorld = function (v) {};
         this.transformWorldToScreen = function (worldVector) {};
         this.transformToScreen = function (vector) {};
-        this.beginRender = function (y, p, fov) {};
+        this.beginRender = function (y, p, fov, tx, ty, tz) {};
         this.endRender = function () {};
         this.onresize = function () {};
         this.resize = function (w, h) {};
@@ -3464,12 +3457,14 @@ if (!self["bigshot"]) {
         
         this.browser.removeAllChildren (this.world);
         
+        this.view = null;
+        
         this.createTileCache = function (onloaded, parameters) {
             return new bigshot.ImageVRTileCache (onloaded, parameters);
         };
         
         this.createTexturedQuadScene = function () {
-            return new bigshot.CSS3DTexturedQuadScene (this.world, 128);
+            return new bigshot.CSS3DTexturedQuadScene (this.world, 128, this.view);
         };
         
         this.createTexturedQuad = function (p, u, v, texture) {
@@ -3540,7 +3535,7 @@ if (!self["bigshot"]) {
         this.fov = 0;
         this.pMatrix = new bigshot.TransformStack ();
         
-        this.beginRender = function (y, p, fov) {
+        this.beginRender = function (y, p, fov, tx, ty, tz) {
             this.yaw = y;
             this.pitch = p;
             this.fov = fov;
@@ -3550,6 +3545,14 @@ if (!self["bigshot"]) {
             var perspectiveDistance = halfHeight / Math.tan (halfFovInRad);
             
             this.mvMatrix.reset ();
+            
+            this.mvMatrix.translate ([tx, ty, tz]);
+            this.view = {
+                x : tx,
+                y : ty,
+                z : tz
+            };
+            
             this.mvMatrix.rotate (this.yaw, [0, 1, 0]);
             this.mvMatrix.rotate (this.pitch, [1, 0, 0]);
             
@@ -3629,7 +3632,7 @@ if (!self["bigshot"]) {
         /**
          * Renders the quad.
          */
-        this.render = function (world, scale) {
+        this.render = function (world, scale, view) {
             var s = scale / (this.image.width - 1);
             var ps = scale * 1.0;
             
@@ -3640,7 +3643,7 @@ if (!self["bigshot"]) {
             this.image.inWorld = 2;
             this.image.style.WebkitTransformOrigin = "0px 0px 0px";
             this.image.style.WebkitTransform = 
-                this.quadTransform ([p.x * ps, -p.y * ps, p.z * ps], [u.x * s, -u.y * s, u.z * s], [v.x * s, -v.y * s, v.z * s]);
+                this.quadTransform ([(p.x + view.x) * ps, (-p.y + view.y) * ps, (p.z + view.z) * ps], [u.x * s, -u.y * s, u.z * s], [v.x * s, -v.y * s, v.z * s]);
             
         };
     }
@@ -3658,10 +3661,11 @@ if (!self["bigshot"]) {
      *
      * @see bigshot.CSS3DTexturedQuad
      */
-    bigshot.CSS3DTexturedQuadScene = function (world, scale) {
+    bigshot.CSS3DTexturedQuadScene = function (world, scale, view) {
         this.quads = new Array ();
         this.world = world;
         this.scale = scale;
+        this.view = view;
         
         /** 
          * Adds a new quad to the scene.
@@ -3673,9 +3677,9 @@ if (!self["bigshot"]) {
         /** 
          * Renders all quads.
          */
-        this.render = function () {
+        this.render = function () {            
             for (var i = 0; i < this.quads.length; ++i) {
-                this.quads[i].render (this.world, this.scale);
+                this.quads[i].render (this.world, this.scale, this.view);
             }
         };
     };
@@ -3748,16 +3752,17 @@ if (!self["bigshot"]) {
             return this.webGl.transformWorldToScreen (world);
         }
         
-        this.beginRender = function (y, p, fov) {
+        this.beginRender = function (y, p, fov, tx, ty, tz) {
             this.webGl.gl.viewport (0, 0, this.webGl.gl.viewportWidth, this.webGl.gl.viewportHeight);
             
             this.webGl.pMatrix.reset ();
             this.webGl.pMatrix.perspective (fov, this.webGl.gl.viewportWidth / this.webGl.gl.viewportHeight, 0.1, 100.0);
             
             this.webGl.mvMatrix.reset ();
-            
             this.webGl.mvMatrix.rotate (y, [0, 1, 0]);
             this.webGl.mvMatrix.rotate (p, [1, 0, 0]);
+            
+            this.webGl.mvMatrix.translate ([tx, ty, tz]);            
         }
         
         this.endRender = function () {
@@ -4105,34 +4110,9 @@ if (!self["bigshot"]) {
          */
         this.maxYaw = 720;
         
+        this.yawOffset = 0.0;
         
-        /**
-         * Enable the touch-friendly ui. The touch-friendly UI splits the viewport into
-         * three click-sensitive regions:
-         * <p style="text-align:center"><img src="../images/touch-ui.png"/></p>
-         * 
-         * <p>Clicking (or tapping with a finger) on the outer region causes the viewport to zoom out.
-         * Clicking anywhere within the middle, "pan", region centers the image on the spot clicked.
-         * Finally, clicking in the center hotspot will center the image on the spot clicked and zoom
-         * in half a zoom level.
-         *
-         * <p>As before, you can drag to pan anywhere.
-         *
-         * <p>If you have navigation tools for mouse users that hover over the image container, it 
-         * is recommended that any click events on them are kept from bubbling, otherwise the click 
-         * will propagate to the touch ui. One way is to use the 
-         * {@link bigshot.Browser#stopMouseEventBubbling} method:
-         *
-         * @example
-         * var browser = new bigshot.Browser ();
-         * browser.stopMouseEventBubbling (document.getElementById ("myBigshotControlDiv"));
-         *
-         * @see bigshot.VRPanorama#showTouchUI
-         *
-         * @type boolean
-         * @default true
-         */
-        this.touchUI = true;
+        this.pitchOffset = 0.0;
         
         /**
          * The rendering back end to use.
@@ -4326,6 +4306,11 @@ if (!self["bigshot"]) {
         this.dragStart = null;
         this.hotspots = [];
         
+        this.transformOffsets = {
+            yaw : parameters.yawOffset,
+            pitch : parameters.pitchOffset
+        };
+        
         /**
          * Current camera state.
          * @private
@@ -4347,7 +4332,13 @@ if (!self["bigshot"]) {
              * Field of view (vertical) in degrees.
              * @private
              */
-            fov : 45
+            fov : 45,
+            
+            tx : 0.0,
+            
+            ty : 0.0,
+            
+            tz : 0.0
         };
         
         /**
@@ -4388,6 +4379,20 @@ if (!self["bigshot"]) {
          */
         this.getParameters = function () {
             return this.parameters;
+        }
+        
+        this.setTranslation = function (x, y, z) {
+            this.state.tx = x;
+            this.state.ty = y;
+            this.state.tz = z;
+        }
+        
+        this.getTranslation = function () {
+            return {
+                x : this.state.tx,
+                y : this.state.ty,
+                z : this.state.tz
+            };
         }
         
         /**
@@ -4523,7 +4528,7 @@ if (!self["bigshot"]) {
          * Sets up transformation matrices etc.
          */
         this.beginRender = function () {
-            this.renderer.beginRender (this.state.y, this.state.p, this.state.fov);
+            this.renderer.beginRender (this.state.y + this.transformOffsets.yaw, this.state.p + this.transformOffsets.pitch, this.state.fov, this.state.tx, this.state.ty, this.state.tz);
         }
         
         /**
@@ -4612,7 +4617,7 @@ if (!self["bigshot"]) {
          * The current drag mode.
          * @private
          */
-        this.dragMode = this.DRAG_PAN;
+        this.dragMode = this.DRAG_GRAB;
         
         /**
          * Sets the mouse dragging mode.
@@ -4658,9 +4663,13 @@ if (!self["bigshot"]) {
             }
         }
         
+        this.onMouseDoubleClick = function (e, x, y) {
+            this.smoothRotateToXY (x, y);
+        }
+        
         this.mouseDoubleClick = function (e) {
             var pos = this.browser.getElementPosition (this.container);
-            this.smoothRotateToXY (e.clientX - pos.x, e.clientY - pos.y);
+            this.onMouseDoubleClick (e, e.clientX - pos.x, e.clientY - pos.y);
         }
         
         /**
@@ -4723,6 +4732,36 @@ if (!self["bigshot"]) {
             return mz * 2;
         }
         
+        this.screenToRay = function (x, y) {
+            var dray = this.screenToRayDelta (x, y);
+            var ray = this.renderer.transformToWorld ([dray.x, dray.y, dray.z]);
+            return {
+                x : ray.e(1),
+                y : ray.e(2),
+                z : ray.e(3)
+            };
+        }
+        
+        this.screenToRayDelta = function (x, y) {
+            var halfHeight = this.renderer.getViewportHeight () / 2;
+            var halfWidth = this.renderer.getViewportWidth () / 2;
+            var x = (x - halfWidth);
+            var y = (y - halfHeight);
+            
+            var edgeSizeY = Math.tan ((this.state.fov / 2) * Math.PI / 180);
+            var edgeSizeX = edgeSizeY * this.renderer.getViewportWidth () / this.renderer.getViewportHeight ();
+            
+            var wx = x * edgeSizeX / halfWidth;
+            var wy = y * edgeSizeY / halfHeight;
+            var wz = -1.0;
+            
+            return {
+                x : wx,
+                y : wy,
+                z : wz
+            };
+        }
+        
         /**
          * Smoothly rotates the panorama so that the 
          * point given by x and y, in pixels relative to the top left corner
@@ -4732,19 +4771,10 @@ if (!self["bigshot"]) {
          * @param {int} y the y-coordinate, in pixels from the top edge
          */
         this.smoothRotateToXY = function (x, y) {
-            var halfHeight = this.renderer.getViewportHeight () / 2;
-            var halfWidth = this.renderer.getViewportWidth () / 2;
-            var x = (x - halfWidth);
-            var y = (y - halfHeight);
+            var ray = this.screenToRayDelta (x, y);
             
-            var edgeSizeY = Math.tan ((this.state.fov / 2) * Math.PI / 180);
-            var edgeSizeX = edgeSizeY * this.renderer.getViewportWidth () / this.renderer.getViewportHeight ();
-            
-            var wy = y * edgeSizeY / halfHeight;
-            var wx = x * edgeSizeX / halfWidth;
-            
-            var dpitch = Math.atan (wy) * 180 / Math.PI;
-            var dyaw = Math.atan (wx) * 180 / Math.PI;
+            var dpitch = Math.atan (ray.y) * 180 / Math.PI;
+            var dyaw = Math.atan (ray.x) * 180 / Math.PI;
             
             this.smoothRotateTo (this.snapYaw (this.getYaw () + dyaw), this.snapPitch (this.getPitch () + dpitch), this.getFov (), this.state.fov / 200);
         }
@@ -5275,7 +5305,11 @@ if (!self["bigshot"]) {
                 that.mouseDoubleClick (e);
                 return consumeEvent (e);
             }, false);
+        
+        this.lastTouchStartAt = -1;
+        
         this.browser.registerListener (parameters.container, "touchstart", function (e) {
+                that.lastTouchStartAt = new Date ().getTime ();
                 that.resetIdle ();
                 that.dragMouseDown (translateEvent (e));
                 return consumeEvent (e);
@@ -5283,9 +5317,14 @@ if (!self["bigshot"]) {
         this.browser.registerListener (parameters.container, "touchend", function (e) {
                 that.resetIdle ();
                 that.dragMouseUp (translateEvent (e));
+                if (that.lastTouchStartAt > new Date().getTime() - 100) {
+                    that.mouseDoubleClick (translateEvent (e));
+                }
+                that.lastTouchStartAt = -1;
                 return consumeEvent (e);
             }, false);
         this.browser.registerListener (parameters.container, 'touchmove', function (e) {
+                that.lastTouchStartAt = -1;
                 that.resetIdle ();
                 that.dragMouseMove (translateEvent (e));
                 return consumeEvent (e);
