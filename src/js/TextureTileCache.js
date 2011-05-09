@@ -34,8 +34,7 @@ bigshot.TextureTileCache = function (onLoaded, parameters, _webGl) {
      * @private
      * @type HTMLImageElement
      */
-    this.fullImage = document.createElement ("img");
-    this.fullImage.src = parameters.fileSystem.getPosterFilename ();
+    this.fullImage = parameters.dataLoader.loadImage (parameters.fileSystem.getPosterFilename ());
     
     /**
      * Maximum number of WebGL textures in the cache. This is the
@@ -130,9 +129,8 @@ bigshot.TextureTileCache = function (onLoaded, parameters, _webGl) {
         var key = this.getImageKey (tileX, tileY, zoomLevel);
         if (!this.requestedImages[key]) {
             this.imageRequests++;
-            var tile = document.createElement ("img");
             var that = this;
-            this.browser.registerListener (tile, "load", function () {                        
+            parameters.dataLoader.loadImage (this.getImageFilename (tileX, tileY, zoomLevel), function (tile) {
                     if (that.cachedTextures[key]) {
                         that.webGl.gl.deleteTexture (that.cachedTextures[key]);
                     }
@@ -145,9 +143,8 @@ bigshot.TextureTileCache = function (onLoaded, parameters, _webGl) {
                         that.lastOnLoadFiredAt = now.getTime ();
                         that.onLoaded ();
                     }
-                }, false);
-            this.requestedImages[key] = tile;
-            tile.src = this.getImageFilename (tileX, tileY, zoomLevel);                    
+                });
+            this.requestedImages[key] = true;
         }            
     };
     
@@ -186,4 +183,4 @@ bigshot.TextureTileCache = function (onLoaded, parameters, _webGl) {
     
     return this;
 };
-    
+

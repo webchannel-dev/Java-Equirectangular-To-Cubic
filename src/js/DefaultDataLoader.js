@@ -24,10 +24,13 @@ bigshot.DefaultDataLoader = function () {
     
     this.loadImage = function (url, onloaded) {
         var tile = document.createElement ("img");
-        this.browser.registerListener (tile, "load", function () {                        
-                onloaded (tile);
+        this.browser.registerListener (tile, "load", function () {
+                if (onloaded) {
+                    onloaded (tile);
+                }
             }, false);
         tile.src = url;
+        return tile;
     };
     
     this.loadXml = function (url, synchronous, onloaded) {

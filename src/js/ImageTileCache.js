@@ -29,8 +29,7 @@ bigshot.ImageTileCache = function (onLoaded, parameters) {
       * @private
       * @type HTMLImageElement
       */
-    this.fullImage = document.createElement ("img");
-    this.fullImage.src = parameters.fileSystem.getPosterFilename ();
+    this.fullImage = parameters.dataLoader.loadImage (parameters.fileSystem.getPosterFilename ());
     
     /**
      * Maximum number of tiles in the cache.
@@ -92,9 +91,7 @@ bigshot.ImageTileCache = function (onLoaded, parameters) {
             }
             
             ctx.drawImage (this.fullImage, sx, sy, sw, sh, -1, -1, dw, dh);
-            var tile = document.createElement ("img");
-            tile.src = canvas.toDataURL ();
-            return tile;
+            return canvas;
         } else {
             return null;
         }
@@ -120,8 +117,7 @@ bigshot.ImageTileCache = function (onLoaded, parameters) {
         
         if (this.cachedImages[key]) {
             if (this.usedImages[key]) {
-                var tile = document.createElement ("img");
-                tile.src = this.getImageFilename (tileX, tileY, zoomLevel);
+                var tile = parameters.dataLoader.loadImage (this.getImageFilename (tileX, tileY, zoomLevel));
                 return tile;
             } else {
                 this.usedImages[key] = true;

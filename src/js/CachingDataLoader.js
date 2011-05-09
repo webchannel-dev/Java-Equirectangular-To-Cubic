@@ -22,6 +22,7 @@ bigshot.CachingDataLoader = function () {
     
     this.cache = {};
     this.requested = {};
+    this.requestedTiles = {};
     
     this.browser = new bigshot.Browser ();
     
@@ -30,8 +31,12 @@ bigshot.CachingDataLoader = function () {
             if (onloaded) {
                 onloaded (this.cache[url]);
             }
+            return this.cache[url];
         } else if (this.requested[url]) {
-            this.requested[url].push (onloaded);
+            if (onloaded) {
+                this.requested[url].push (onloaded);
+            }
+            return this.requestedTiles[url];
         } else {
             var that = this;
             this.requested[url] = new Array ();
@@ -40,9 +45,11 @@ bigshot.CachingDataLoader = function () {
             }
             
             var tile = document.createElement ("img");
+            this.requestedTiles[url] = tile;
             this.browser.registerListener (tile, "load", function () {                        
                     var listeners = that.requested[url];
                     delete that.requested[url];
+                    delete that.requestedTiles[url];
                     that.cache[url] = tile;
                     
                     for (var i = 0; i < listeners.length; ++i) {
@@ -50,6 +57,7 @@ bigshot.CachingDataLoader = function () {
                     }
                 }, false);
             tile.src = url;
+            return tile;
         }
     };
     
