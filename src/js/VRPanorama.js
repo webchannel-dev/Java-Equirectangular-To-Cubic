@@ -179,6 +179,7 @@ bigshot.VRPanorama = function (parameters) {
     this.container = parameters.container;
     this.browser = new bigshot.Browser ();
     this.dragStart = null;
+    this.dragDistance = 0;
     this.hotspots = [];
     
     this.transformOffsets = {
@@ -505,6 +506,7 @@ bigshot.VRPanorama = function (parameters) {
     
     this.dragMouseDown = function (e) {
         this.dragStart = e;
+        this.dragDistance = 0;
     }
     
     this.dragMouseUp = function (e) {
@@ -519,6 +521,7 @@ bigshot.VRPanorama = function (parameters) {
                 var scale = this.state.fov / this.renderer.getViewportHeight ();
                 var dx = e.clientX - this.dragStart.clientX;
                 var dy = e.clientY - this.dragStart.clientY;
+                this.dragDistance += dx + dy;
                 this.setYaw (this.getYaw () - dx * scale);
                 this.setPitch (this.getPitch () - dy * scale);
                 this.renderAsap ();
@@ -527,6 +530,7 @@ bigshot.VRPanorama = function (parameters) {
                 var scale = 0.1 * this.state.fov / this.renderer.getViewportHeight ();
                 var dx = e.clientX - this.dragStart.clientX;
                 var dy = e.clientY - this.dragStart.clientY;
+                this.dragDistance = dx + dy;
                 this.smoothRotate (
                     function () {
                         return dx * scale;
@@ -610,6 +614,7 @@ bigshot.VRPanorama = function (parameters) {
     this.screenToRay = function (x, y) {
         var dray = this.screenToRayDelta (x, y);
         var ray = this.renderer.transformToWorld ([dray.x, dray.y, dray.z]);
+        ray = Matrix.RotationY (-this.transformOffsets.yaw * Math.PI / 180.0).ensure4x4 ().x (ray);
         return {
             x : ray.e(1),
             y : ray.e(2),
@@ -1192,14 +1197,16 @@ bigshot.VRPanorama = function (parameters) {
     this.browser.registerListener (parameters.container, "touchend", function (e) {
             that.resetIdle ();
             that.dragMouseUp (translateEvent (e));
-            if (that.lastTouchStartAt > new Date().getTime() - 100) {
+            if (that.lastTouchStartAt > new Date().getTime() - 350) {
                 that.mouseDoubleClick (translateEvent (e));
             }
             that.lastTouchStartAt = -1;
             return consumeEvent (e);
         }, false);
     this.browser.registerListener (parameters.container, 'touchmove', function (e) {
-            that.lastTouchStartAt = -1;
+            if (that.dragDistance > 24) {                
+                that.lastTouchStartAt = -1;
+            }
             that.resetIdle ();
             that.dragMouseMove (translateEvent (e));
             return consumeEvent (e);
