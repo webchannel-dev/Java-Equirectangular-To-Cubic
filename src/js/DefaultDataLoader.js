@@ -18,15 +18,29 @@
  * @class Data loader using standard browser functions.
  * @augments bigshot.DataLoader
  */
-bigshot.DefaultDataLoader = function () {
+bigshot.DefaultDataLoader = function (maxRetries) {
     
     this.browser = new bigshot.Browser ();
+    this.maxRetries = maxRetries;
+    if (!this.maxRetries) {
+        this.maxRetries = 0;
+    }
     
     this.loadImage = function (url, onloaded) {
         var tile = document.createElement ("img");
+        tile.retries = 0;
+        var that = this;
         this.browser.registerListener (tile, "load", function () {
                 if (onloaded) {
                     onloaded (tile);
+                }
+            }, false);
+        this.browser.registerListener (tile, "error", function () {
+                tile.retries++;
+                if (tile.retries <= that.maxRetries) {
+                    setTimeout (function () {
+                            tile.src = url;
+                        }, tile.retries * 1000);
                 }
             }, false);
         tile.src = url;
@@ -34,21 +48,27 @@ bigshot.DefaultDataLoader = function () {
     };
     
     this.loadXml = function (url, synchronous, onloaded) {
-        var req = this.browser.createXMLHttpRequest ();
-        
-        req.open("GET", url, false);   
-        req.send(null); 
-        if(req.status == 200) {
-            var xml = req.responseXML;
-            if (onloaded) {
-                onloaded (xml);
+        for (var tries = 0; tries <= that.maxRetries; ++tries) {
+            var req = this.browser.createXMLHttpRequest ();
+            
+            req.open("GET", url, false);   
+            req.send(null); 
+            if(req.status == 200) {
+                var xml = req.responseXML;
+                if (xml != null) {
+                    if (onloaded) {
+                        onloaded (xml);
+                    }
+                    return xml;
+                }
+            } 
+            
+            if (tries == that.maxRetries) {
+                if (onloaded) {
+                    onloaded (null);
+                }
+                return null;
             }
-            return xml;
-        } else {
-            if (onloaded) {
-                onloaded (null);
-            }
-            return null;
-        }   
+        }
     };
 }

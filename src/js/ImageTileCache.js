@@ -21,6 +21,8 @@
  * @constructor
  */
 bigshot.ImageTileCache = function (onLoaded, parameters) {
+    var that = this;
+    
     /**
       * Reduced-resolution preview of the full image.
       * Loaded from the "poster" image created by 
@@ -29,7 +31,10 @@ bigshot.ImageTileCache = function (onLoaded, parameters) {
       * @private
       * @type HTMLImageElement
       */
-    this.fullImage = parameters.dataLoader.loadImage (parameters.fileSystem.getPosterFilename ());
+    this.fullImage = null;
+    parameters.dataLoader.loadImage (parameters.fileSystem.getPosterFilename (), function (tile) {
+            that.fullImage = tile;
+        });
     
     /**
      * Maximum number of tiles in the cache.
@@ -59,7 +64,7 @@ bigshot.ImageTileCache = function (onLoaded, parameters) {
     };
     
     this.getPartialImage = function (tileX, tileY, zoomLevel) {
-        if (this.fullImage.complete) {
+        if (this.fullImage && this.fullImage.complete) {
             var canvas = document.createElement ("canvas");
             if (!canvas["width"]) {
                 return null;
