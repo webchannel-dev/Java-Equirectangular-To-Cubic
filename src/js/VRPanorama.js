@@ -1042,7 +1042,7 @@ bigshot.VRPanorama = function (parameters) {
      * @private
      */
     this.onresize = function () {
-        if (!this.fullScreenHandler) {
+        if (this.fullScreenHandler == null || !this.fullScreenHandler.isFullScreen) {
             if (this.sizeContainer) {
                 var s = this.browser.getElementSize (this.sizeContainer);
                 this.renderer.resize (s.w, s.h);

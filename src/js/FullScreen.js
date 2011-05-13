@@ -93,8 +93,8 @@ bigshot.FullScreen = function (container) {
         
         this.div.appendChild (this.container);
         
-        this.container.style.width = window.innerWidth + "px";
-        this.container.style.height = window.innerHeight + "px";
+        //this.container.style.width = window.innerWidth + "px";
+        //this.container.style.height = window.innerHeight + "px";
 
         document.body.appendChild (this.div);
         

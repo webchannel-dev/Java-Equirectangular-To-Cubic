@@ -72,8 +72,12 @@ bigshot.CSS3DVRRenderer = function (_container) {
     };
     
     this.resize = function (w, h) {
-        this.container.style.width = w + "px";
-        this.container.style.height = h + "px";
+        if (this.container.style.width != "") {
+            this.container.style.width = w + "px";
+        }
+        if (this.container.style.height != "") {
+            this.container.style.height = h + "px";
+        }
     };
     
     this.onresize = function () {
