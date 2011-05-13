@@ -48,7 +48,7 @@ bigshot.DefaultDataLoader = function (maxRetries) {
     };
     
     this.loadXml = function (url, synchronous, onloaded) {
-        for (var tries = 0; tries <= that.maxRetries; ++tries) {
+        for (var tries = 0; tries <= this.maxRetries; ++tries) {
             var req = this.browser.createXMLHttpRequest ();
             
             req.open("GET", url, false);   

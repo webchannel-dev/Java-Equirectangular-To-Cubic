@@ -37,6 +37,10 @@ bigshot.FullScreen = function (container) {
         
     };
     
+    this.getRootElement = function () {
+        return this.div;
+    };
+    
     this.addOnClose = function (onClose) {
         this.onCloseHandlers.push (onClose);
     };
@@ -87,17 +91,18 @@ bigshot.FullScreen = function (container) {
         this.div.style.height = window.innerHeight + "px";
         this.div.style.zIndex = "9998";
         
-        this.container.style.width = "100%";
-        this.container.style.height = "100%";
         this.div.appendChild (this.container);
         
+        this.container.style.width = window.innerWidth + "px";
+        this.container.style.height = window.innerHeight + "px";
+
         document.body.appendChild (this.div);
         
         var that = this;
         var resizeHandler = function (e) {
             setTimeout (function () {
                     that.div.style.width = window.innerWidth + "px";
-                    that.div.style.height = window.innerHeight + "px";
+                    that.div.style.height = window.innerHeight + "px";                    
                     setTimeout (function () {
                             that.onResize ();
                         }, 1);

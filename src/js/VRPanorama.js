@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and 
  * limitations under the License. 
  */
-    
+
 /**
  * Creates a new VR panorama in a canvas. <b>Requires WebGL support.</b>
  * (Note: See {@link bigshot.VRPanorama#dispose} for important information.)
@@ -944,11 +944,11 @@ bigshot.VRPanorama = function (parameters) {
     };
     
     /**
-     * Flag that indicates whether we are in full screen mode.
+     * Full screen handler.
      *
      * @private
      */
-    this.isFullScreen = false;
+    this.fullScreenHandler = null;
     
     /**
      * Maximizes the image to cover the browser viewport.
@@ -970,29 +970,9 @@ bigshot.VRPanorama = function (parameters) {
      * @public
      */
     this.fullScreen = function (onClose) {
-        if (this.isFullScreen) {
+        if (this.fullScreenHandler) {
             return;
         }
-        this.isFullScreen = true;
-        
-        var div = document.createElement ("div");
-        div.style.position = "fixed";
-        div.style.top = window.pageYOffset + "px";
-        div.style.left = window.pageXOffset + "px";
-        
-        div.style.width = Math.min (window.innerWidth, document.documentElement.clientWidth) + "px";
-        div.style.height = Math.min (window.innerHeight, document.documentElement.clientHeight) + "px";
-        div.style.zIndex = "9998";
-        
-        var savedParent = this.container.parentNode;
-        var savedSize = {
-            width : this.container.style.width,
-            height : this.container.style.height
-        };
-        this.container.style.width = "100%";
-        this.container.style.height = "100%";
-        savedParent.removeChild (this.container);
-        div.appendChild (this.container);
         
         var message = document.createElement ("div");
         message.style.position = "absolute";
@@ -1006,37 +986,33 @@ bigshot.VRPanorama = function (parameters) {
         message.style.opacity = "0.75";
         message.innerHTML = "<span style='border-radius: 16px; -moz-border-radius: 16px; padding: 16px; padding-left: 32px; padding-right: 32px; background:black'>Press Esc to exit full screen mode.</span>";
         
-        div.appendChild (message);
-        document.body.appendChild (div);
-        
         var that = this;
-        this.exitFullScreenHandler = function () {
-            if (message.parentNode) {
-                try {
-                    div.removeChild (message);
-                } catch (x) {
-                }
-            }
-            that.browser.unregisterListener (document, "keydown", escHandler);
-            if (!that.sizeContainer) {
-                that.container.style.width = savedSize.width;
-                that.container.style.height = savedSize.height;
-            }                
-            savedParent.appendChild (that.container);
-            document.body.removeChild (div);
-            that.isFullScreen = false;
-            that.onresize ();
-            if (onClose) {
-                onClose ();
-            }
-        };
         
-        var escHandler = function (e) {
-            if (e.keyCode == 27) {
-                that.exitFullScreenHandler ();
-            }
-        };
-        this.browser.registerListener (document, "keydown", escHandler, false);
+        this.fullScreenHandler = new bigshot.FullScreen (this.container);
+        this.fullScreenHandler.restoreSize = this.sizeContainer == null;
+        
+        this.fullScreenHandler.addOnResize (function () {
+                that.onresize ();
+            });
+        
+        this.fullScreenHandler.addOnClose (function () {
+                if (message.parentNode) {
+                    try {
+                        div.removeChild (message);
+                    } catch (x) {
+                    }
+                }
+                that.fullScreenHandler = null;
+            });
+        
+        if (onClose) {
+            this.fullScreenHandler.addOnClose (function () {
+                    onClose ();
+                });
+        }
+        
+        this.fullScreenHandler.open ();
+        this.fullScreenHandler.getRootElement ().appendChild (message);
         
         setTimeout (function () {
                 var opacity = 0.75;
@@ -1056,9 +1032,11 @@ bigshot.VRPanorama = function (parameters) {
                 setTimeout (iter, 20);
             }, 3500);
         
-        this.onresize ();
+        //this.onresize ();
         
-        return this.exitFullScreenHandler;
+        return function () {
+            that.fullScreenHandler.close ();
+        };
     };
     
     /**
@@ -1066,12 +1044,14 @@ bigshot.VRPanorama = function (parameters) {
      * @private
      */
     this.onresize = function () {
-        if (!this.isFullScreen) {
+        if (!this.fullScreenHandler) {
             if (this.sizeContainer) {
                 var s = this.browser.getElementSize (this.sizeContainer);
                 this.renderer.resize (s.w, s.h);
             }
         } else {
+            this.container.style.width = window.innerWidth + "px";
+            this.container.style.height = window.innerHeight + "px";            
             var s = this.browser.getElementSize (this.container);
             this.renderer.resize (s.w, s.h);
         }
