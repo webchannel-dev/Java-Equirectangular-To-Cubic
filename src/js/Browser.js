@@ -222,5 +222,6 @@ bigshot.Browser = function () {
         
         return null;
     };
+    
     return this;
 };

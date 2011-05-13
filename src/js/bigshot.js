@@ -51,6 +51,7 @@ if (!self["bigshot"]) {
     bigshot = {};
     
     #include Browser.js
+    #include FullScreen.js
     #include DataLoader.js
     #include DefaultDataLoader.js
     #include CachingDataLoader.js

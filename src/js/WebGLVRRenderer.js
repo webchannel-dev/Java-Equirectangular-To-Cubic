@@ -87,6 +87,8 @@ bigshot.WebGLVRRenderer = function (container) {
     this.resize = function (w, h) {
         this.canvas.width = w;
         this.canvas.height = h;
+        container.style.width = w + "px";
+        container.style.height = h + "px";
     }
     
     this.onresize = function () {
