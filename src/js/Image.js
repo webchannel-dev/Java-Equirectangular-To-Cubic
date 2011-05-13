@@ -813,8 +813,7 @@ bigshot.Image = function (parameters) {
         this.fullScreenHandler.restoreSize = true;
         
         this.fullScreenHandler.addOnResize (function () {
-                if (that.fullScreenHandler.isFullScreen) {
-                    console.log ("Resizing");
+                if (that.fullScreenHandler && that.fullScreenHandler.isFullScreen) {
                     that.container.style.width = window.innerWidth + "px";
                     that.container.style.height = window.innerHeight + "px";                
                 }
@@ -822,7 +821,6 @@ bigshot.Image = function (parameters) {
             });
         
         this.fullScreenHandler.addOnClose (function () {
-                console.log ("Closing");
                 if (message.parentNode) {
                     try {
                         div.removeChild (message);
