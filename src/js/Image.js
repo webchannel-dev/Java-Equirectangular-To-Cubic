@@ -57,8 +57,6 @@ bigshot.Image = function (parameters) {
     
     this.dragStart = null;
     this.dragged = false;
-    this.isFullScreen = false;
-    this.exitFullScreenHandler = null;
     
     this.layers = new Array ();
     
@@ -762,14 +760,16 @@ bigshot.Image = function (parameters) {
         setTimeout (iter, delay);
     };
     
+    this.fullScreenHandler = null;
+    
     /**
      * Forces exit from full screen mode, if we're there.
      * @public
      */
     this.exitFullScreen = function () {
-        if (!this.isFullScreen) {
-            this.exitFullScreenHandler ();
-            this.exitFullScreenHandler = null;
+        if (this.fullScreenHandler) {
+            this.fullScreenHandler.close ();
+            this.fullScreenHandler = null;
             return;
         }
     };
@@ -791,6 +791,79 @@ bigshot.Image = function (parameters) {
      * @public
      */
     this.fullScreen = function (onClose) {
+        if (this.fullScreenHandler) {
+            return;
+        }
+        
+        var message = document.createElement ("div");
+        message.style.position = "absolute";
+        message.style.fontSize = "16pt";
+        message.style.top = "128px";
+        message.style.width = "100%";
+        message.style.color = "white";
+        message.style.padding = "16px";
+        message.style.zIndex = "9999";
+        message.style.textAlign = "center";
+        message.style.opacity = "0.75";
+        message.innerHTML = "<span style='border-radius: 16px; -moz-border-radius: 16px; padding: 16px; padding-left: 32px; padding-right: 32px; background:black'>Press Esc to exit full screen mode.</span>";
+        
+        var that = this;
+        
+        this.fullScreenHandler = new bigshot.FullScreen (this.container);
+        this.fullScreenHandler.restoreSize = true;
+        
+        this.fullScreenHandler.addOnResize (function () {
+                if (that.fullScreenHandler.isFullScreen) {
+                    console.log ("Resizing");
+                    that.container.style.width = window.innerWidth + "px";
+                    that.container.style.height = window.innerHeight + "px";                
+                }
+                that.onresize ();
+            });
+        
+        this.fullScreenHandler.addOnClose (function () {
+                console.log ("Closing");
+                if (message.parentNode) {
+                    try {
+                        div.removeChild (message);
+                    } catch (x) {
+                    }
+                }
+                that.fullScreenHandler = null;
+            });
+        
+        if (onClose) {
+            this.fullScreenHandler.addOnClose (function () {
+                    onClose ();
+                });
+        }
+        
+        this.fullScreenHandler.open ();
+        this.fullScreenHandler.getRootElement ().appendChild (message);
+        
+        setTimeout (function () {
+                var opacity = 0.75;
+                var iter = function () {
+                    opacity -= 0.02;
+                    if (message.parentNode) {
+                        if (opacity <= 0) {
+                            try {
+                                div.removeChild (message);
+                            } catch (x) {}
+                        } else {
+                            message.style.opacity = opacity;
+                            setTimeout (iter, 20);
+                        }
+                    }
+                };
+                setTimeout (iter, 20);
+            }, 3500);
+        
+        return function () {
+            that.fullScreenHandler.close ();
+        };
+        /*
+        
         if (this.isFullScreen) {
             return;
         }
@@ -875,6 +948,7 @@ bigshot.Image = function (parameters) {
         this.onresize ();
         
         return this.exitFullScreenHandler;
+        */
     };
     
     /**

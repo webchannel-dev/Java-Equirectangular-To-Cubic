@@ -1032,8 +1032,6 @@ bigshot.VRPanorama = function (parameters) {
                 setTimeout (iter, 20);
             }, 3500);
         
-        //this.onresize ();
-        
         return function () {
             that.fullScreenHandler.close ();
         };
