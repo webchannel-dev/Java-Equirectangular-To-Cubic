@@ -206,7 +206,7 @@ bigshot.ImageParameters = function (values) {
      * @default true
      * @depreciated
      */
-    this.touchUI = true;
+    this.touchUI = false;
     
     if (values) {
         for (var k in values) {
