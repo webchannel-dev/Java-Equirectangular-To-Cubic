@@ -146,11 +146,11 @@ bigshot.Browser = function () {
     };
     
     /**
-        * Returns the size in pixels of the element
-        *
-        * @param {HTMLElement} obj the element
-        * @return a size object with two integer members, w and h, for width and height respectively.
-        */
+     * Returns the size in pixels of the element
+     *
+     * @param {HTMLElement} obj the element
+     * @return a size object with two integer members, w and h, for width and height respectively.
+     */
     this.getElementSize = function (obj) {
         var size = new Object();
         if (obj.clientWidth) {
@@ -160,6 +160,33 @@ bigshot.Browser = function () {
             size.h = obj.clientHeight;
         }
         return size;
+    };
+    
+    /**
+     * Returns true if the browser is scaling the window, such as on Mobile Safari.
+     * The method used here is far from perfect, but it catches the most important use case:
+     * If we are running on an iDevice and the page is zoomed out.
+     */
+    this.browserIsViewporting = function () {
+        if (window.innerWidth <= screen.width) {
+            return false;
+        } else {
+            return true;
+        }
+    };
+    
+    /**
+     * Returns the device pixel scale, which is equal to the number of device 
+     * pixels each css pixel corresponds to. Used to render the proper level of detail
+     * on mobile devices, especially when zoomed out and more detailed textures are
+     * simply wasted.
+     */
+    this.getDevicePixelScale = function () {
+        if (this.browserIsViewporting ()) {
+            return screen.width / window.innerWidth;
+        } else {
+            return 1.0;
+        }
     };
     
     /**

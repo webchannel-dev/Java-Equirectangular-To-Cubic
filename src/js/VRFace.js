@@ -266,6 +266,9 @@ bigshot.VRFace = function (owner, key, topLeft_, width_, u, v) {
             dmax = Math.max (this.screenDistance (transformed[i], transformed[next]), dmax);
         }
         
+        // Convert the distance to physical pixels
+        dmax *= this.owner.browser.getDevicePixelScale ();
+        
         if (divisions < this.minDivisions 
                 || 
                 (
