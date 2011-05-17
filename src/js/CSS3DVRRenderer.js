@@ -129,7 +129,7 @@ bigshot.CSS3DVRRenderer = function (_container) {
     this.fov = 0;
     this.pMatrix = new bigshot.TransformStack ();
     
-    this.beginRender = function (y, p, fov, tx, ty, tz) {
+    this.beginRender = function (y, p, fov, tx, ty, tz, oy, op, or) {
         this.yaw = y;
         this.pitch = p;
         this.fov = fov;
@@ -147,8 +147,13 @@ bigshot.CSS3DVRRenderer = function (_container) {
             z : tz
         };
         
+        this.mvMatrix.rotate (or, [0, 0, 1]);
+        this.mvMatrix.rotate (op, [1, 0, 0]);
+        this.mvMatrix.rotate (oy, [0, 1, 0]);
+        
         this.mvMatrix.rotate (this.yaw, [0, 1, 0]);
         this.mvMatrix.rotate (this.pitch, [1, 0, 0]);
+        
         
         this.pMatrix.reset ();
         this.pMatrix.perspective (this.fov, this.getViewportWidth () / this.getViewportHeight (), 0.1, 100.0);
@@ -161,7 +166,10 @@ bigshot.CSS3DVRRenderer = function (_container) {
         
         this.world.style.WebkitTransform = 
             "rotate3d(1,0,0," + (-p) + "deg) " +
-        "rotate3d(0,1,0," + y + "deg) ";
+            "rotate3d(0,1,0," + y + "deg) " +
+            "rotate3d(0,1,0," + (oy) + "deg) " +
+            "rotate3d(1,0,0," + (-op) + "deg) " +
+            "rotate3d(0,0,1," + (-or) + "deg) ";
         this.world.style.WebkitTransformStyle = "preserve-3d";
         this.world.style.WebKitBackfaceVisibility = "hidden";
         

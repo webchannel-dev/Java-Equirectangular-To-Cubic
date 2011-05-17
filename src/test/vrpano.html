@@ -71,8 +71,11 @@
                             fileSystemType : "dzi",
                             textureMinFilter : linear,
                             textureMagFilter : linear,
-                            maxTesselation : 1,
-                            maxTextureMagnification : 1.5
+                            //maxTesselation : 1,
+                            maxTextureMagnification : 1.5,
+                            rollOffset : 10,
+                            pitchOffset : 10,
+                            yawOffset : 0
                         }));
                 bvr.onrender = function () {
                     var s = document.getElementById ("position-yaw");
@@ -148,34 +151,18 @@
             }
         </script>
         <script type="text/javascript">
-            function setupSaladoPlayer (containerName, pathToXml, pathToSaladoPlayerSwf, pathToExpressInstall) {
-                var flashvars = {};
-                flashvars.xml = pathToXml;
-                
-                var params = {};
-                params.play = "true";
-                params.loop = "false";
-                params.menu = "false";
-                params.quality = "high";
-                params.scale = "showall";
-                params.wmode = "window";
-                params.bgcolor = "#FFFFFF";
-                params.devicefont = "false";
-                params.allowfullscreen = "true";
-                params.allowscriptaccess = "sameDomain";
-                var attributes = {};
-                swfobject.embedSWF(
-                    pathToSaladoPlayerSwf, containerName, "100%", "480", "10.0.0", 
-                    pathToExpressInstall, flashvars, params, attributes);
+            function getViewportZoom () {
+                var scale = window.innerWidth / screen.width;
+                alert (screen.width + " " + window.innerWidth + " " + scale);
             }
         </script>
     </head>
-    <body onload="vrpano(); //setupSaladoPlayer ('SaladoPlayer', 'saladoplayer.xml', '../../tools/SaladoPlayer/SaladoPlayer.swf', '../../tools/SaladoPlayer/embed/expressInstall.swf');">
+    <body onload="vrpano();">
         <h2>
             Bigshot VR
         </h2>
         <div style="background:black; height:480px; width:100%;" id="outerContainer">
-            <div style="background:black;" id="container">
+            <div style="background:black; height:480px;" id="container">
                 <div style="width:0px; height:0px; position:absolute; z-index:1;">
                     <div class="hotspot" id="hotspot" style="text-align:center; width:1px;"
                         onclick="alert('Clicked on hotspot!');">
@@ -199,6 +186,7 @@
         <a href="#" onclick="fullScreen(); return false;"><button type="button">Fullscreen</button></a>
         <a href="#" onclick="benchmark(); return false;"><button type="button">Benchmark</button></a>
         <a href="#" onclick="bvr.setFov (bvr.getMinFovFromViewportAndImage ()); bvr.render (); return false;"><button type="button">computedMinZoom</button></a>
+        <a href="#" onclick="getViewportZoom (); return false;"><button type="button">getViewportZoom</button></a>
         </p>
         
         <p>

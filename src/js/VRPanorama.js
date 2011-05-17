@@ -184,7 +184,8 @@ bigshot.VRPanorama = function (parameters) {
     
     this.transformOffsets = {
         yaw : parameters.yawOffset,
-        pitch : parameters.pitchOffset
+        pitch : parameters.pitchOffset,
+        roll : parameters.rollOffset
     };
     
     /**
@@ -404,7 +405,7 @@ bigshot.VRPanorama = function (parameters) {
      * Sets up transformation matrices etc.
      */
     this.beginRender = function () {
-        this.renderer.beginRender (this.state.y + this.transformOffsets.yaw, this.state.p + this.transformOffsets.pitch, this.state.fov, this.state.tx, this.state.ty, this.state.tz);
+        this.renderer.beginRender (this.state.y, this.state.p, this.state.fov, this.state.tx, this.state.ty, this.state.tz, this.transformOffsets.yaw, this.transformOffsets.pitch, this.transformOffsets.roll);
     }
     
     /**
@@ -615,6 +616,8 @@ bigshot.VRPanorama = function (parameters) {
         var dray = this.screenToRayDelta (x, y);
         var ray = this.renderer.transformToWorld ([dray.x, dray.y, dray.z]);
         ray = Matrix.RotationY (-this.transformOffsets.yaw * Math.PI / 180.0).ensure4x4 ().x (ray);
+        ray = Matrix.RotationX (-this.transformOffsets.pitch * Math.PI / 180.0).ensure4x4 ().x (ray);
+        ray = Matrix.RotationZ (-this.transformOffsets.roll * Math.PI / 180.0).ensure4x4 ().x (ray);
         return {
             x : ray.e(1),
             y : ray.e(2),

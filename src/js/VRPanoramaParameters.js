@@ -245,6 +245,8 @@ bigshot.VRPanoramaParameters = function (values) {
     
     this.pitchOffset = 0.0;
     
+    this.rollOffset = 0.0;
+    
     /**
      * The rendering back end to use.
      * Values are "css" and "webgl".

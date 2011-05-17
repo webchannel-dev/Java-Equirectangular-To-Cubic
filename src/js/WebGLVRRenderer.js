@@ -67,13 +67,16 @@ bigshot.WebGLVRRenderer = function (container) {
         return this.webGl.transformWorldToScreen (world);
     }
     
-    this.beginRender = function (y, p, fov, tx, ty, tz) {
+    this.beginRender = function (y, p, fov, tx, ty, tz, oy, op, or) {
         this.webGl.gl.viewport (0, 0, this.webGl.gl.viewportWidth, this.webGl.gl.viewportHeight);
         
         this.webGl.pMatrix.reset ();
         this.webGl.pMatrix.perspective (fov, this.webGl.gl.viewportWidth / this.webGl.gl.viewportHeight, 0.1, 100.0);
         
         this.webGl.mvMatrix.reset ();
+        this.webGl.mvMatrix.rotate (or, [0, 0, 1]);
+        this.webGl.mvMatrix.rotate (op, [1, 0, 0]);
+        this.webGl.mvMatrix.rotate (oy, [0, 1, 0]);
         this.webGl.mvMatrix.rotate (y, [0, 1, 0]);
         this.webGl.mvMatrix.rotate (p, [1, 0, 0]);
         
