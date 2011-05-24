@@ -404,36 +404,76 @@ bigshot.VRPanorama = function (parameters) {
     /**
      * Sets up transformation matrices etc.
      */
-    this.beginRender = function () {
+    this.beginRender = function (cause, data) {
+        this.onrender (this.ONRENDER_BEGIN, cause, data);
         this.renderer.beginRender (this.state.y, this.state.p, this.state.fov, this.state.tx, this.state.ty, this.state.tz, this.transformOffsets.yaw, this.transformOffsets.pitch, this.transformOffsets.roll);
     }
     
+    this.renderListeners = new Array ();
+    
     /**
-     * If set, called at the end of every render.
+     * Add a function that will be called at the end of every render.
+     *
+     * @param {function(state)} listener
+     */
+    this.registerRenderListener = function (listener) {
+        var rl = new Array ();
+        rl.concat (this.renderListeners);
+        rl.push (listener);
+        this.renderListeners = rl;
+    };
+    
+    /**
+     * Removes a function that will be called at the end of every render.
+     *
+     * @param {function()} listener
+     */
+    this.unregisterRenderListener = function (listener) {
+        var rl = new Array ();
+        rl.concat (this.renderListeners);
+        for (var i = 0; i < rl.length; ++i) {
+            if (rl[i] == listener) {
+                rl = rl.splice (i, 1);
+                break;
+            }
+        }
+        this.renderListeners = rl;
+    };
+    
+    this.ONRENDER_BEGIN = 0;
+    this.ONRENDER_END = 1;
+    this.ONRENDER_CAUSE_TEXTURE_UPDATE = 0;
+    
+    /**
+     * Called at the start and end of every render.
      *
      * @event
+     * @private
      * @type function()
      */
-    this.onrender = null;
+    this.onrender = function (state, cause, data) {
+        var rl = this.renderListeners;
+        for (var i = 0; i < rl.length; ++i) {
+            rl[i](state, cause, data);
+        }
+    };
     
     /**
      * Performs per-render cleanup.
      */
-    this.endRender = function () {
+    this.endRender = function (cause, data) {
         for (var f in this.vrFaces) {
             this.vrFaces[f].endRender ();
         }
         this.renderer.endRender ();
-        if (this.onrender) {
-            this.onrender ();
-        }
+        this.onrender (this.ONRENDER_END, cause, data);
     }
     
     /**
      * Renders the VR cube.
      */
-    this.render = function () {
-        this.beginRender ();
+    this.render = function (cause, data) {
+        this.beginRender (cause, data);
         
         var scene = this.renderer.createTexturedQuadScene ();
         
@@ -447,15 +487,15 @@ bigshot.VRPanorama = function (parameters) {
             this.hotspots[i].layout ();
         }
         
-        this.endRender ();
+        this.endRender (cause, data);
     };
     
     /**
      * Render updated faces. Called as tiles are loaded from the server.
      */
-    this.renderUpdated = function () {
+    this.renderUpdated = function (cause, data) {
         if (this.renderer.supportsUpdate ()) {
-            this.beginRender ();
+            this.beginRender (cause, data);
             
             var scene = this.renderer.createTexturedQuadScene ();
             
@@ -471,9 +511,9 @@ bigshot.VRPanorama = function (parameters) {
                 this.hotspots[i].layout ();
             }
             
-            this.endRender ();
+            this.endRender (cause, data);
         } else {
-            this.render ();
+            this.render (cause, data);
         }
     };
     
@@ -586,6 +626,14 @@ bigshot.VRPanorama = function (parameters) {
         }
     };
     
+    this.setMaxTextureMagnification = function (v) {
+        this.maxTextureMagnification = v;
+    };
+    
+    this.getMaxTextureMagnification = function () {
+        return v;
+    };
+    
     /**
      * Computes the minimum field of view where the resulting image will not
      * have to stretch the textures more than given by the
@@ -603,7 +651,7 @@ bigshot.VRPanorama = function (parameters) {
             minFaceHeight = Math.min (minFaceHeight, this.vrFaces[i].parameters.height);
         }
         
-        var edgeSizeY = this.parameters.maxTextureMagnification * minFaceHeight / 2;
+        var edgeSizeY = this.maxTextureMagnification * minFaceHeight / 2;
         
         var wy = halfHeight / edgeSizeY;
         

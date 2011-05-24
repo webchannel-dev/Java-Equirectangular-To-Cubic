@@ -94,4 +94,5 @@ if (!self["bigshot"]) {
     #include ImageCarouselPanoramaVRRenderer.js
     #include ImageCarouselPanoramaParameters.js
     #include ImageCarouselPanorama.js
+    #include AdaptiveLODMonitor.js
 }
