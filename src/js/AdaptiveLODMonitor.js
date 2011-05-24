@@ -17,8 +17,8 @@
 /**
  * @class An adaptive LOD monitor.
  */
-bigshot.AdaptiveLODMonitor = function (vrPanorama, targetFps, tolerance, rate, minMag, maxMag) {
-    this.currentAdaptiveMagnification = maxMag;
+bigshot.AdaptiveLODMonitor = function (parameters) {
+    this.currentAdaptiveMagnification = parameters.vrPanorama.getMaxTextureMagnification ();
     
     this.frames = 0;
     this.samples = 0;
@@ -26,12 +26,10 @@ bigshot.AdaptiveLODMonitor = function (vrPanorama, targetFps, tolerance, rate, m
     this.renderTimeLast = 0;
     this.samplesLast = 0;
     
-    this.targetFps = targetFps;
+    this.targetTime = 1000 / parameters.targetFps;
     
-    this.targetTime = 1000 / this.targetFps;
-    
-    this.lowerTime = this.targetTime / tolerance;
-    this.upperTime = this.targetTime * tolerance;
+    this.lowerTime = this.targetTime / (1.0 + parameters.tolerance);
+    this.upperTime = this.targetTime * (1.0 + parameters.tolerance);
     
     this.averageRenderTime = function () {
         if (this.samples > 0) {
@@ -50,11 +48,11 @@ bigshot.AdaptiveLODMonitor = function (vrPanorama, targetFps, tolerance, rate, m
     }
     
     this.increaseDetail = function () {
-        this.currentAdaptiveMagnification = Math.max (minMag, this.currentAdaptiveMagnification / (1.0 + rate));
+        this.currentAdaptiveMagnification = Math.max (parameters.minMag, this.currentAdaptiveMagnification / (1.0 + parameters.rate));
     };
     
     this.decreaseDetail = function () {
-        this.currentAdaptiveMagnification = Math.min (maxMag, this.currentAdaptiveMagnification * (1.0 + rate));
+        this.currentAdaptiveMagnification = Math.min (parameters.maxMag, this.currentAdaptiveMagnification * (1.0 + parameters.rate));
     };
     
     this.sample = function () {
@@ -87,11 +85,11 @@ bigshot.AdaptiveLODMonitor = function (vrPanorama, targetFps, tolerance, rate, m
     this.hqRenderWaiting = false;
     
     this.hqRenderTick = function () {
-        if (this.lastRender < new Date ().getTime () - 1000) {
+        if (this.lastRender < new Date ().getTime () - parameters.hqRenderDelay) {
             this.hqRender = true;
             this.hqMode = true;
-            vrPanorama.setMaxTextureMagnification (minMag);
-            vrPanorama.render ();
+            parameters.vrPanorama.setMaxTextureMagnification (parameters.hqRenderMag);
+            parameters.vrPanorama.render ();
             
             this.hqRender = false;
             this.hqRenderWaiting = false;
@@ -99,7 +97,7 @@ bigshot.AdaptiveLODMonitor = function (vrPanorama, targetFps, tolerance, rate, m
             var that = this;
             setTimeout (function () {
                     that.hqRenderTick ();
-                }, 1000);
+                }, parameters.hqRenderInterval);
         }
     };
     
@@ -108,17 +106,17 @@ bigshot.AdaptiveLODMonitor = function (vrPanorama, targetFps, tolerance, rate, m
             return;
         }
         
-        if (this.hqMode && cause == vrPanorama.ONRENDER_CAUSE_TEXTURE_UPDATE) {
-            vrPanorama.setMaxTextureMagnification (minMag);
+        if (this.hqMode && cause == parameters.vrPanorama.ONRENDER_TEXTURE_UPDATE) {
+            parameters.vrPanorama.setMaxTextureMagnification (parameters.minMag);
             return;
         } else {
             this.hqMode = false;
         }
         
-        vrPanorama.setMaxTextureMagnification (this.currentAdaptiveMagnification);
+        parameters.vrPanorama.setMaxTextureMagnification (this.currentAdaptiveMagnification);
         
         this.frames++;
-        if ((this.frames < 20 || this.frames % 5 == 0) && state == vrPanorama.ONRENDER_BEGIN) {
+        if ((this.frames < 20 || this.frames % 5 == 0) && state == parameters.vrPanorama.ONRENDER_BEGIN) {
             this.startTime = new Date ().getTime ();
             this.lastRender = this.startTime;
             var that = this;
@@ -129,7 +127,7 @@ bigshot.AdaptiveLODMonitor = function (vrPanorama, targetFps, tolerance, rate, m
                 this.hqRenderWaiting = true;
                 setTimeout (function () {
                         that.hqRenderTick ();
-                    }, 1000);
+                    }, parameters.hqRenderInterval);
             }
         }
     };

@@ -442,7 +442,7 @@ bigshot.VRPanorama = function (parameters) {
     
     this.ONRENDER_BEGIN = 0;
     this.ONRENDER_END = 1;
-    this.ONRENDER_CAUSE_TEXTURE_UPDATE = 0;
+    this.ONRENDER_TEXTURE_UPDATE = 0;
     
     /**
      * Called at the start and end of every render.
@@ -631,7 +631,7 @@ bigshot.VRPanorama = function (parameters) {
     };
     
     this.getMaxTextureMagnification = function () {
-        return v;
+        return this.maxTextureMagnification;
     };
     
     /**
