@@ -74,7 +74,7 @@ bigshot.ImageTileCache = function (onLoaded, parameters) {
     
     this.getPartialImageFromPoster = function (tileX, tileY, zoomLevel) {
         if (this.fullImage && this.fullImage.complete) {
-            var posterScale = parameters.posterSize / Math.max (parameters.width, parameters.height);
+            var posterScale = this.fullImage.width / parameters.width;
             var tileSizeAtZoom = posterScale * parameters.tileSize / Math.pow (2, zoomLevel);
             
             x0 = Math.floor (tileSizeAtZoom * tileX);
@@ -82,7 +82,7 @@ bigshot.ImageTileCache = function (onLoaded, parameters) {
             w = Math.floor (tileSizeAtZoom);
             h = Math.floor (tileSizeAtZoom);
             
-            return this.createPartialImage (this.fullImage, parameters.posterSize, x0, y0, w, h);
+            return this.createPartialImage (this.fullImage, this.fullImage.width, x0, y0, w, h);
         } else {
             return null;
         }
@@ -99,8 +99,8 @@ bigshot.ImageTileCache = function (onLoaded, parameters) {
         
         var scale = sourceImage.width / expectedSourceImageSize;
         
-        var sx = x0 * scale;
-        var sy = y0 * scale;
+        var sx = Math.floor (x0 * scale);
+        var sy = Math.floor (y0 * scale);
         w *= scale;
         if (sx + w >= sourceImage.width) {
             w = sourceImage.width - sx - 1;
@@ -111,7 +111,7 @@ bigshot.ImageTileCache = function (onLoaded, parameters) {
             h = sourceImage.height - sy - 1;
         }
         
-        ctx.drawImage (sourceImage, sx, sy, w, h, 0, 0, this.partialImageSize, this.partialImageSize);
+        ctx.drawImage (sourceImage, sx, sy, w, h, -0.1, -0.1, this.partialImageSize + 0.2, this.partialImageSize + 0.2);
         
         return canvas;
     }
