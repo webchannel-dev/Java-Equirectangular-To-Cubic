@@ -994,7 +994,7 @@ bigshot.Image = function (parameters) {
     
     this.thisTileCache = new bigshot.ImageTileCache (function () {
             that.layout ();     
-        }, parameters);
+        }, null, parameters);
     
     this.addLayer (
         new bigshot.TileLayer (this, parameters, 0, 0, this.thisTileCache)

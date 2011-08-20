@@ -31,8 +31,8 @@ bigshot.WebGLVRRenderer = function (container) {
     this.webGl.gl.disable(this.webGl.gl.DEPTH_TEST);
     this.webGl.gl.clearDepth(1.0);
     
-    this.createTileCache = function (onloaded, parameters) {
-        return new bigshot.TextureTileCache (onloaded, parameters, this.webGl);
+    this.createTileCache = function (onloaded, onCacheInit, parameters) {
+        return new bigshot.TextureTileCache (onloaded, onCacheInit, parameters, this.webGl);
     };
     
     this.createTexturedQuadScene = function () {
@@ -74,13 +74,12 @@ bigshot.WebGLVRRenderer = function (container) {
         this.webGl.pMatrix.perspective (fov, this.webGl.gl.viewportWidth / this.webGl.gl.viewportHeight, 0.1, 100.0);
         
         this.webGl.mvMatrix.reset ();
+        this.webGl.mvMatrix.translate ([tx, ty, tz]);
         this.webGl.mvMatrix.rotate (or, [0, 0, 1]);
         this.webGl.mvMatrix.rotate (op, [1, 0, 0]);
         this.webGl.mvMatrix.rotate (oy, [0, 1, 0]);
         this.webGl.mvMatrix.rotate (y, [0, 1, 0]);
         this.webGl.mvMatrix.rotate (p, [1, 0, 0]);
-        
-        this.webGl.mvMatrix.translate ([tx, ty, tz]);            
     }
     
     this.endRender = function () {

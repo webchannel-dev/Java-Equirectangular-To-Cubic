@@ -20,7 +20,7 @@
  * @class Tile cache for the {@link bigshot.TileLayer}.
  * @constructor
  */
-bigshot.ImageTileCache = function (onLoaded, parameters) {
+bigshot.ImageTileCache = function (onLoaded, onCacheInit, parameters) {
     var that = this;
     
     /**
@@ -34,6 +34,9 @@ bigshot.ImageTileCache = function (onLoaded, parameters) {
     this.fullImage = null;
     parameters.dataLoader.loadImage (parameters.fileSystem.getPosterFilename (), function (tile) {
             that.fullImage = tile;
+            if (onCacheInit) {
+                onCacheInit ();
+            }
         });
     
     /**

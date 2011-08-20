@@ -23,7 +23,7 @@
  * @param {bigshot.VRPanoramaParameters} image parameters
  * @param {bigshot.WebGL} _webGl WebGL instance to use
  */
-bigshot.TextureTileCache = function (onLoaded, parameters, _webGl) {
+bigshot.TextureTileCache = function (onLoaded, onCacheInit, parameters, _webGl) {
     this.webGl = _webGl;
     
     /**
@@ -34,7 +34,7 @@ bigshot.TextureTileCache = function (onLoaded, parameters, _webGl) {
      * @private
      * @type HTMLImageElement
      */
-    this.fullImage = parameters.dataLoader.loadImage (parameters.fileSystem.getPosterFilename ());
+    this.fullImage = parameters.dataLoader.loadImage (parameters.fileSystem.getPosterFilename (), onCacheInit);
     
     /**
      * Maximum number of WebGL textures in the cache. This is the

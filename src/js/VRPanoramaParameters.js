@@ -248,6 +248,15 @@ bigshot.VRPanoramaParameters = function (values) {
     this.rollOffset = 0.0;
     
     /**
+     * Function to call when all six cube faces have loaded the base texture level
+     * and can be rendered.
+     *
+     * @type function()
+     * @default null
+     */
+    this.onload = null;
+    
+    /**
      * The rendering back end to use.
      * Values are "css" and "webgl".
      * 

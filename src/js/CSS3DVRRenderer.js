@@ -47,8 +47,8 @@ bigshot.CSS3DVRRenderer = function (_container) {
     
     this.view = null;
     
-    this.createTileCache = function (onloaded, parameters) {
-        return new bigshot.ImageVRTileCache (onloaded, parameters);
+    this.createTileCache = function (onloaded, onCacheInit, parameters) {
+        return new bigshot.ImageVRTileCache (onloaded, onCacheInit, parameters);
     };
     
     this.createTexturedQuadScene = function () {

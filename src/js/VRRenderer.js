@@ -21,7 +21,7 @@ bigshot.VRRenderer = function () {
     /**
      * Creates a new bigshot.TileCache, appropriate for the rendering system.
      */
-    this.createTileCache = function (onloaded, parameters) {};
+    this.createTileCache = function (onloaded, onCacheInit, parameters) {};
     
     /**
      * Creates a bigshot.TexturedQuadScene.

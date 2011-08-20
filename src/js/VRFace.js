@@ -28,7 +28,7 @@
  * @param {vector} u basis vector going from the top left corner along the top edge of the face
  * @param {vector} v basis vector going from the top left corner along the left edge of the face
  */
-bigshot.VRFace = function (owner, key, topLeft_, width_, u, v) {
+bigshot.VRFace = function (owner, key, topLeft_, width_, u, v, onLoaded) {
     var that = this;
     this.owner = owner;
     this.key = key;
@@ -91,7 +91,7 @@ bigshot.VRFace = function (owner, key, topLeft_, width_, u, v) {
     this.tileCache = owner.renderer.createTileCache (function () { 
             that.updated = true;
             owner.renderUpdated (owner.ONRENDER_TEXTURE_UPDATE);
-        }, this.parameters);
+        }, onLoaded, this.parameters);
     
     this.fullSize = this.parameters.width;
     this.overlap = this.parameters.overlap;

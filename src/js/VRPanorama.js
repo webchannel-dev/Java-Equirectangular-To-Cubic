@@ -1142,20 +1142,35 @@ bigshot.VRPanorama = function (parameters) {
     this.autoResizeContainer = function (sizeContainer) {
         this.sizeContainer = sizeContainer;
     }
-    
+        
     /**
      * The six cube faces.
      *
      * @type bigshot.VRFace[]
      * @private
      */
+    var facesInit = {
+        facesLeft : 6,
+        faceLoaded : function () {
+            this.facesLeft--;
+            if (this.facesLeft == 0) {
+               if (that.parameters.onload) {
+                    that.parameters.onload ();
+                }
+            }
+        }
+    };
+    var onFaceLoad = function () { 
+        facesInit.faceLoaded () 
+    };
+    
     this.vrFaces = new Array ();
-    this.vrFaces[0] = new bigshot.VRFace (this, "f", {x:-1, y:1, z:-1}, 2.0, {x:1, y:0, z:0}, {x:0, y:-1, z:0});
-    this.vrFaces[1] = new bigshot.VRFace (this, "b", {x:1, y:1, z:1}, 2.0, {x:-1, y:0, z:0}, {x:0, y:-1, z:0});
-    this.vrFaces[2] = new bigshot.VRFace (this, "l", {x:-1, y:1, z:1}, 2.0, {x:0, y:0, z:-1}, {x:0, y:-1, z:0});
-    this.vrFaces[3] = new bigshot.VRFace (this, "r", {x:1, y:1, z:-1}, 2.0, {x:0, y:0, z:1}, {x:0, y:-1, z:0});
-    this.vrFaces[4] = new bigshot.VRFace (this, "u", {x:-1, y:1, z:1}, 2.0, {x:1, y:0, z:0}, {x:0, y:0, z:-1});
-    this.vrFaces[5] = new bigshot.VRFace (this, "d", {x:-1, y:-1, z:-1}, 2.0, {x:1, y:0, z:0}, {x:0, y:0, z:1});
+    this.vrFaces[0] = new bigshot.VRFace (this, "f", {x:-1, y:1, z:-1}, 2.0, {x:1, y:0, z:0}, {x:0, y:-1, z:0}, onFaceLoad);
+    this.vrFaces[1] = new bigshot.VRFace (this, "b", {x:1, y:1, z:1}, 2.0, {x:-1, y:0, z:0}, {x:0, y:-1, z:0}, onFaceLoad);
+    this.vrFaces[2] = new bigshot.VRFace (this, "l", {x:-1, y:1, z:1}, 2.0, {x:0, y:0, z:-1}, {x:0, y:-1, z:0}, onFaceLoad);
+    this.vrFaces[3] = new bigshot.VRFace (this, "r", {x:1, y:1, z:-1}, 2.0, {x:0, y:0, z:1}, {x:0, y:-1, z:0}, onFaceLoad);
+    this.vrFaces[4] = new bigshot.VRFace (this, "u", {x:-1, y:1, z:1}, 2.0, {x:1, y:0, z:0}, {x:0, y:0, z:-1}, onFaceLoad);
+    this.vrFaces[5] = new bigshot.VRFace (this, "d", {x:-1, y:-1, z:-1}, 2.0, {x:1, y:0, z:0}, {x:0, y:0, z:1}, onFaceLoad);
     
     /**
      * Helper function to translate touch events to mouse-like events.

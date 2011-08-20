@@ -17,8 +17,8 @@
 /**
  * @class Img impl.
  */
-bigshot.ImageVRTileCache = function (onloaded, parameters) {
-    this.imageTileCache = new bigshot.ImageTileCache (onloaded, parameters);
+bigshot.ImageVRTileCache = function (onloaded, onCacheInit, parameters) {
+    this.imageTileCache = new bigshot.ImageTileCache (onloaded, onCacheInit, parameters);
     
     this.imageTileCache.setMaxTiles (999999, 999999);
     
