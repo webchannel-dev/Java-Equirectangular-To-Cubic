@@ -444,11 +444,18 @@ public class EquirectangularToCubic {
         return output;
     }
     
-    public static void transformToFace (File imageName, File output, int outputSize, double frontAt, double vfov, double yaw, double pitch, double roll) throws Exception {
-        Image in = Image.read (imageName);
+    public static Image readImage (File imageName) throws Exception {
+        return Image.read (imageName);
+    }
+    
+    public static void transformToFace (Image in, File output, int outputSize, double frontAt, double vfov, double yaw, double pitch, double roll) throws Exception {
         transform (in, vfov,   yaw + frontAt,   pitch, roll, outputSize, outputSize).write (output);
     }
     
+    public static void transformToFace (File imageName, File output, int outputSize, double frontAt, double vfov, double yaw, double pitch, double roll) throws Exception {
+        Image in = Image.read (imageName);
+        transformToFace (in, output, outputSize, frontAt, vfov, yaw, pitch, roll);
+    }    
     
     public static File[] transformToFaces (File imageName, File outputBase, final int outputSize, final double frontAt) throws Exception {
         System.out.println ("Transforming to " + outputSize + "x" + outputSize + " cube map faces.");
