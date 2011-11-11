@@ -181,7 +181,7 @@ public class MakeImagePyramid {
                 ImageWriteParam iwp = writer.getDefaultWriteParam();
                 
                 iwp.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
-                iwp.setCompressionQuality(1);
+                iwp.setCompressionQuality ((float) quality);
                 
                 FileImageOutputStream os = new FileImageOutputStream (output);
                 try {
