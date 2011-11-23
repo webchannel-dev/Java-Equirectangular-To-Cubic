@@ -365,7 +365,7 @@ public class EquirectangularToCubic {
         }
     }
     
-    protected static Image transform (final Image input, double vfov, final double yaw, final double pitch, final double roll, final int width, final int height) throws Exception {
+    protected static Image transform (final Image input, double vfov, final double oy, final double op, final double or, final double yaw, final double pitch, final double roll, final int width, final int height) throws Exception {
         final Image output = new Image (width, height);
         
         vfov = toRad (vfov);
@@ -376,6 +376,10 @@ public class EquirectangularToCubic {
         transform.rotateZ (toRad (roll));
         transform.rotateX (toRad (pitch));
         transform.rotateY (toRad (yaw));
+        
+        transform.rotateY (toRad (oy));
+        transform.rotateX (toRad (op));
+        transform.rotateZ (toRad (or));
         
         final FastAcos fastAcos = new FastAcos (input.width () * 2);
         final FastAtan fastAtan = new FastAtan (input.height () * 2);
@@ -392,7 +396,6 @@ public class EquirectangularToCubic {
             callables.add (new Callable<Object> () {
                     public Object call () throws Exception {
                         final Point3D point = new Point3D (0,0,0);
-                        System.out.println ("Rendering lines " + startY + " to " + endY);
                         for (int y = startY; y < endY; ++y) {
                             for (int x = 0; x < width; ++x) {
                                 point.x = topLeft.x;
@@ -448,16 +451,16 @@ public class EquirectangularToCubic {
         return Image.read (imageName);
     }
     
-    public static void transformToFace (Image in, File output, int outputSize, double frontAt, double vfov, double yaw, double pitch, double roll) throws Exception {
-        transform (in, vfov,   yaw + frontAt,   pitch, roll, outputSize, outputSize).write (output);
+    public static Image transformToFace (Image in, int outputSize, double vfov, double oy, double op, double or, double yaw, double pitch, double roll) throws Exception {
+        return transform (in, vfov, oy, op, or, yaw, pitch, roll, outputSize, outputSize);
     }
     
-    public static void transformToFace (File imageName, File output, int outputSize, double frontAt, double vfov, double yaw, double pitch, double roll) throws Exception {
+    public static void transformToFace (File imageName, File output, int outputSize, double vfov, double oy, double op, double or, double yaw, double pitch, double roll) throws Exception {
         Image in = Image.read (imageName);
-        transformToFace (in, output, outputSize, frontAt, vfov, yaw, pitch, roll);
+        transformToFace (in, outputSize, vfov, oy, op, or, yaw, pitch, roll).write (output);
     }    
     
-    public static File[] transformToFaces (File imageName, File outputBase, final int outputSize, final double frontAt) throws Exception {
+    public static File[] transformToFaces (File imageName, File outputBase, final int outputSize, double oy, double op, double or) throws Exception {
         System.out.println ("Transforming to " + outputSize + "x" + outputSize + " cube map faces.");
         
         final Image in = Image.read (imageName);
@@ -473,12 +476,12 @@ public class EquirectangularToCubic {
         
         long start = System.currentTimeMillis ();
         
-        transform (in, 90,   0 + frontAt,   0, 0, outputSize, outputSize).write (files[0]);
-        transform (in, 90,  90 + frontAt,   0, 0, outputSize, outputSize).write (files[1]);
-        transform (in, 90, 180 + frontAt,   0, 0, outputSize, outputSize).write (files[2]);
-        transform (in, 90, -90 + frontAt,   0, 0, outputSize, outputSize).write (files[3]);
-        transform (in, 90,   0 + frontAt,  90, 0, outputSize, outputSize).write (files[4]);
-        transform (in, 90,   0 + frontAt, -90, 0, outputSize, outputSize).write (files[5]);
+        transform (in, 90, oy, op, or,   0,   0, 0, outputSize, outputSize).write (files[0]);
+        transform (in, 90, oy, op, or,  90,   0, 0, outputSize, outputSize).write (files[1]);
+        transform (in, 90, oy, op, or, 180,   0, 0, outputSize, outputSize).write (files[2]);
+        transform (in, 90, oy, op, or, -90,   0, 0, outputSize, outputSize).write (files[3]);
+        transform (in, 90, oy, op, or,   0,  90, 0, outputSize, outputSize).write (files[4]);
+        transform (in, 90, oy, op, or,   0, -90, 0, outputSize, outputSize).write (files[5]);
         
         long end = System.currentTimeMillis ();
         long delta = end - start;

@@ -311,7 +311,7 @@ public class MakeImagePyramid {
                 File[] faces = EquirectangularToCubic.transformToFaces (
                     input, facesOut, 
                     getParameterAsInt (parameters, "face-size", 2048) + getParameterAsInt (parameters, "overlap", 0),
-                    getParameterAsDouble (parameters, "front-at", 0.0)
+                    getParameterAsDouble (parameters, "front-at", 0.0), 0.0, 0.0
                     );
                 parameters.remove ("format");
                 parameters.remove ("folder-layout");
@@ -388,7 +388,7 @@ public class MakeImagePyramid {
             EquirectangularToCubic.Image in = EquirectangularToCubic.Image.read (input);
             for (int i = 0; i < steps; ++i) {
                 File outFile = new File (pyramidBase, String.valueOf (i) + output.getSuffix ());
-                EquirectangularToCubic.Image outImage = EquirectangularToCubic.transform (in, fov, frontAt + i * 360 / steps, 0, 0, outputSizeW, outputSizeH);
+                EquirectangularToCubic.Image outImage = EquirectangularToCubic.transform (in, fov, frontAt, 0.0, 0.0, i * 360 / steps, 0, 0, outputSizeW, outputSizeH);
                 output.write (outImage.toBuffered (), outFile);
             }
             
