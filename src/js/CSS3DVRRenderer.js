@@ -23,8 +23,9 @@ bigshot.CSS3DVRRenderer = function (_container) {
     this.browser = new bigshot.Browser ();
     this.container = _container;
     this.canvasOrigin = document.createElement ("div");
+    
     this.canvasOrigin.style.WebkitTransformOrigin = "0px 0px 0px";
-    this.canvasOrigin.style.WebkitTransformStyle = "preserve-3;";
+    this.canvasOrigin.style.WebkitTransformStyle = "preserve-3d";
     this.canvasOrigin.style.WebkitPerspective= "600px";
     
     this.canvasOrigin.style.position = "relative";
