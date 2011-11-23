@@ -178,10 +178,11 @@
     </target>
     
     <target name="build-site">
+        <mkdir dir="${site-dir}/1.1/doc/"/>
         <delete includeEmptyDirs="true">
-            <fileset dir="${site-dir}/doc/"/>
+            <fileset dir="${site-dir}/1.1/doc/"/>
         </delete>
-        <copy todir="${site-dir}/doc/">
+        <copy todir="${site-dir}/1.1/doc/">
             <fileset dir="${package-dir}/doc/"/>
         </copy>
     </target>
