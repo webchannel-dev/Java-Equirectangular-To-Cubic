@@ -47,6 +47,14 @@ if (!self["bigshot"]) {
      *     for a tutorial.
      * <li>{@link bigshot.VRPanoramaParameters}: Parameters for VR panoramas. 
      * </ul>
+     *
+     * For hotspots, see:
+     *
+     * <ul>
+     * <li>{@link bigshot.VRHotspot}
+     * <li>{@link bigshot.VRRectangleHotspot}
+     * <li>{@link bigshot.VRPointHotspot}
+     * </ul>
      */
     bigshot = {};
     

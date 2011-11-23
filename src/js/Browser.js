@@ -14,6 +14,12 @@
  * limitations under the License. 
  */
 
+/**
+ * Creates a new browser helper object.
+ *
+ * @class Encapsulates common browser functions for cross-browser portability
+ * and convenience.
+ */
 bigshot.Browser = function () {
     /**
     * Removes all children from an element.

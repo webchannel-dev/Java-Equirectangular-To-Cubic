@@ -14,6 +14,11 @@
  * limitations under the License. 
  */
 
+/**
+ * Creates a new transformation stack, initialized to the identity transform.
+ *
+ * @class A 3D transformation stack.
+ */
 bigshot.TransformStack = function () {
     /**
      * The current transform matrix.

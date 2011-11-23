@@ -14,6 +14,11 @@
  * limitations under the License. 
  */
     
+/**
+ * Creates a new set of panorama parameters.
+ *
+ * @class Parameters for an {@link bigshot.ImageCarouselPanorama}
+ */
 bigshot.ImageCarouselPanoramaParameters = function (values) {
     /**
      * Suffix to append to the tile filenames. Typically <code>".jpg"</code> or 
