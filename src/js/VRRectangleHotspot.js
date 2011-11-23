@@ -40,16 +40,19 @@ bigshot.VRRectangleHotspot = function (panorama, yaw0, pitch0, yaw1, pitch1, ele
         
         var visible = false;
         if (p != null && p1 != null) {
-            var s = {
+            var cd = {
+                x : p.x,
+                y : p.y,
+                opacity : 1.0,
                 w : p1.x - p.x,
                 h : p1.y - p.y
             };
             
-            if (this.clip (p, s)) {
-                element.style.top = (p.y) + "px";
-                element.style.left = (p.x) + "px";
-                element.style.width = (s.w) + "px";
-                element.style.height = (s.h) + "px";
+            if (this.clip (cd)) {
+                element.style.top = (cd.y) + "px";
+                element.style.left = (cd.x) + "px";
+                element.style.width = (cd.w) + "px";
+                element.style.height = (cd.h) + "px";
                 element.style.visibility = "inherit";
                 visible = true;
             }

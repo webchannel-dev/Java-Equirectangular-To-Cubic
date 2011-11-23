@@ -24,7 +24,7 @@
             div.hotspot {
                 width:48px; 
                 height: 48px; 
-                position:relative; 
+                position:absolute; 
                 z-index:2;
                 border: 1px solid #808080;
                 opacity: 0.5;
@@ -100,6 +100,11 @@
                 bvr.autoResizeContainer (document.getElementById ("outerContainer"));
                 bvr.onresize ();
                 bvr.addHotspot (new bigshot.VRRectangleHotspot (bvr, 170, -8, 190, 2, hotspot));
+                
+                var hotspot2 = document.getElementById ("hotspot2");
+                var hs2 = new bigshot.VRPointHotspot (bvr, 180, -8, hotspot2, -16, -16);
+                hs2.clippingStrategy = hs2.CLIP_FADE (32);
+                bvr.addHotspot (hs2);
                 bvr.render ();
             }
             
@@ -186,6 +191,7 @@
                             </div>
                         </div>
                     </div>
+                    <div class="hotspot" id="hotspot2" style="border: none; text-align:center; width:32px; height:32px;"><img src="hotspot-image.png"/></div>
                 </div>
                 <div style="width:0px; left:50%; height:0px; position:absolute; z-index:1;">
                     <div style="width:32px; height:32px; position: relative; top:240px; border-top:1px solid red; border-left:1px solid red;">&#160;</div>

@@ -41,15 +41,20 @@ bigshot.VRPointHotspot = function (panorama, yaw, pitch, element, offsetX, offse
         var visible = false;
         if (p != null) {
             var s = panorama.browser.getElementSize (element);
+            p.w = s.w;
+            p.h = s.h;
             
             p.x += offsetX;
             p.y += offsetY;
             
-            if (this.clip (p, s)) {
+            if (this.clip (p)) {
                 element.style.top = (p.y) + "px";
                 element.style.left = (p.x) + "px";
-                element.style.width = (s.w) + "px";
-                element.style.height = (s.h) + "px";
+                element.style.width = (p.w) + "px";
+                element.style.height = (p.h) + "px";
+                if (p.opacity) {
+                    element.style.opacity = p.opacity;
+                }
                 element.style.visibility = "inherit";
                 visible = true;
             }
