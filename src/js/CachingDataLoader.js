@@ -19,14 +19,16 @@
  * @augments bigshot.DataLoader
  */
 bigshot.CachingDataLoader = function () {
-    
     this.cache = {};
     this.requested = {};
     this.requestedTiles = {};
+}
+
+bigshot.CachingDataLoader.prototype = {
     
-    this.browser = new bigshot.Browser ();
+    browser : new bigshot.Browser (),
     
-    this.loadImage = function (url, onloaded) {
+    loadImage : function (url, onloaded) {
         if (this.cache[url]) {
             if (onloaded) {
                 onloaded (this.cache[url]);
@@ -59,9 +61,9 @@ bigshot.CachingDataLoader = function () {
             tile.src = url;
             return tile;
         }
-    };
+    },
     
-    this.loadXml = function (url, async, onloaded) {
+    loadXml : function (url, async, onloaded) {
         if (this.cache[url]) {
             if (onloaded) {
                 onloaded (this.cache[url]);
@@ -116,5 +118,5 @@ bigshot.CachingDataLoader = function () {
                 return finishRequest ();                
             }
         }
-    };
+    }
 }

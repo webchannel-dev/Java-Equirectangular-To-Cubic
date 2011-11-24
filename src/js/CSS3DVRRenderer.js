@@ -20,7 +20,6 @@
  * @augments bigshot.VRRenderer
  */
 bigshot.CSS3DVRRenderer = function (_container) {
-    this.browser = new bigshot.Browser ();
     this.container = _container;
     this.canvasOrigin = document.createElement ("div");
     
@@ -48,57 +47,66 @@ bigshot.CSS3DVRRenderer = function (_container) {
     
     this.view = null;
     
-    this.createTileCache = function (onloaded, onCacheInit, parameters) {
+    this.mvMatrix = new bigshot.TransformStack ();
+    
+    this.yaw = 0;
+    this.pitch = 0;
+    this.fov = 0;
+    this.pMatrix = new bigshot.TransformStack ();
+    
+    this.onresize = function () {
+    };    
+}
+
+bigshot.CSS3DVRRenderer.prototype = {
+    browser : new bigshot.Browser (),
+    
+    createTileCache : function (onloaded, onCacheInit, parameters) {
         return new bigshot.ImageVRTileCache (onloaded, onCacheInit, parameters);
-    };
+    },
     
-    this.createTexturedQuadScene = function () {
+    createTexturedQuadScene : function () {
         return new bigshot.CSS3DTexturedQuadScene (this.world, 128, this.view);
-    };
+    },
     
-    this.createTexturedQuad = function (p, u, v, texture) {
+    createTexturedQuad : function (p, u, v, texture) {
         return new bigshot.CSS3DTexturedQuad (p, u, v, texture);
-    };
+    },
     
-    this.supportsUpdate = function () {
+    supportsUpdate : function () {
         return false;
-    }
+    },
     
-    this.getViewportWidth = function () {
+    getViewportWidth : function () {
         return this.browser.getElementSize (this.container).w;
-    };
+    },
     
-    this.getViewportHeight = function () {
+    getViewportHeight : function () {
         return this.browser.getElementSize (this.container).h;
-    };
+    },
     
-    this.resize = function (w, h) {
+    resize : function (w, h) {
         if (this.container.style.width != "") {
             this.container.style.width = w + "px";
         }
         if (this.container.style.height != "") {
             this.container.style.height = h + "px";
         }
-    };
-    
-    this.onresize = function () {
-    };
-    
-    this.mvMatrix = new bigshot.TransformStack ();
+    },
     
     /**
      * Transforms a vector to world coordinates.
      *
      * @param {vector} vector the vector to transform
      */
-    this.transformToWorld = function (vector) {
+    transformToWorld : function (vector) {
         var sylvesterVector = $V([vector[0], vector[1], vector[2], 1.0]);
         
         var world = this.mvMatrix.matrix ().x (sylvesterVector);
         return world;
-    }
+    },
     
-    this.transformWorldToScreen = function (world) {
+    transformWorldToScreen : function (world) {
         if (world.e(3) > 0) {
             return null;
         }
@@ -112,7 +120,7 @@ bigshot.CSS3DVRRenderer = function (_container) {
             y: - (this.getViewportHeight () / 2) * screen.e(2) / screen.e(4) + this.getViewportHeight () / 2
         };
         return r;
-    }
+    },
     
     /**
      * Transforms a vector to screen coordinates.
@@ -120,17 +128,12 @@ bigshot.CSS3DVRRenderer = function (_container) {
      * @param {vector} vector the vector to transform
      * @return the transformed vector, or null if the vector is nearer than the near-z plane.
      */
-    this.transformToScreen = function (vector) {
+    transformToScreen : function (vector) {
         var world = this.transformToWorld (vector);
         return this.transformWorldToScreen (world);
-    }
+    },
     
-    this.yaw = 0;
-    this.pitch = 0;
-    this.fov = 0;
-    this.pMatrix = new bigshot.TransformStack ();
-    
-    this.beginRender = function (y, p, fov, tx, ty, tz, oy, op, or) {
+    beginRender : function (y, p, fov, tx, ty, tz, oy, op, or) {
         this.yaw = y;
         this.pitch = p;
         this.fov = fov;
@@ -176,9 +179,9 @@ bigshot.CSS3DVRRenderer = function (_container) {
         
         this.viewport.style.WebkitTransform = 
             "translateZ(" + perspectiveDistance + "px)";
-    }
+    },
     
-    this.endRender = function () {
+    endRender : function () {
         for (var i = this.world.children.length - 1; i >= 0; --i) {
             var child = this.world.children[i];
             if (!child.inWorld || child.inWorld != 2) {

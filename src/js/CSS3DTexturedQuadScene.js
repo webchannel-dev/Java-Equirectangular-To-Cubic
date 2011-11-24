@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and 
  * limitations under the License. 
  */
-    
+
 /**
  * Creates a textured quad scene.
  *
@@ -32,20 +32,22 @@ bigshot.CSS3DTexturedQuadScene = function (world, scale, view) {
     this.world = world;
     this.scale = scale;
     this.view = view;
-    
+}
+
+bigshot.CSS3DTexturedQuadScene.prototype = {  
     /** 
      * Adds a new quad to the scene.
      */
-    this.addQuad = function (quad) {
+    addQuad : function (quad) {
         this.quads.push (quad);
-    }
+    },
     
     /** 
      * Renders all quads.
      */
-    this.render = function () {            
+    render : function () {            
         for (var i = 0; i < this.quads.length; ++i) {
             this.quads[i].render (this.world, this.scale, this.view);
         }
-    };
+    }
 };

@@ -19,14 +19,17 @@
  * @augments bigshot.DataLoader
  */
 bigshot.DefaultDataLoader = function (maxRetries) {
-    
-    this.browser = new bigshot.Browser ();
     this.maxRetries = maxRetries;
+    
     if (!this.maxRetries) {
         this.maxRetries = 0;
-    }
+    }    
+}
+
+bigshot.DefaultDataLoader.prototype = {
+    browser : new bigshot.Browser (),
     
-    this.loadImage = function (url, onloaded) {
+    loadImage : function (url, onloaded) {
         var tile = document.createElement ("img");
         tile.retries = 0;
         var that = this;
@@ -45,9 +48,9 @@ bigshot.DefaultDataLoader = function (maxRetries) {
             }, false);
         tile.src = url;
         return tile;
-    };
+    },
     
-    this.loadXml = function (url, synchronous, onloaded) {
+    loadXml : function (url, synchronous, onloaded) {
         for (var tries = 0; tries <= this.maxRetries; ++tries) {
             var req = this.browser.createXMLHttpRequest ();
             
@@ -70,5 +73,5 @@ bigshot.DefaultDataLoader = function (maxRetries) {
                 return null;
             }
         }
-    };
+    }
 }

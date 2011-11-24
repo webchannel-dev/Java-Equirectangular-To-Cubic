@@ -40,7 +40,9 @@ bigshot.Hotspot = function (x, y, w, h) {
     this.y = y;
     this.w = w;
     this.h = h;
-    
+}
+
+bigshot.Hotspot.prototype = {
     /**
      * Lays out the hotspot in the viewport.
      *
@@ -50,7 +52,7 @@ bigshot.Hotspot = function (x, y, w, h) {
      * @param zoomFactor the zoom factor.
      * @function
      */
-    this.layout = function (x0, y0, zoomFactor) {
+    layout : function (x0, y0, zoomFactor) {
         var sx = this.x * zoomFactor + x0;
         var sy = this.y * zoomFactor + y0;
         var sw = this.w * zoomFactor;
@@ -59,7 +61,7 @@ bigshot.Hotspot = function (x, y, w, h) {
         this.element.style.left = sx + "px";
         this.element.style.width = sw + "px";
         this.element.style.height = sh + "px";
-    };
+    },
     
     /**
      * Returns the HTMLDivElement used to show the hotspot.
@@ -67,9 +69,7 @@ bigshot.Hotspot = function (x, y, w, h) {
      *
      * @type HTMLDivElement
      */
-    this.getElement = function () {
+    getElement : function () {
         return this.element;
-    };
-    
-    return this;
+    }
 };

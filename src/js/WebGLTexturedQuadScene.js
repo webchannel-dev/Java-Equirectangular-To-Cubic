@@ -27,20 +27,22 @@
 bigshot.WebGLTexturedQuadScene = function (webGl) {
     this.quads = new Array ();
     this.webGl = webGl;
-    
+}
+
+bigshot.WebGLTexturedQuadScene.prototype = {
     /** 
      * Adds a new quad to the scene.
      */
-    this.addQuad = function (quad) {
+    addQuad : function (quad) {
         this.quads.push (quad);
-    }
+    },
     
     /** 
      * Renders all quads.
      */
-    this.render = function () {
+    render : function () {
         for (var i = 0; i < this.quads.length; ++i) {
             this.quads[i].render (this.webGl);
         }
-    };
+    }
 };

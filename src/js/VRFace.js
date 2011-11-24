@@ -45,43 +45,8 @@ bigshot.VRFace = function (owner, key, topLeft_, width_, u, v, onLoaded) {
     
     bigshot.setupFileSystem (this.parameters);
     this.parameters.fileSystem.setPrefix ("face_" + key);
-    
-    this.browser = new bigshot.Browser ();
-    
     this.parameters.merge (this.parameters.fileSystem.getDescriptor (), false);
     
-    /**
-     * Utility function to do a multiply-and-add of a 3d point.
-     *
-     * @private
-     * @param p {point} the point to multiply
-     * @param m {number} the number to multiply the elements of p with
-     * @param a {point} the point to add
-     * @return p * m + a
-     */
-    this.pt3dMultAdd = function (p, m, a) {
-        return {
-            x : p.x * m + a.x,
-            y : p.y * m + a.y,
-            z : p.z * m + a.z
-        };
-    };
-    
-    /**
-     * Utility function to do an element-wise multiply of a 3d point.
-     *
-     * @private
-     * @param p {point} the point to multiply
-     * @param m {number} the number to multiply the elements of p with
-     * @return p * m
-     */
-    this.pt3dMult = function (p, m) {
-        return {
-            x : p.x * m,
-            y : p.y * m,
-            z : p.z * m
-        };
-    };
     
     /**
      * Texture cache.
@@ -102,13 +67,50 @@ bigshot.VRFace = function (owner, key, topLeft_, width_, u, v, onLoaded) {
     var singleTile = Math.log (this.tileSize - this.overlap) / Math.LN2;
     this.maxDivisions = Math.floor (fullZoom - singleTile);
     this.maxTesselation = this.parameters.maxTesselation >= 0 ? this.parameters.maxTesselation : this.maxDivisions;
+}
+
+bigshot.VRFace.prototype = {
+    browser : new bigshot.Browser (),
     
+    /**
+     * Utility function to do a multiply-and-add of a 3d point.
+     *
+     * @private
+     * @param p {point} the point to multiply
+     * @param m {number} the number to multiply the elements of p with
+     * @param a {point} the point to add
+     * @return p * m + a
+     */
+    pt3dMultAdd : function (p, m, a) {
+        return {
+            x : p.x * m + a.x,
+            y : p.y * m + a.y,
+            z : p.z * m + a.z
+        };
+    },
+    
+    /**
+     * Utility function to do an element-wise multiply of a 3d point.
+     *
+     * @private
+     * @param p {point} the point to multiply
+     * @param m {number} the number to multiply the elements of p with
+     * @return p * m
+     */
+    pt3dMult : function (p, m) {
+        return {
+            x : p.x * m,
+            y : p.y * m,
+            z : p.z * m
+        };
+    },
+        
     /**
      * Creates a textured quad.
      *
      * @private
      */
-    this.generateFace = function (scene, topLeft, width, tx, ty, divisions) {
+    generateFace : function (scene, topLeft, width, tx, ty, divisions) {
         width *= this.tileSize / (this.tileSize - this.overlap);
         var texture = this.tileCache.getTexture (tx, ty, -this.maxDivisions + divisions);
         scene.addQuad (this.owner.renderer.createTexturedQuad (
@@ -118,11 +120,11 @@ bigshot.VRFace = function (owner, key, topLeft_, width_, u, v, onLoaded) {
                 texture
             )
         );
-    }
+    },
     
-    this.VISIBLE_NONE = 0;
-    this.VISIBLE_SOME = 1;
-    this.VISIBLE_ALL = 2;
+    VISIBLE_NONE : 0,
+    VISIBLE_SOME : 1,
+    VISIBLE_ALL : 2,
     
     /**
      * Tests whether the point is in the axis-aligned rectangle.
@@ -132,9 +134,9 @@ bigshot.VRFace = function (owner, key, topLeft_, width_, u, v, onLoaded) {
      * @param min top left corner of the rectangle
      * @param max bottom right corner of the rectangle
      */
-    this.pointInRect = function (point, min, max) {
+    pointInRect : function (point, min, max) {
         return (point.x >= min.x && point.y >= min.y && point.x < max.x && point.y < max.y);
-    }
+    },
     
     /**
      * Intersects a quadrilateral with the view frustum.
@@ -144,7 +146,7 @@ bigshot.VRFace = function (owner, key, topLeft_, width_, u, v, onLoaded) {
      * @private
      * @return VISIBLE_NONE, VISIBLE_SOME or VISIBLE_ALL
      */
-    this.intersectWithView = function (transformed) {
+    intersectWithView : function (transformed) {
         var numNull = 0;
         var tf = [];
         for (var i = 0; i < transformed.length; ++i) {
@@ -210,7 +212,7 @@ bigshot.VRFace = function (owner, key, topLeft_, width_, u, v, onLoaded) {
         }            
         
         return this.VISIBLE_NONE;
-    }
+    },
     
     /**
      * Quick and dirty computation of the on-screen distance in pixels
@@ -220,14 +222,14 @@ bigshot.VRFace = function (owner, key, topLeft_, width_, u, v, onLoaded) {
      *
      * @private
      */
-    this.screenDistance = function (p0, p1) {
+    screenDistance : function (p0, p1) {
         if (p0 == null || p1 == null) {
             // arbitrarily high number, because I don't really
             // want to use Inf or NaN unless I must.
             return 0;
         }
         return Math.max (Math.abs (p0.x - p1.x), Math.abs (p0.y - p1.y));
-    }
+    },
     
     /**
      * Optionally subdivides a quad into fourn new quads, depending on the
@@ -242,7 +244,7 @@ bigshot.VRFace = function (owner, key, topLeft_, width_, u, v, onLoaded) {
      * @param {int} tx the tile column this face is in
      * @param {int} ty the tile row this face is in 
      */
-    this.generateSubdivisionFace = function (scene, topLeft, width, divisions, tx, ty) {
+    generateSubdivisionFace : function (scene, topLeft, width, divisions, tx, ty) {
         var bottomLeft = this.pt3dMultAdd (this.v, width, topLeft);
         var topRight = this.pt3dMultAdd (this.u, width, topLeft);
         var bottomRight = this.pt3dMultAdd (this.u, width, bottomLeft);
@@ -287,7 +289,7 @@ bigshot.VRFace = function (owner, key, topLeft_, width_, u, v, onLoaded) {
             } else {
                 this.generateFace (scene, topLeft, width, tx, ty, divisions);
             }
-    }
+    },
     
     /**
      * Tests if the face has had any updated texture
@@ -295,9 +297,9 @@ bigshot.VRFace = function (owner, key, topLeft_, width_, u, v, onLoaded) {
      *
      * @public
      */
-    this.isUpdated = function () {
+    isUpdated : function () {
         return this.updated;
-    };
+    },
     
     /**
      * Renders this face into a scene.
@@ -305,15 +307,15 @@ bigshot.VRFace = function (owner, key, topLeft_, width_, u, v, onLoaded) {
      * @public
      * @param {bigshot.WebGLTexturedQuadScene} scene the scene to render into
      */
-    this.render = function (scene) {
+    render : function (scene) {
         this.updated = false;
         this.generateSubdivisionFace (scene, this.topLeft, this.width, 0, 0, 0);
-    }
+    },
     
     /**
      * Performs post-render cleanup.
      */
-    this.endRender = function () {
+    endRender : function () {
         this.tileCache.purge ();
     }
 }

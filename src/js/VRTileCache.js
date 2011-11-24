@@ -18,6 +18,9 @@
  * @class Abstract base.
  */
 bigshot.VRTileCache = function () {
-    this.getTexture = function (tileX, tileY, zoomLevel) {};
-    this.purge = function () {};
+}
+
+bigshot.VRTileCache.prototype = {
+    getTexture : function (tileX, tileY, zoomLevel) {},
+    purge : function () {}
 }

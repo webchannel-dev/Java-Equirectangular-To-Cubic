@@ -24,6 +24,7 @@
  * @param {bigshot.WebGL} _webGl WebGL instance to use
  */
 bigshot.TextureTileCache = function (onLoaded, onCacheInit, parameters, _webGl) {
+    this.parameters = parameters;
     this.webGl = _webGl;
     
     /**
@@ -63,8 +64,11 @@ bigshot.TextureTileCache = function (onLoaded, onCacheInit, parameters, _webGl) 
     this.textureLruMap = new bigshot.LRUMap ();
     this.onLoaded = onLoaded;
     this.browser = new bigshot.Browser ();
+}
+
+bigshot.TextureTileCache.prototype = {
     
-    this.getPartialTexture = function (tileX, tileY, zoomLevel) {
+    getPartialTexture : function (tileX, tileY, zoomLevel) {
         if (this.fullImage.complete) {
             var canvas = document.createElement ("canvas");
             if (!canvas["width"]) {
@@ -74,12 +78,12 @@ bigshot.TextureTileCache = function (onLoaded, onCacheInit, parameters, _webGl) 
             canvas.height = this.partialImageSize;
             var ctx = canvas.getContext ("2d"); 
             
-            var posterScale = parameters.posterSize / Math.max (parameters.width, parameters.height);
+            var posterScale = this.parameters.posterSize / Math.max (this.parameters.width, this.parameters.height);
             
-            var posterWidth = Math.floor (posterScale * parameters.width);
-            var posterHeight = Math.floor (posterScale * parameters.height);
+            var posterWidth = Math.floor (posterScale * this.parameters.width);
+            var posterHeight = Math.floor (posterScale * this.parameters.height);
             
-            var tileSizeAtZoom = posterScale * (parameters.tileSize - parameters.overlap) / Math.pow (2, zoomLevel);    
+            var tileSizeAtZoom = posterScale * (this.parameters.tileSize - this.parameters.overlap) / Math.pow (2, zoomLevel);    
             var sx = Math.floor (tileSizeAtZoom * tileX);
             var sy = Math.floor (tileSizeAtZoom * tileY);
             var sw = Math.floor (tileSizeAtZoom);
@@ -98,14 +102,13 @@ bigshot.TextureTileCache = function (onLoaded, onCacheInit, parameters, _webGl) 
             
             ctx.drawImage (this.fullImage, sx, sy, sw, sh, -1, -1, dw, dh);
             
-            return this.webGl.createImageTextureFromImage (canvas, parameters.textureMinFilter, parameters.textureMagFilter);
+            return this.webGl.createImageTextureFromImage (canvas, this.parameters.textureMinFilter, this.parameters.textureMagFilter);
         } else {
             return null;
         }
-    };
-    
-    
-    this.getTexture = function (tileX, tileY, zoomLevel) {
+    },
+        
+    getTexture : function (tileX, tileY, zoomLevel) {
         var key = this.getImageKey (tileX, tileY, zoomLevel);
         this.textureLruMap.access (key);
         this.imageLruMap.access (key);
@@ -113,7 +116,7 @@ bigshot.TextureTileCache = function (onLoaded, onCacheInit, parameters, _webGl) 
         if (this.cachedTextures[key]) {
             return this.cachedTextures[key];
         } else if (this.cachedImages[key]) {
-            this.cachedTextures[key] = this.webGl.createImageTextureFromImage (this.cachedImages[key], parameters.textureMinFilter, parameters.textureMagFilter);
+            this.cachedTextures[key] = this.webGl.createImageTextureFromImage (this.cachedImages[key], this.parameters.textureMinFilter, this.parameters.textureMagFilter);
             return this.cachedTextures[key];
         } else {
             this.requestImage (tileX, tileY, zoomLevel);
@@ -123,19 +126,19 @@ bigshot.TextureTileCache = function (onLoaded, onCacheInit, parameters, _webGl) 
             }
             return partial;
         }
-    };
+    },
     
-    this.requestImage = function (tileX, tileY, zoomLevel) {
+    requestImage : function (tileX, tileY, zoomLevel) {
         var key = this.getImageKey (tileX, tileY, zoomLevel);
         if (!this.requestedImages[key]) {
             this.imageRequests++;
             var that = this;
-            parameters.dataLoader.loadImage (this.getImageFilename (tileX, tileY, zoomLevel), function (tile) {
+            this.parameters.dataLoader.loadImage (this.getImageFilename (tileX, tileY, zoomLevel), function (tile) {
                     if (that.cachedTextures[key]) {
                         that.webGl.gl.deleteTexture (that.cachedTextures[key]);
                     }
                     that.cachedImages[key] = tile;
-                    that.cachedTextures[key] = that.webGl.createImageTextureFromImage (tile, parameters.textureMinFilter, parameters.textureMagFilter);
+                    that.cachedTextures[key] = that.webGl.createImageTextureFromImage (tile, that.parameters.textureMinFilter, that.parameters.textureMagFilter);
                     delete that.requestedImages[key];
                     that.imageRequests--;
                     var now = new Date();
@@ -146,18 +149,18 @@ bigshot.TextureTileCache = function (onLoaded, onCacheInit, parameters, _webGl) 
                 });
             this.requestedImages[key] = true;
         }            
-    };
+    },
     
-    this.purge = function () {
+    purge : function () {
         var that = this;
         this.purgeCache (this.textureLruMap, this.cachedTextures, this.maxTextureCacheSize, function (leastUsedKey) {
                 that.webGl.gl.deleteTexture (that.cachedTextures[leastUsedKey]);
             });
         this.purgeCache (this.imageLruMap, this.cachedImages, this.maxImageCacheSize, function (leastUsedKey) {
             });
-    }
+    },
     
-    this.purgeCache = function (lruMap, cache, maxCacheSize, onEvict) {
+    purgeCache : function (lruMap, cache, maxCacheSize, onEvict) {
         for (var i = 0; i < 64; ++i) {
             if (lruMap.getSize () > maxCacheSize) {
                 var leastUsed = lruMap.leastUsed ();
@@ -170,17 +173,15 @@ bigshot.TextureTileCache = function (onLoaded, onCacheInit, parameters, _webGl) 
                 break;
             }
         }
-    };
+    },
     
-    this.getImageKey = function (tileX, tileY, zoomLevel) {
+    getImageKey : function (tileX, tileY, zoomLevel) {
         return "I" + tileX + "_" + tileY + "_" + zoomLevel;
-    };
+    },
     
-    this.getImageFilename = function (tileX, tileY, zoomLevel) {
-        var f = parameters.fileSystem.getImageFilename (tileX, tileY, zoomLevel);
+    getImageFilename : function (tileX, tileY, zoomLevel) {
+        var f = this.parameters.fileSystem.getImageFilename (tileX, tileY, zoomLevel);
         return f;
-    };
-    
-    return this;
+    }
 };
 

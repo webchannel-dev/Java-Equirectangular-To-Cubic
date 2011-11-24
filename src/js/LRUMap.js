@@ -41,7 +41,9 @@ bigshot.LRUMap = function () {
      * @type int
      */
     this.size = 0;
-    
+}
+
+bigshot.LRUMap.prototype = {
     /**
      * Marks access to an item, represented by its key in the map. 
      * The key's last-accessed time is updated to the current time
@@ -49,12 +51,12 @@ bigshot.LRUMap = function () {
      *
      * @param {String} key the key associated with the accessed item
      */
-    this.access = function (key) {
+    access : function (key) {
         this.remove (key);
         this.keyToTime[key] = this.counter;
         ++this.counter;
         ++this.size;
-    };
+    },
     
     /**
      * Removes a key from the map.
@@ -63,7 +65,7 @@ bigshot.LRUMap = function () {
      * @returns true iff the key existed in the map.
      * @type boolean
      */
-    this.remove = function (key) {
+    remove : function (key) {
         if (this.keyToTime[key]) {
             delete this.keyToTime[key];
             --this.size;
@@ -71,15 +73,15 @@ bigshot.LRUMap = function () {
         } else {
             return false;
         }
-    };
+    },
     
     /**
      * Returns the current number of keys in the map.
      * @type int
      */
-    this.getSize = function () {
+    getSize : function () {
         return this.size;
-    };
+    },
     
     /**
      * Returns the key in the map with the lowest
@@ -89,7 +91,7 @@ bigshot.LRUMap = function () {
      * a bottleneck it is just not worth the effort.
      * @type String
      */
-    this.leastUsed = function () {
+    leastUsed : function () {
         var least = this.counter + 1;
         var leastKey = null;
         for (var k in this.keyToTime) {
@@ -99,5 +101,5 @@ bigshot.LRUMap = function () {
             }
         }
         return leastKey;
-    };
+    }
 };

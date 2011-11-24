@@ -30,19 +30,21 @@ bigshot.CSS3DTexturedQuad = function (p, u, v, image) {
     this.u = u;
     this.v = v;
     this.image = image;
-    
-    this.crossProduct = function (a,b) {
+}
+
+bigshot.CSS3DTexturedQuad.prototype = {
+    crossProduct : function (a,b) {
         var x = [
             a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]
         ];
         return x;
-    }
+    },
     
-    this.vecToStr = function (u) {
+    vecToStr : function (u) {
         return (u[0]) + "," + (u[1]) + "," + (u[2]);
-    }
+    },
     
-    this.quadTransform = function (tl, u, v) {
+    quadTransform : function (tl, u, v) {
         var w = this.crossProduct (u, v);
         var res = 
             "matrix3d(" + 
@@ -51,18 +53,21 @@ bigshot.CSS3DTexturedQuad = function (p, u, v, image) {
         this.vecToStr (w) + ",0," + 
         this.vecToStr (tl) + ",1)";
         return res;
-    }
+    },
     
-    this.norm = function (vec) {
+    norm : function (vec) {
         return Math.sqrt (vec.x * vec.x + vec.y * vec.y + vec.z * vec.z);
-    }
+    },
     
     /**
      * Renders the quad.
      */
-    this.render = function (world, scale, view) {
+    render : function (world, scale, view) {
         var s = scale / (this.image.width - 1);
         var ps = scale * 1.0;
+        var p = this.p;
+        var u = this.u;
+        var v = this.v;
         
         this.image.style.position = "absolute";
         if (!this.image.inWorld || this.image.inWorld != 1) {
@@ -73,5 +78,5 @@ bigshot.CSS3DTexturedQuad = function (p, u, v, image) {
         this.image.style.WebkitTransform = 
             this.quadTransform ([(p.x + view.x) * ps, (-p.y + view.y) * ps, (p.z + view.z) * ps], [u.x * s, -u.y * s, u.z * s], [v.x * s, -v.y * s, v.z * s]);
         
-    };
+    }
 }

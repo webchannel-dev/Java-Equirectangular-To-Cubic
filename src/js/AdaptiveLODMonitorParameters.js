@@ -88,7 +88,4 @@ bigshot.AdaptiveLODMonitorParameters = function (values) {
         }
     }
     return this;        
-
-    
-    return this;
 };

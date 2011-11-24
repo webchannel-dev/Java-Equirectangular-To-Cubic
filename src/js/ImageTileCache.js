@@ -23,6 +23,8 @@
 bigshot.ImageTileCache = function (onLoaded, onCacheInit, parameters) {
     var that = this;
     
+    this.parameters = parameters;
+    
     /**
       * Reduced-resolution preview of the full image.
       * Loaded from the "poster" image created by 
@@ -57,28 +59,30 @@ bigshot.ImageTileCache = function (onLoaded, onCacheInit, parameters) {
     this.browser = new bigshot.Browser ();
     this.partialImageSize = parameters.tileSize / 4;
     this.POSTER_ZOOM_LEVEL = Math.log (parameters.posterSize / Math.max (parameters.width, parameters.height)) / Math.log (2);
-    
-    this.resetUsed = function () {
+}
+
+bigshot.ImageTileCache.prototype = {
+    resetUsed : function () {
         this.usedImages = {};
-    };
+    },
     
-    this.setMaxTiles = function (mtx, mty) {
+    setMaxTiles : function (mtx, mty) {
         this.maxTileX = mtx;
         this.maxTileY = mty;
-    };
+    },
     
-    this.getPartialImage = function (tileX, tileY, zoomLevel) {
-        var img = this.getPartialImageFromDownsampled (tileX, tileY, zoomLevel, 0, 0, parameters.tileSize, parameters.tileSize);
+    getPartialImage : function (tileX, tileY, zoomLevel) {
+        var img = this.getPartialImageFromDownsampled (tileX, tileY, zoomLevel, 0, 0, this.parameters.tileSize, this.parameters.tileSize);
         if (img == null) {
             img = this.getPartialImageFromPoster (tileX, tileY, zoomLevel);
         }
         return img;
-    };
+    },
     
-    this.getPartialImageFromPoster = function (tileX, tileY, zoomLevel) {
+    getPartialImageFromPoster : function (tileX, tileY, zoomLevel) {
         if (this.fullImage && this.fullImage.complete) {
-            var posterScale = this.fullImage.width / parameters.width;
-            var tileSizeAtZoom = posterScale * parameters.tileSize / Math.pow (2, zoomLevel);
+            var posterScale = this.fullImage.width / this.parameters.width;
+            var tileSizeAtZoom = posterScale * this.parameters.tileSize / Math.pow (2, zoomLevel);
             
             x0 = Math.floor (tileSizeAtZoom * tileX);
             y0 = Math.floor (tileSizeAtZoom * tileY);
@@ -89,9 +93,9 @@ bigshot.ImageTileCache = function (onLoaded, onCacheInit, parameters) {
         } else {
             return null;
         }
-    };
+    },
     
-    this.createPartialImage = function (sourceImage, expectedSourceImageSize, x0, y0, w, h) {
+    createPartialImage : function (sourceImage, expectedSourceImageSize, x0, y0, w, h) {
         var canvas = document.createElement ("canvas");
         if (!canvas["width"]) {
             return null;
@@ -117,9 +121,9 @@ bigshot.ImageTileCache = function (onLoaded, onCacheInit, parameters) {
         ctx.drawImage (sourceImage, sx, sy, w, h, -0.1, -0.1, this.partialImageSize + 0.2, this.partialImageSize + 0.2);
         
         return canvas;
-    }
+    },
     
-    this.getPartialImageFromDownsampled = function (tileX, tileY, zoomLevel, x0, y0, w, h) {
+    getPartialImageFromDownsampled : function (tileX, tileY, zoomLevel, x0, y0, w, h) {
         var key = this.getImageKey (tileX, tileY, zoomLevel);
         var sourceImage = this.cachedImages[key];
         
@@ -133,36 +137,36 @@ bigshot.ImageTileCache = function (onLoaded, onCacheInit, parameters) {
         }
         
         if (sourceImage) {
-            return this.createPartialImage (sourceImage, parameters.tileSize, x0, y0, w, h);
+            return this.createPartialImage (sourceImage, this.parameters.tileSize, x0, y0, w, h);
         } else {
             w /= 2;
             h /= 2;
             x0 /= 2;
             y0 /= 2;
             if ((tileX % 2) == 1) {
-                x0 += parameters.tileSize / 2;
+                x0 += this.parameters.tileSize / 2;
             }
             if ((tileY % 2) == 1) {
-                y0 += parameters.tileSize / 2;
+                y0 += this.parameters.tileSize / 2;
             }
             tileX = Math.floor (tileX / 2);
             tileY = Math.floor (tileY / 2);
             --zoomLevel;
             return this.getPartialImageFromDownsampled (tileX, tileY, zoomLevel, x0, y0, w, h);
         }        
-    };
+    },
     
-    this.getEmptyImage = function () {
+    getEmptyImage : function () {
         var tile = document.createElement ("img");
-        if (parameters.emptyImage) {
-            tile.src = parameters.emptyImage;
+        if (this.parameters.emptyImage) {
+            tile.src = this.parameters.emptyImage;
         } else {
             tile.src = "data:image/gif,GIF89a%01%00%01%00%80%00%00%00%00%00%FF%FF%FF!%F9%04%00%00%00%00%00%2C%00%00%00%00%01%00%01%00%00%02%02D%01%00%3B";
         }
         return tile;
-    };
+    },
     
-    this.getImage = function (tileX, tileY, zoomLevel) {
+    getImage : function (tileX, tileY, zoomLevel) {
         if (tileX < 0 || tileY < 0 || tileX >= this.maxTileX || tileY >= this.maxTileY) {
             return this.getEmptyImage ();
         }
@@ -172,7 +176,7 @@ bigshot.ImageTileCache = function (onLoaded, onCacheInit, parameters) {
         
         if (this.cachedImages[key]) {
             if (this.usedImages[key]) {
-                var tile = parameters.dataLoader.loadImage (this.getImageFilename (tileX, tileY, zoomLevel));
+                var tile = this.parameters.dataLoader.loadImage (this.getImageFilename (tileX, tileY, zoomLevel));
                 return tile;
             } else {
                 this.usedImages[key] = true;
@@ -188,14 +192,14 @@ bigshot.ImageTileCache = function (onLoaded, onCacheInit, parameters) {
             
             return img;
         }
-    };
+    },
     
-    this.requestImage = function (tileX, tileY, zoomLevel) {
+    requestImage : function (tileX, tileY, zoomLevel) {
         var key = this.getImageKey (tileX, tileY, zoomLevel);
         if (!this.requestedImages[key]) {
             this.imageRequests++;
             var that = this;
-            parameters.dataLoader.loadImage (this.getImageFilename (tileX, tileY, zoomLevel), function (tile) {
+            this.parameters.dataLoader.loadImage (this.getImageFilename (tileX, tileY, zoomLevel), function (tile) {
                     that.cachedImages[key] = tile;
                     delete that.requestedImages[key];
                     that.imageRequests--;
@@ -208,7 +212,7 @@ bigshot.ImageTileCache = function (onLoaded, onCacheInit, parameters) {
                 });
             this.requestedImages[key] = true;
         }            
-    };
+    },
     
     /**
      * Removes the least-recently used objects from the cache,
@@ -217,7 +221,7 @@ bigshot.ImageTileCache = function (onLoaded, onCacheInit, parameters) {
      *
      * @private
      */
-    this.purgeCache = function () {
+    purgeCache : function () {
         for (var i = 0; i < 4; ++i) {
             if (this.lruMap.getSize () > this.maxCacheSize) {
                 var leastUsed = this.lruMap.leastUsed ();
@@ -225,16 +229,14 @@ bigshot.ImageTileCache = function (onLoaded, onCacheInit, parameters) {
                 delete this.cachedImages[leastUsed];                    
             }
         }
-    };
+    },
     
-    this.getImageKey = function (tileX, tileY, zoomLevel) {
+    getImageKey : function (tileX, tileY, zoomLevel) {
         return "I" + tileX + "_" + tileY + "_" + zoomLevel;
-    };
+    },
     
-    this.getImageFilename = function (tileX, tileY, zoomLevel) {
-        var f = parameters.fileSystem.getImageFilename (tileX, tileY, zoomLevel);
+    getImageFilename : function (tileX, tileY, zoomLevel) {
+        var f = this.parameters.fileSystem.getImageFilename (tileX, tileY, zoomLevel);
         return f;
-    };
-    
-    return this;
+    },
 };

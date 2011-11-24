@@ -19,8 +19,6 @@
  * as browser security allows.
  */
 bigshot.FullScreen = function (container) {
-    this.browser = new bigshot.Browser ();
-    
     this.container = container;
     
     this.isFullScreen = false;
@@ -31,37 +29,37 @@ bigshot.FullScreen = function (container) {
     this.restoreSize = false;
     
     this.onCloseHandlers = new Array ();
-    this.onResizeHandlers = new Array ();
+    this.onResizeHandlers = new Array ();    
+}
+
+bigshot.FullScreen.prototype = {
+    browser : new bigshot.Browser (),
     
-    this.init = function () {
-        
-    };
-    
-    this.getRootElement = function () {
+    getRootElement : function () {
         return this.div;
-    };
+    },
     
-    this.addOnClose = function (onClose) {
+    addOnClose : function (onClose) {
         this.onCloseHandlers.push (onClose);
-    };
+    },
     
-    this.onClose = function () {
+    onClose : function () {
         for (var i = 0; i < this.onCloseHandlers.length; ++i) {
             this.onCloseHandlers[i] ();
         }
-    };
+    },
     
-    this.addOnResize = function (onResize) {
+    addOnResize : function (onResize) {
         this.onResizeHandlers.push (onResize);
-    };
+    },
     
-    this.onResize = function () {
+    onResize : function () {
         for (var i = 0; i < this.onResizeHandlers.length; ++i) {
             this.onResizeHandlers[i] ();
         }
-    };
+    },
     
-    this.open = function () {
+    open : function () {
         this.isFullScreen = true;
         
         this.savedParent = this.container.parentNode;
@@ -159,13 +157,10 @@ bigshot.FullScreen = function (container) {
         this.onResize ();
         
         return this.exitFullScreenHandler;
-    };
+    },
     
-    this.close = function () {
+    close : function () {
         this.exitFullScreenHandler ();
-    };
-    
-    this.init ();
-    return this;
+    }
 };
 

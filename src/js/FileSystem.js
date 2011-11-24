@@ -20,12 +20,15 @@
  * @class Abstract filesystem definition.
  */
 bigshot.FileSystem = function () {
+}
+
+bigshot.FileSystem.prototype = {
     /**
      * Returns the URL filename for the given filesystem entry.
      *
      * @param {String} name the entry name
      */
-    this.getFilename = function (name) {};
+    getFilename : function (name) {},
     
     /**
      * Returns the entry filename for the given tile.
@@ -34,7 +37,7 @@ bigshot.FileSystem = function () {
      * @param {int} tileY the row of the tile
      * @param {int} zoomLevel the zoom level
      */
-    this.getImageFilename = function (tileX, tileY, zoomLevel) {};
+    getImageFilename : function (tileX, tileY, zoomLevel) {},
     
     /**
      * Sets an optional prefix that is prepended, along with a forward
@@ -42,21 +45,21 @@ bigshot.FileSystem = function () {
      *
      * @param {String} prefix the prefix
      */
-    this.setPrefix = function (prefix) {};
+    setPrefix : function (prefix) {},
     
     /**
      * Returns an image descriptor object from the descriptor file.
      *
      * @return a descriptor object
      */
-    this.getDescriptor = function () {};
+    getDescriptor : function () {},
     
     /**
      * Returns the poster URL filename. For Bigshot images this is
      * typically the URL corresponding to the entry "poster.jpg", 
      * but for other filesystems it can be different.
      */
-    this.getPosterFilename = function () {};
+    getPosterFilename : function () {}
 };
 
 /**

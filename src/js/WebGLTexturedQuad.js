@@ -30,6 +30,9 @@ bigshot.WebGLTexturedQuad = function (p, u, v, texture) {
     this.u = u;
     this.v = v;
     this.texture = texture;
+}
+
+bigshot.WebGLTexturedQuad.prototype = {
     
     /**
      * Renders the quad using the given {@link bigshot.WebGL} instance.
@@ -38,7 +41,7 @@ bigshot.WebGLTexturedQuad = function (p, u, v, texture) {
      *
      * @param {bigshot.WebGL} webGl the WebGL wrapper instance to use for rendering.
      */
-    this.render = function (webGl) {
+    render : function (webGl) {
         var vertexPositionBuffer = webGl.gl.createBuffer();
         webGl.gl.bindBuffer(webGl.gl.ARRAY_BUFFER, vertexPositionBuffer);
         var vertices = [
@@ -86,5 +89,5 @@ bigshot.WebGLTexturedQuad = function (p, u, v, texture) {
         webGl.gl.deleteBuffer (vertexPositionBuffer);
         webGl.gl.deleteBuffer (vertexIndexBuffer);
         webGl.gl.deleteBuffer (textureCoordBuffer);
-    };
+    }
 }

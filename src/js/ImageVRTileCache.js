@@ -21,13 +21,15 @@ bigshot.ImageVRTileCache = function (onloaded, onCacheInit, parameters) {
     this.imageTileCache = new bigshot.ImageTileCache (onloaded, onCacheInit, parameters);
     
     this.imageTileCache.setMaxTiles (999999, 999999);
-    
-    this.getTexture = function (tileX, tileY, zoomLevel) {
+}
+
+bigshot.ImageVRTileCache.prototype = {
+    getTexture : function (tileX, tileY, zoomLevel) {
         var res = this.imageTileCache.getImage (tileX, tileY, zoomLevel);
         return res;
-    }
+    },
     
-    this.purge = function () {
+    purge : function () {
         this.imageTileCache.resetUsed ();
-    };
+    }
 }

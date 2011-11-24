@@ -34,6 +34,10 @@ bigshot.TransformStack = function () {
      */
     this.mvMatrixStack = [];
     
+    this.reset ();
+}
+
+bigshot.TransformStack.prototype = {
     /**
      * Pushes the current world transform onto the stack
      * and returns a new, identical one.
@@ -43,7 +47,7 @@ bigshot.TransformStack = function () {
      * If omitted, the current is used
      * @type Matrix
      */
-    this.mvPushMatrix = function (matrix) {
+    mvPushMatrix : function (matrix) {
         if (matrix) {
             this.mvMatrixStack.push (matrix.dup());
             this.mvMatrix = matrix.dup();
@@ -52,7 +56,7 @@ bigshot.TransformStack = function () {
             this.mvMatrixStack.push (this.mvMatrix.dup());
             return mvMatrix;
         }
-    }
+    },
     
     /**
      * Pops the last-pushed world transform off the stack, thereby restoring it.
@@ -60,39 +64,39 @@ bigshot.TransformStack = function () {
      * @type Matrix
      * @return the previously-pushed matrix
      */
-    this.mvPopMatrix = function () {
+    mvPopMatrix : function () {
         if (this.mvMatrixStack.length == 0) {
             throw new Error ("Invalid popMatrix!");
         }
         this.mvMatrix = this.mvMatrixStack.pop();
         return mvMatrix;
-    }
+    },
     
     /**
      * Resets the world transform to the identity transform.
      */
-    this.reset = function () {
+    reset : function () {
         this.mvMatrix = Matrix.I(4);
-    }
+    },
     
     /**
      * Multiplies the current world transform with a matrix.
      *
      * @param {Matrix} matrix the matrix to multiply with
      */
-    this.mvMultiply = function (matrix) {
+    mvMultiply : function (matrix) {
         this.mvMatrix = matrix.x (this.mvMatrix);
-    }
+    },
     
     /**
      * Adds a translation to the world transform matrix.
      *
      * @param {number[3]} vector the translation vector
      */
-    this.translate = function (vector) {
+    translate : function (vector) {
         var m = Matrix.Translation($V([vector[0], vector[1], vector[2]])).ensure4x4 ();
         this.mvMultiply (m);
-    }
+    },
     
     /**
      * Adds a rotation to the world transform matrix.
@@ -100,11 +104,11 @@ bigshot.TransformStack = function () {
      * @param {number} ang the angle in degrees to rotate
      * @param {number[3]} vector the rotation vector
      */
-    this.rotate = function (ang, vector) {
+    rotate : function (ang, vector) {
         var arad = ang * Math.PI / 180.0;
         var m = Matrix.Rotation(arad, $V([vector[0], vector[1], vector[2]])).ensure4x4 ();
         this.mvMultiply (m);
-    }
+    },
     
     /**
      * Multiplies the current matrix with a 
@@ -115,14 +119,12 @@ bigshot.TransformStack = function () {
      * @param {number} znear near image plane
      * @param {number} zfar far image plane
      */
-    this.perspective = function (fovy, aspect, znear, zfar) {
+    perspective : function (fovy, aspect, znear, zfar) {
         var m = makePerspective (fovy, aspect, znear, zfar);
         this.mvMultiply (m);
-    }
+    },
     
-    this.matrix = function () {
+    matrix : function () {
         return this.mvMatrix;
     }
-    
-    this.reset ();
 }

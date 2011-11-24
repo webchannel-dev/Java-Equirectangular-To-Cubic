@@ -18,13 +18,16 @@
  * @class Abstract base.
  */
 bigshot.DataLoader = function () {
+}
+
+bigshot.DataLoader.prototype = {
     /**
      * Loads an image.
      *
      * @param url the url to load
      * @param {function(success,img)} onloaded called on complete 
      */
-    this.loadImage = function (url, onloaded) {};
+    loadImage : function (url, onloaded) {},
     
     /**
      * Loads the xml.
@@ -34,5 +37,5 @@ bigshot.DataLoader = function () {
      * @param {function(success,xml)} [onloaded] called on complete for async requests
      * @return the xml for synchronous calls
      */
-    this.loadXml = function (url, async, onloaded) {};
+    loadXml : function (url, async, onloaded) {}
 }

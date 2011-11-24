@@ -26,24 +26,40 @@ bigshot.WebGL = function (canvas_) {
     this.canvas = canvas_;
     
     this.gl = bigshot.webglutil.createContext (this.canvas); 
+            
+    /**
+     * The current object-to-world transform matrix.
+     *
+     * @type bigshot.TransformStack
+     */
+    this.mvMatrix = new bigshot.TransformStack ();
     
+    this.pMatrix = new bigshot.TransformStack ();
+    
+    /**
+     * The current shader program.
+     */
+    this.shaderProgram = null;
+    
+    this.onresize ();
+}
+
+bigshot.WebGL.prototype = {
     /**
      * Must be called when the canvas element is resized.
      *
      * @public
      */
-    this.onresize = function () {
+    onresize : function () {
         this.gl.viewportWidth = this.canvas.width;
         this.gl.viewportHeight = this.canvas.height;
-    }
-    
-    this.onresize ();
+    },
     
     /**
      * Fragment shader. Taken from the "Learning WebGL" lessons:
      *     http://learningwebgl.com/blog/?p=571
      */
-    this.fragmentShader = 
+    fragmentShader : 
         "#ifdef GL_ES\n" + 
         "    precision highp float;\n" + 
         "#endif\n" + 
@@ -54,13 +70,13 @@ bigshot.WebGL = function (canvas_) {
         "\n" + 
         "void main(void) {\n" + 
         "    gl_FragColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));\n" + 
-        "}\n";
+        "}\n",
     
     /**
      * Vertex shader. Taken from the "Learning WebGL" lessons:
      *     http://learningwebgl.com/blog/?p=571
      */
-    this.vertexShader = 
+    vertexShader : 
         "attribute vec3 aVertexPosition;\n" +
         "attribute vec2 aTextureCoord;\n" +
         "\n" +
@@ -72,7 +88,7 @@ bigshot.WebGL = function (canvas_) {
         "void main(void) {\n" +
         "    gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);\n" +
         "    vTextureCoord = aTextureCoord;\n" +
-        "}";
+        "}",
     
     /**
      * Creates a new shader.
@@ -82,7 +98,7 @@ bigshot.WebGL = function (canvas_) {
      * @param {int} type the shader type, one of WebGLRenderingContext.FRAGMENT_SHADER or 
      * WebGLRenderingContext.VERTEX_SHADER
      */
-    this.createShader = function (source, type) {
+    createShader : function (source, type) {
         var shader = this.gl.createShader (type);
         this.gl.shaderSource (shader, source);
         this.gl.compileShader (shader);
@@ -93,7 +109,7 @@ bigshot.WebGL = function (canvas_) {
         }
         
         return shader;
-    };
+    },
     
     /**
      * Creates a new fragment shader.
@@ -101,9 +117,9 @@ bigshot.WebGL = function (canvas_) {
      * @type WebGLShader
      * @param {String} source the source code
      */
-    this.createFragmentShader = function (source) {
+    createFragmentShader : function (source) {
         return this.createShader (source, this.gl.FRAGMENT_SHADER);
-    };
+    },
     
     /**
      * Creates a new vertex shader.
@@ -111,19 +127,14 @@ bigshot.WebGL = function (canvas_) {
      * @type WebGLShader
      * @param {String} source the source code
      */
-    this.createVertexShader = function (source) {
+    createVertexShader : function (source) {
         return this.createShader (source, this.gl.VERTEX_SHADER);
-    };
-    
-    /**
-     * The current shader program.
-     */
-    this.shaderProgram = null;
+    },
     
     /**
      * Initializes the shaders.
      */
-    this.initShaders = function () {
+    initShaders : function () {
         this.shaderProgram = this.gl.createProgram ();
         this.gl.attachShader (this.shaderProgram, this.createVertexShader (this.vertexShader));
         this.gl.attachShader (this.shaderProgram, this.createFragmentShader (this.fragmentShader));
@@ -145,24 +156,16 @@ bigshot.WebGL = function (canvas_) {
         this.shaderProgram.pMatrixUniform = this.gl.getUniformLocation(this.shaderProgram, "uPMatrix");
         this.shaderProgram.mvMatrixUniform = this.gl.getUniformLocation(this.shaderProgram, "uMVMatrix");
         this.shaderProgram.samplerUniform = this.gl.getUniformLocation(this.shaderProgram, "uSampler");
-    };
-    
-    /**
-     * The current object-to-world transform matrix.
-     *
-     * @type bigshot.TransformStack
-     */
-    this.mvMatrix = new bigshot.TransformStack ();
-    
-    this.pMatrix = new bigshot.TransformStack ();
+    },
+
     
     /**
      * Sets the matrix parameters ("uniforms", since the variables are declared as uniform) in the shaders.
      */
-    this.setMatrixUniforms = function () {
+    setMatrixUniforms : function () {
         this.gl.uniformMatrix4fv(this.shaderProgram.pMatrixUniform, false, new Float32Array(this.pMatrix.matrix().flatten()));
         this.gl.uniformMatrix4fv(this.shaderProgram.mvMatrixUniform, false, new Float32Array(this.mvMatrix.matrix().flatten()));
-    }
+    },
     
     /**
      * Creates a texture from an image.
@@ -171,11 +174,11 @@ bigshot.WebGL = function (canvas_) {
      * @type WebGLTexture
      * @return An initialized texture
      */
-    this.createImageTextureFromImage = function (image, minFilter, magFilter) {
+    createImageTextureFromImage : function (image, minFilter, magFilter) {
         var texture = this.gl.createTexture();
         this.handleImageTextureLoaded (this, texture, image, minFilter, magFilter);
         return texture;
-    }
+    },
     
     /**
      * Creates a texture from a source url.
@@ -183,7 +186,7 @@ bigshot.WebGL = function (canvas_) {
      * @param {String} source the URL of the image
      * @return WebGLTexture
      */
-    this.createImageTextureFromSource = function (source, minFilter, magFilter) {
+    createImageTextureFromSource : function (source, minFilter, magFilter) {
         var image = new Image();
         var texture = this.gl.createTexture();
         
@@ -195,7 +198,7 @@ bigshot.WebGL = function (canvas_) {
         image.src = source;
         
         return texture;
-    }
+    },
     
     /**
      * Uploads the image data to the texture memory. Called when the texture image
@@ -203,7 +206,7 @@ bigshot.WebGL = function (canvas_) {
      *
      * @private
      */
-    this.handleImageTextureLoaded = function (that, texture, image, minFilter, magFilter) {
+    handleImageTextureLoaded : function (that, texture, image, minFilter, magFilter) {
         that.gl.bindTexture(that.gl.TEXTURE_2D, texture);        
         that.gl.texImage2D(that.gl.TEXTURE_2D, 0, that.gl.RGBA, that.gl.RGBA, that.gl.UNSIGNED_BYTE, image);
         that.gl.texParameteri(that.gl.TEXTURE_2D, that.gl.TEXTURE_MAG_FILTER, magFilter ? magFilter : that.gl.NEAREST);
@@ -218,20 +221,20 @@ bigshot.WebGL = function (canvas_) {
                     }
         
         that.gl.bindTexture(that.gl.TEXTURE_2D, null);      
-    }
+    },
     
     /**
      * Transforms a vector to world coordinates.
      *
      * @param {vector} vector the vector to transform
      */
-    this.transformToWorld = function (vector) {
+    transformToWorld : function (vector) {
         var sylvesterVector = $V([vector[0], vector[1], vector[2], 1.0]);
         var world = this.mvMatrix.matrix ().x (sylvesterVector);
         return world;
-    }
+    },
     
-    this.transformWorldToScreen = function (world) {
+    transformWorldToScreen : function (world) {
         if (world.e(3) > 0) {
             return null;
         }
@@ -245,7 +248,7 @@ bigshot.WebGL = function (canvas_) {
             y: - (this.gl.viewportHeight / 2) * screen.e(2) / screen.e(4) + this.gl.viewportHeight / 2
         };
         return r;
-    }
+    },
     
     /**
      * Transforms a vector to screen coordinates.
@@ -253,7 +256,7 @@ bigshot.WebGL = function (canvas_) {
      * @param {vector} vector the vector to transform
      * @return the transformed vector, or null if the vector is nearer than the near-z plane.
      */
-    this.transformToScreen = function (vector) {
+    transformToScreen : function (vector) {
         var world = this.transformToWorld (vector);
         return this.transformWorldToScreen (world);
     }

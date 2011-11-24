@@ -18,13 +18,16 @@
  * @class Abstract base for textured quad scenes.
  */
 bigshot.TexturedQuadScene = function () {
+}
+
+bigshot.TexturedQuadScene.prototype = {
     /**
      * Adds a quad to the scene.
      */
-    this.addQuad = function (quad) {};
+    addQuad : function (quad) {},
     
     /**
      * Renders the scene.
      */
-    this.render = function () {};
+    render : function () {}
 };

@@ -20,6 +20,7 @@
 bigshot.AdaptiveLODMonitor = function (parameters) {
     this.currentAdaptiveMagnification = parameters.vrPanorama.getMaxTextureMagnification ();
     
+    this.parameters = parameters;
     this.frames = 0;
     this.samples = 0;
     this.renderTimeTotal = 0;
@@ -31,31 +32,48 @@ bigshot.AdaptiveLODMonitor = function (parameters) {
     this.lowerTime = this.targetTime / (1.0 + parameters.tolerance);
     this.upperTime = this.targetTime * (1.0 + parameters.tolerance);
     
-    this.averageRenderTime = function () {
+    this.startTime = 0;
+    this.lastRender = 0;
+    
+    this.hqRender = false;
+    this.hqMode = false;
+    this.hqRenderWaiting = false;
+    
+    var that = this;
+    var getListener = function () {
+        return function (state, cause, data) {
+            that.listener (state, cause, data);
+        }                    
+    };
+    return getListener ();
+};
+
+bigshot.AdaptiveLODMonitor.prototype = {
+    averageRenderTime : function () {
         if (this.samples > 0) {
             return this.renderTimeTotal / this.samples;
         } else {
             return -1;
         }
-    }
+    },
     
-    this.averageRenderTimeLast = function () {
+    averageRenderTimeLast : function () {
         if (this.samples > 0) {
             return this.renderTimeLast / this.samplesLast;
         } else {
             return -1;
         }
-    }
+    },
     
-    this.increaseDetail = function () {
-        this.currentAdaptiveMagnification = Math.max (parameters.minMag, this.currentAdaptiveMagnification / (1.0 + parameters.rate));
-    };
+    increaseDetail : function () {
+        this.currentAdaptiveMagnification = Math.max (this.parameters.minMag, this.currentAdaptiveMagnification / (1.0 + this.parameters.rate));
+    },
     
-    this.decreaseDetail = function () {
-        this.currentAdaptiveMagnification = Math.min (parameters.maxMag, this.currentAdaptiveMagnification * (1.0 + parameters.rate));
-    };
+    decreaseDetail : function () {
+        this.currentAdaptiveMagnification = Math.min (this.parameters.maxMag, this.currentAdaptiveMagnification * (1.0 + this.parameters.rate));
+    },
     
-    this.sample = function () {
+    sample : function () {
         var deltat = new Date ().getTime () - this.startTime;
         this.samples++;
         this.renderTimeTotal += deltat;
@@ -75,21 +93,14 @@ bigshot.AdaptiveLODMonitor = function (parameters) {
             this.samplesLast = 0;
             this.renderTimeLast = 0;
         }
-    };
+    },
     
-    this.startTime = 0;
-    this.lastRender = 0;
-    
-    this.hqRender = false;
-    this.hqMode = false;
-    this.hqRenderWaiting = false;
-    
-    this.hqRenderTick = function () {
-        if (this.lastRender < new Date ().getTime () - parameters.hqRenderDelay) {
+    hqRenderTick : function () {
+        if (this.lastRender < new Date ().getTime () - this.parameters.hqRenderDelay) {
             this.hqRender = true;
             this.hqMode = true;
-            parameters.vrPanorama.setMaxTextureMagnification (parameters.hqRenderMag);
-            parameters.vrPanorama.render ();
+            this.parameters.vrPanorama.setMaxTextureMagnification (this.parameters.hqRenderMag);
+            this.parameters.vrPanorama.render ();
             
             this.hqRender = false;
             this.hqRenderWaiting = false;
@@ -97,26 +108,26 @@ bigshot.AdaptiveLODMonitor = function (parameters) {
             var that = this;
             setTimeout (function () {
                     that.hqRenderTick ();
-                }, parameters.hqRenderInterval);
+                }, this.parameters.hqRenderInterval);
         }
-    };
+    },
     
-    this.listener = function (state, cause, data) {
+    listener : function (state, cause, data) {
         if (this.hqRender) {
             return;
         }
         
-        if (this.hqMode && cause == parameters.vrPanorama.ONRENDER_TEXTURE_UPDATE) {
-            parameters.vrPanorama.setMaxTextureMagnification (parameters.minMag);
+        if (this.hqMode && cause == this.parameters.vrPanorama.ONRENDER_TEXTURE_UPDATE) {
+            this.parameters.vrPanorama.setMaxTextureMagnification (this.parameters.minMag);
             return;
         } else {
             this.hqMode = false;
         }
         
-        parameters.vrPanorama.setMaxTextureMagnification (this.currentAdaptiveMagnification);
+        this.parameters.vrPanorama.setMaxTextureMagnification (this.currentAdaptiveMagnification);
         
         this.frames++;
-        if ((this.frames < 20 || this.frames % 5 == 0) && state == parameters.vrPanorama.ONRENDER_BEGIN) {
+        if ((this.frames < 20 || this.frames % 5 == 0) && state == this.parameters.vrPanorama.ONRENDER_BEGIN) {
             this.startTime = new Date ().getTime ();
             this.lastRender = this.startTime;
             var that = this;
@@ -127,16 +138,8 @@ bigshot.AdaptiveLODMonitor = function (parameters) {
                 this.hqRenderWaiting = true;
                 setTimeout (function () {
                         that.hqRenderTick ();
-                    }, parameters.hqRenderInterval);
+                    }, this.parameters.hqRenderInterval);
             }
         }
-    };
-    
-    this.getListener = function () {
-        var that = this;
-        return function (state, cause, data) {
-            that.listener (state, cause, data);
-        }                    
-    };
-    return this.getListener ();
+    }
 };

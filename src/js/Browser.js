@@ -21,25 +21,28 @@
  * and convenience.
  */
 bigshot.Browser = function () {
+}
+
+bigshot.Browser.prototype = {
     /**
     * Removes all children from an element.
     * 
     * @public
     * @param {HTMLElement} element the element whose children are to be removed.
     */
-    this.removeAllChildren = function (element) {
+    removeAllChildren : function (element) {
         if (element.children.length > 0) {
             for (var i = element.children.length - 1; i >= 0; --i) {
                 element.removeChild (element.children[i]);
             }
         }
-    };
+    },
     
     /**
     * Thunk to implement a faked "mouseenter" event.
     * @private
     */
-    this.mouseEnter = function (_fn) {
+    mouseEnter : function (_fn) {
         var isAChildOf = this.isAChildOf;
         return function(_evt)
         {
@@ -49,15 +52,15 @@ bigshot.Browser = function () {
             
             _fn.call (this, _evt);
         }
-    };
+    },
     
-    this.isAChildOf = function (_parent, _child) {
+    isAChildOf : function (_parent, _child) {
         if (_parent === _child) { return false; }
         while (_child && _child !== _parent)
         { _child = _child.parentNode; }
         
         return _child === _parent;
-    };
+    },
     
     /**
     * Unregisters a listener from an element.
@@ -67,13 +70,13 @@ bigshot.Browser = function () {
     * @param {function(e)} fn the callback function to detach
     * @param {boolean} useCapture specifies if we should unregister a listener from the capture chain.
     */
-    this.unregisterListener = function (elem, eventName, fn, useCapture) {
+    unregisterListener : function (elem, eventName, fn, useCapture) {
         if (typeof (elem.removeEventListener) != 'undefined') {
             elem.removeEventListener (eventName, fn, useCapture);
         } else if (typeof (elem.detachEvent) != 'undefined') {
             elem.detachEvent('on' + eventName, fn);
         }
-    };
+    },
     
     /**
     * Registers a listener to an element.
@@ -85,7 +88,7 @@ bigshot.Browser = function () {
     * See <a href="https://developer.mozilla.org/en/DOM/element.addEventListener">element.addEventListener</a>
     * on MDN for an explanation.
     */
-    this.registerListener = function (_elem, _evtName, _fn, _useCapture) {
+    registerListener : function (_elem, _evtName, _fn, _useCapture) {
         if (typeof _elem.addEventListener != 'undefined')
         {
             if (_evtName === 'mouseenter')
@@ -103,14 +106,14 @@ bigshot.Browser = function () {
         {
             _elem['on' + _evtName] = _fn;
         }
-    };
+    },
     
     /**
     * Stops an event from bubbling.
     *
     * @param {Event} eventObject the event object
     */
-    this.stopEventBubbling = function (eventObject) {
+    stopEventBubbling : function (eventObject) {
         if (eventObject) {
             if (eventObject.stopPropagation) {
                 eventObject.stopPropagation ();
@@ -118,7 +121,7 @@ bigshot.Browser = function () {
                 eventObject.cancelBubble = true; 
             }
         }
-    };
+    },
     
     /**
     * Creates a callback function that simply stops the event from bubbling.
@@ -132,24 +135,24 @@ bigshot.Browser = function () {
     * @type function(event)
     * @return a new function that can be used to stop an event from bubbling
     */
-    this.stopEventBubblingHandler = function () {
+    stopEventBubblingHandler : function () {
         var that = this;
         return function (event) {
             that.stopEventBubbling (event);
             return false;
         };
-    }
+    },
     
     /**
         * Stops bubbling for all mouse events on the element.
         *
         * @param {HTMLElement} element the element
         */
-    this.stopMouseEventBubbling = function (element) {
+    stopMouseEventBubbling : function (element) {
         this.registerListener (element, "mousedown", this.stopEventBubblingHandler (), false);
         this.registerListener (element, "mouseup", this.stopEventBubblingHandler (), false);
         this.registerListener (element, "mousemove", this.stopEventBubblingHandler (), false);
-    };
+    },
     
     /**
      * Returns the size in pixels of the element
@@ -157,7 +160,7 @@ bigshot.Browser = function () {
      * @param {HTMLElement} obj the element
      * @return a size object with two integer members, w and h, for width and height respectively.
      */
-    this.getElementSize = function (obj) {
+    getElementSize : function (obj) {
         var size = new Object();
         if (obj.clientWidth) {
             size.w = obj.clientWidth;
@@ -166,20 +169,20 @@ bigshot.Browser = function () {
             size.h = obj.clientHeight;
         }
         return size;
-    };
+    },
     
     /**
      * Returns true if the browser is scaling the window, such as on Mobile Safari.
      * The method used here is far from perfect, but it catches the most important use case:
      * If we are running on an iDevice and the page is zoomed out.
      */
-    this.browserIsViewporting = function () {
+    browserIsViewporting : function () {
         if (window.innerWidth <= screen.width) {
             return false;
         } else {
             return true;
         }
-    };
+    },
     
     /**
      * Returns the device pixel scale, which is equal to the number of device 
@@ -187,13 +190,13 @@ bigshot.Browser = function () {
      * on mobile devices, especially when zoomed out and more detailed textures are
      * simply wasted.
      */
-    this.getDevicePixelScale = function () {
+    getDevicePixelScale : function () {
         if (this.browserIsViewporting ()) {
             return screen.width / window.innerWidth;
         } else {
             return 1.0;
         }
-    };
+    },
     
     /**
         * Returns the position in pixels of the element relative
@@ -202,7 +205,7 @@ bigshot.Browser = function () {
         * @param {HTMLElement} obj the element
         * @return a position object with two integer members, x and y.
         */
-    this.getElementPosition = function (obj) {
+    getElementPosition : function (obj) {
         var position = new Object();
         position.x = 0;
         position.y = 0;
@@ -227,7 +230,7 @@ bigshot.Browser = function () {
             o = o.offsetParent;
         }
         return position;
-    };
+    },
     
     /**
      * Creates an XMLHttpRequest object.
@@ -235,7 +238,7 @@ bigshot.Browser = function () {
      * @type XMLHttpRequest
      * @return a XMLHttpRequest object.
      */
-    this.createXMLHttpRequest = function  () {
+    createXMLHttpRequest : function  () {
         try { 
             return new ActiveXObject("Msxml2.XMLHTTP"); 
         } catch (e) {
@@ -254,7 +257,5 @@ bigshot.Browser = function () {
         alert("XMLHttpRequest not supported");
         
         return null;
-    };
-    
-    return this;
+    }
 };

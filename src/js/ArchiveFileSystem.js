@@ -28,8 +28,42 @@ bigshot.ArchiveFileSystem = function (parameters) {
     this.index = {};
     this.prefix = "";
     this.suffix = "";
+    this.parameters = parameters;
     
-    this.getDescriptor = function () {
+    var browser = new bigshot.Browser ();
+    var req = browser.createXMLHttpRequest ();
+    req.open("GET", this.parameters.basePath + "&start=0&length=24&type=text/plain", false);   
+    req.send(null);  
+    if(req.status == 200) {
+        if (req.responseText.substring (0, 7) != "BIGSHOT") {
+            alert ("\"" + this.parameters.basePath + "\" is not a valid bigshot file");
+            return;
+        }
+        this.indexSize = parseInt (req.responseText.substring (8), 16);
+        this.offset = this.indexSize + 24;
+        
+        req.open("GET", this.parameters.basePath + "&type=text/plain&start=24&length=" + this.indexSize, false);   
+        req.send(null);  
+        if(req.status == 200) {
+            var substrings = req.responseText.split (":");
+            for (var i = 0; i < substrings.length; i += 3) {
+                this.index[substrings[i]] = {
+                    start : parseInt (substrings[i + 1]) + this.offset,
+                    length : parseInt (substrings[i + 2])
+                };
+            }
+        } else {
+            alert ("The index of \"" + this.parameters.basePath + "\" could not be loaded: " + req.status);
+        }
+    } else {
+        alert ("The header of \"" + this.parameters.basePath + "\" could not be loaded: " + req.status);
+    }
+    return this;
+};
+
+
+bigshot.ArchiveFileSystem.prototype = { 
+    getDescriptor : function () {
         this.browser = new bigshot.Browser ();
         var req = this.browser.createXMLHttpRequest ();
         
@@ -50,18 +84,18 @@ bigshot.ArchiveFileSystem = function (parameters) {
         } else {
             throw new Error ("Unable to find descriptor.");
         }
-    }
+    },
     
-    this.getPosterFilename = function () {
+    getPosterFilename : function () {
         return this.getFilename ("poster" + this.suffix);
-    }
+    },
     
-    this.getFilename = function (name) {
+    getFilename : function (name) {
         name = this.getPrefix () + name;
         if (!this.index[name] && console) {
             console.log ("Can't find " + name);
         }
-        var f = parameters.basePath + "&start=" + this.index[name].start + "&length=" + this.index[name].length;
+        var f = this.parameters.basePath + "&start=" + this.index[name].start + "&length=" + this.index[name].length;
         if (name.substring (name.length - 4) == ".jpg") {
             f = f + "&type=image/jpeg";
         } else if (name.substring (name.length - 4) == ".png") {
@@ -70,53 +104,22 @@ bigshot.ArchiveFileSystem = function (parameters) {
             f = f + "&type=text/plain";
         }
         return f;
-    };
+    },
     
-    this.getImageFilename = function (tileX, tileY, zoomLevel) {
+    getImageFilename : function (tileX, tileY, zoomLevel) {
         var key = (-zoomLevel) + "/" + tileX + "_" + tileY + this.suffix;
         return this.getFilename (key);
-    };
+    },
     
-    this.getPrefix = function () {
+    getPrefix : function () {
         if (this.prefix) {
             return this.prefix + "/";
         } else {
             return "";
         }
-    }
+    },
     
-    
-    this.setPrefix = function (prefix) {
+    setPrefix : function (prefix) {
         this.prefix = prefix;
-    }        
-    
-    var browser = new bigshot.Browser ();
-    var req = browser.createXMLHttpRequest ();
-    req.open("GET", parameters.basePath + "&start=0&length=24&type=text/plain", false);   
-    req.send(null);  
-    if(req.status == 200) {
-        if (req.responseText.substring (0, 7) != "BIGSHOT") {
-            alert ("\"" + parameters.basePath + "\" is not a valid bigshot file");
-            return;
-        }
-        this.indexSize = parseInt (req.responseText.substring (8), 16);
-        this.offset = this.indexSize + 24;
-        
-        req.open("GET", parameters.basePath + "&type=text/plain&start=24&length=" + this.indexSize, false);   
-        req.send(null);  
-        if(req.status == 200) {
-            var substrings = req.responseText.split (":");
-            for (var i = 0; i < substrings.length; i += 3) {
-                this.index[substrings[i]] = {
-                    start : parseInt (substrings[i + 1]) + this.offset,
-                    length : parseInt (substrings[i + 2])
-                };
-            }
-        } else {
-            alert ("The index of \"" + parameters.basePath + "\" could not be loaded: " + req.status);
-        }
-    } else {
-        alert ("The header of \"" + parameters.basePath + "\" could not be loaded: " + req.status);
     }
-    return this;
 }

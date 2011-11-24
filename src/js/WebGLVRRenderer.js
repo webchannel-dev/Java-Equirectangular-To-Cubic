@@ -18,11 +18,12 @@
  * @class WebGL renderer.
  */
 bigshot.WebGLVRRenderer = function (container) {
+    this.container = container;
     this.canvas = document.createElement ("canvas");
     this.canvas.width = 480;
     this.canvas.height = 480;
     this.canvas.style.position = "absolute";
-    container.appendChild (this.canvas);
+    this.container.appendChild (this.canvas);
     this.webGl = new bigshot.WebGL (this.canvas);
     this.webGl.initShaders();
     this.webGl.gl.clearColor(0.0, 0.0, 0.0, 1.0);
@@ -30,44 +31,46 @@ bigshot.WebGLVRRenderer = function (container) {
     this.webGl.gl.enable (this.webGl.gl.BLEND);
     this.webGl.gl.disable(this.webGl.gl.DEPTH_TEST);
     this.webGl.gl.clearDepth(1.0);
+}
     
-    this.createTileCache = function (onloaded, onCacheInit, parameters) {
+bigshot.WebGLVRRenderer.prototype = {
+    createTileCache : function (onloaded, onCacheInit, parameters) {
         return new bigshot.TextureTileCache (onloaded, onCacheInit, parameters, this.webGl);
-    };
+    },
     
-    this.createTexturedQuadScene = function () {
+    createTexturedQuadScene : function () {
         return new bigshot.WebGLTexturedQuadScene (this.webGl);
-    };
+    },
     
-    this.supportsUpdate = function () {
+    supportsUpdate : function () {
         return false;
-    }
+    },
     
-    this.createTexturedQuad = function (p, u, v, texture) {
+    createTexturedQuad : function (p, u, v, texture) {
         return new bigshot.WebGLTexturedQuad (p, u, v, texture);
-    };
+    },
     
-    this.getViewportWidth = function () {
+    getViewportWidth : function () {
         return this.webGl.gl.viewportWidth;
-    };
+    },
     
-    this.getViewportHeight = function () {
+    getViewportHeight : function () {
         return this.webGl.gl.viewportHeight;
-    };
+    },
     
-    this.transformToWorld = function (v) {
+    transformToWorld : function (v) {
         return this.webGl.transformToWorld (v);
-    };
+    },
     
-    this.transformToScreen = function (vector) {
+    transformToScreen : function (vector) {
         return this.webGl.transformToScreen (vector);
-    };
+    },
     
-    this.transformWorldToScreen = function (world) {
+    transformWorldToScreen : function (world) {
         return this.webGl.transformWorldToScreen (world);
-    }
+    },
     
-    this.beginRender = function (y, p, fov, tx, ty, tz, oy, op, or) {
+    beginRender : function (y, p, fov, tx, ty, tz, oy, op, or) {
         this.webGl.gl.viewport (0, 0, this.webGl.gl.viewportWidth, this.webGl.gl.viewportHeight);
         
         this.webGl.pMatrix.reset ();
@@ -80,24 +83,24 @@ bigshot.WebGLVRRenderer = function (container) {
         this.webGl.mvMatrix.rotate (oy, [0, 1, 0]);
         this.webGl.mvMatrix.rotate (y, [0, 1, 0]);
         this.webGl.mvMatrix.rotate (p, [1, 0, 0]);
-    }
+    },
     
-    this.endRender = function () {
+    endRender : function () {
         
-    }
+    },
     
-    this.resize = function (w, h) {
+    resize : function (w, h) {
         this.canvas.width = w;
         this.canvas.height = h;
-        if (container.style.width != "") {
-            container.style.width = w + "px";
+        if (this.container.style.width != "") {
+            this.container.style.width = w + "px";
         }
-        if (container.style.height != "") {
-            container.style.height = h + "px";
+        if (this.container.style.height != "") {
+            this.container.style.height = h + "px";
         }
-    }
+    },
     
-    this.onresize = function () {
+    onresize : function () {
         this.webGl.onresize ();
     }
 }

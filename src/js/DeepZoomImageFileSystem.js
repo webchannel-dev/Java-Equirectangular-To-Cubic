@@ -29,11 +29,14 @@ bigshot.DeepZoomImageFileSystem = function (parameters) {
     this.DZ_NAMESPACE = "http://schemas.microsoft.com/deepzoom/2009";
     this.fullZoomLevel = 0;
     this.posterName = "";
-    
-    this.getDescriptor = function () {
+    this.parameters = parameters;
+}
+
+bigshot.DeepZoomImageFileSystem.prototype = {    
+    getDescriptor : function () {
         var descriptor = {};
         
-        var xml = parameters.dataLoader.loadXml (parameters.basePath + this.prefix + ".xml", false);
+        var xml = this.parameters.dataLoader.loadXml (this.parameters.basePath + this.prefix + ".xml", false);
         var image = xml.getElementsByTagName ("Image")[0];
         var size = xml.getElementsByTagName ("Size")[0];
         descriptor.width = parseInt (size.getAttribute ("Width"));
@@ -50,23 +53,23 @@ bigshot.DeepZoomImageFileSystem = function (parameters) {
         var posterZoomLevel = Math.ceil (Math.log (descriptor.tileSize) / Math.LN2);
         this.posterName = this.getImageFilename (0, 0, posterZoomLevel - this.fullZoomLevel);
         return descriptor;
-    }
+    },
     
-    this.setPrefix = function (prefix) {
+    setPrefix : function (prefix) {
         this.prefix = prefix;
-    };
+    },
     
-    this.getPosterFilename = function () {
+    getPosterFilename : function () {
         return this.posterName;
-    };
+    },
     
-    this.getFilename = function (name) {
-        return parameters.basePath + this.prefix + "/" + name;
-    };
+    getFilename : function (name) {
+        return this.parameters.basePath + this.prefix + "/" + name;
+    },
     
-    this.getImageFilename = function (tileX, tileY, zoomLevel) {
+    getImageFilename : function (tileX, tileY, zoomLevel) {
         var dziZoomLevel = this.fullZoomLevel + zoomLevel;
         var key = dziZoomLevel + "/" + tileX + "_" + tileY + this.suffix;
         return this.getFilename (key);
-    };
+    }
 };
