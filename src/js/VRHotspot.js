@@ -25,168 +25,7 @@
  * @param {bigshot.VRPanorama} panorama the panorama to attach this hotspot to
  */
 bigshot.VRHotspot = function (panorama) {
-    /**
-     * Hides the hotspot if less than <code>frac</code> of its area is visible.
-     * 
-     * @param {number} frac the fraction (0.0 - 1.0) of the hotspot that must be visible for
-     * it to be shown.
-     * @type function(clipData)
-     * @see bigshot.VRHotspot#clip
-     * @see bigshot.VRHotspot#clippingStrategy
-     */
-    this.CLIP_FRACTION = function (frac) {
-        return function (clipData) {
-            var r = {
-                x0 : Math.max (clipData.x, 0),
-                y0 : Math.max (clipData.y, 0),
-                x1 : Math.min (clipData.x + clipData.w, panorama.renderer.getViewportWidth ()),
-                y1 : Math.min (clipData.y + clipData.h, panorama.renderer.getViewportHeight ())
-            };
-            var full = clipData.w * clipData.h;
-            var visibleWidth = (r.x1 - r.x0);
-            var visibleHeight = (r.y1 - r.y0);
-            if (visibleWidth > 0 && visibleHeight > 0) {
-                var visible = visibleWidth * visibleHeight;
-                
-                return (visible / full) >= frac;
-            } else {
-                return false;
-            }
-        }
-    }
-    
-    /**
-     * Hides the hotspot if its center is outside the viewport.
-     * 
-     * @type function(clipData)
-     * @see bigshot.VRHotspot#clip
-     * @see bigshot.VRHotspot#clippingStrategy
-     */
-    this.CLIP_CENTER = function () {
-        return function (clipData) {
-            var c = {
-                x : clipData.x + clipData.w / 2,
-                y : clipData.y + clipData.h / 2
-            };
-            return c.x >= 0 && c.x < panorama.renderer.getViewportWidth () && 
-            c.y >= 0 && c.y < panorama.renderer.getViewportHeight ();
-        }
-    }
-    
-    /**
-     * Resizes the hotspot to fit in the viewport. Hides the hotspot if 
-     * it is completely outside the viewport.
-     * 
-     * @type function(clipData)
-     * @see bigshot.VRHotspot#clip
-     * @see bigshot.VRHotspot#clippingStrategy
-     */
-    this.CLIP_ADJUST = function () {
-        return function (clipData) {
-            if (clipData.x < 0) {
-                clipData.w -= -clipData.x;
-                clipData.x = 0;
-            }
-            if (clipData.y < 0) {
-                clipData.h -= -clipData.y;
-                clipData.y = 0;
-            }
-            if (clipData.x + clipData.w > panorama.renderer.getViewportWidth ()) {
-                clipData.w = panorama.renderer.getViewportWidth () - clipData.x - 1;
-            }
-            if (clipData.y + clipData.h > panorama.renderer.getViewportHeight ()) {
-                clipData.h = panorama.renderer.getViewportHeight () - clipData.y - 1;
-            }
-            
-            return clipData.w > 0 && clipData.h > 0;
-        }
-    }
-    
-    /**
-     * Shrinks the hotspot as it approaches the viewport edges.
-     *
-     * @param s The full size of the hotspot.
-     * @param s.w The full width of the hotspot, in pixels.
-     * @param s.h The full height of the hotspot, in pixels.
-     * @see bigshot.VRHotspot#clip
-     * @see bigshot.VRHotspot#clippingStrategy
-     */
-    this.CLIP_ZOOM = function (s, maxDistanceInViewportHeights) {
-        return function (clipData) {
-            if (clipData.x >= 0 && clipData.y >= 0 && (clipData.x + s.w) < panorama.renderer.getViewportWidth ()
-                    && (clipData.y + s.h) < panorama.renderer.getViewportHeight ()) {
-                        clipData.w = s.w;
-                        clipData.h = s.h;
-                        return true;
-                    }
-            
-            var distance = 0;
-            if (clipData.x < 0) {
-                distance = Math.max (-clipData.x, distance);
-            }
-            if (clipData.y < 0) {
-                distance = Math.max (-clipData.y, distance);
-            }
-            if (clipData.x + s.w > panorama.renderer.getViewportWidth ()) {
-                distance = Math.max (clipData.x + s.w - panorama.renderer.getViewportWidth (), distance);
-            }
-            if (clipData.y + s.h > panorama.renderer.getViewportHeight ()) {
-                distance = Math.max (clipData.y + s.h - panorama.renderer.getViewportHeight (), distance);
-            }
-            
-            distance /= panorama.renderer.getViewportHeight ();
-            if (distance > maxDistanceInViewportHeights) {
-                return false;
-            }
-            
-            var scale = 1 / (1 + distance);
-            
-            clipData.w = s.w * scale;
-            clipData.h = s.w * scale;
-            if (clipData.x < 0) {
-                clipData.x = 0;
-            }
-            if (clipData.y < 0) {
-                clipData.y = 0;
-            }
-            if (clipData.x + clipData.w > panorama.renderer.getViewportWidth ()) {
-                clipData.x = panorama.renderer.getViewportWidth () - clipData.w;
-            }
-            if (clipData.y + clipData.h > panorama.renderer.getViewportHeight ()) {
-                clipData.y = panorama.renderer.getViewportHeight () - clipData.h;
-            }
-            
-            return true;
-        }
-    }
-    
-    /**
-     * Progressively fades the hotspot as it gets closer to the viewport edges.
-     *
-     * @param {number} borderSizeInPixels the distance from the edge, in pixels,
-     * where the hotspot is completely opaque.
-     * @see bigshot.VRHotspot#clip
-     * @see bigshot.VRHotspot#clippingStrategy
-     */
-    this.CLIP_FADE = function (borderSizeInPixels) {
-        return function (clipData) {
-            var distance = Math.min (
-                clipData.x, 
-                clipData.y, 
-                panorama.renderer.getViewportWidth () - (clipData.x + clipData.w), 
-                panorama.renderer.getViewportHeight () - (clipData.y + clipData.h));
-            
-            if (distance <= 0) {
-                return false;
-            } else if (distance <= borderSizeInPixels) {
-                clipData.opacity = (distance / borderSizeInPixels);
-                return true;
-            } else {
-                clipData.opacity = 1.0;
-                return true;
-            }
-        }
-    }
+    this.panorama = panorama;
     
     /**
      * The method to use for dealing with hotspots that extend outside the 
@@ -207,12 +46,179 @@ bigshot.VRHotspot = function (panorama) {
      * @type function(clipData)
      * @default bigshot.VRHotspot#CLIP_ADJUST
      */
-    this.clippingStrategy = this.CLIP_ADJUST ();
+    this.clippingStrategy = bigshot.VRHotspot.CLIP_ADJUST (panorama);
+    
+}
+
+/**
+ * Hides the hotspot if less than <code>frac</code> of its area is visible.
+ * 
+ * @param {number} frac the fraction (0.0 - 1.0) of the hotspot that must be visible for
+ * it to be shown.
+ * @type function(clipData)
+ * @see bigshot.VRHotspot#clip
+ * @see bigshot.VRHotspot#clippingStrategy
+ */
+bigshot.VRHotspot.CLIP_FRACTION = function (panorama, frac) {
+    return function (clipData) {
+        var r = {
+            x0 : Math.max (clipData.x, 0),
+            y0 : Math.max (clipData.y, 0),
+            x1 : Math.min (clipData.x + clipData.w, panorama.renderer.getViewportWidth ()),
+            y1 : Math.min (clipData.y + clipData.h, panorama.renderer.getViewportHeight ())
+        };
+        var full = clipData.w * clipData.h;
+        var visibleWidth = (r.x1 - r.x0);
+        var visibleHeight = (r.y1 - r.y0);
+        if (visibleWidth > 0 && visibleHeight > 0) {
+            var visible = visibleWidth * visibleHeight;
+            
+            return (visible / full) >= frac;
+        } else {
+            return false;
+        }
+    }
+};
+
+/**
+ * Hides the hotspot if its center is outside the viewport.
+ * 
+ * @type function(clipData)
+ * @see bigshot.VRHotspot#clip
+ * @see bigshot.VRHotspot#clippingStrategy
+ */
+bigshot.VRHotspot.CLIP_CENTER = function (panorama) {
+    return function (clipData) {
+        var c = {
+            x : clipData.x + clipData.w / 2,
+            y : clipData.y + clipData.h / 2
+        };
+        return c.x >= 0 && c.x < panorama.renderer.getViewportWidth () && 
+        c.y >= 0 && c.y < panorama.renderer.getViewportHeight ();
+    }
+}
+
+/**
+ * Resizes the hotspot to fit in the viewport. Hides the hotspot if 
+ * it is completely outside the viewport.
+ * 
+ * @type function(clipData)
+ * @see bigshot.VRHotspot#clip
+ * @see bigshot.VRHotspot#clippingStrategy
+ */
+bigshot.VRHotspot.CLIP_ADJUST = function (panorama) {
+    return function (clipData) {
+        if (clipData.x < 0) {
+            clipData.w -= -clipData.x;
+            clipData.x = 0;
+        }
+        if (clipData.y < 0) {
+            clipData.h -= -clipData.y;
+            clipData.y = 0;
+        }
+        if (clipData.x + clipData.w > panorama.renderer.getViewportWidth ()) {
+            clipData.w = panorama.renderer.getViewportWidth () - clipData.x - 1;
+        }
+        if (clipData.y + clipData.h > panorama.renderer.getViewportHeight ()) {
+            clipData.h = panorama.renderer.getViewportHeight () - clipData.y - 1;
+        }
+        
+        return clipData.w > 0 && clipData.h > 0;
+    }
+}
+
+/**
+ * Shrinks the hotspot as it approaches the viewport edges.
+ *
+ * @param s The full size of the hotspot.
+ * @param s.w The full width of the hotspot, in pixels.
+ * @param s.h The full height of the hotspot, in pixels.
+ * @see bigshot.VRHotspot#clip
+ * @see bigshot.VRHotspot#clippingStrategy
+ */
+bigshot.VRHotspot.CLIP_ZOOM = function (panorama, s, maxDistanceInViewportHeights) {
+    return function (clipData) {
+        if (clipData.x >= 0 && clipData.y >= 0 && (clipData.x + s.w) < panorama.renderer.getViewportWidth ()
+                && (clipData.y + s.h) < panorama.renderer.getViewportHeight ()) {
+                    clipData.w = s.w;
+                    clipData.h = s.h;
+                    return true;
+                }
+        
+        var distance = 0;
+        if (clipData.x < 0) {
+            distance = Math.max (-clipData.x, distance);
+        }
+        if (clipData.y < 0) {
+            distance = Math.max (-clipData.y, distance);
+        }
+        if (clipData.x + s.w > panorama.renderer.getViewportWidth ()) {
+            distance = Math.max (clipData.x + s.w - panorama.renderer.getViewportWidth (), distance);
+        }
+        if (clipData.y + s.h > panorama.renderer.getViewportHeight ()) {
+            distance = Math.max (clipData.y + s.h - panorama.renderer.getViewportHeight (), distance);
+        }
+        
+        distance /= panorama.renderer.getViewportHeight ();
+        if (distance > maxDistanceInViewportHeights) {
+            return false;
+        }
+        
+        var scale = 1 / (1 + distance);
+        
+        clipData.w = s.w * scale;
+        clipData.h = s.w * scale;
+        if (clipData.x < 0) {
+            clipData.x = 0;
+        }
+        if (clipData.y < 0) {
+            clipData.y = 0;
+        }
+        if (clipData.x + clipData.w > panorama.renderer.getViewportWidth ()) {
+            clipData.x = panorama.renderer.getViewportWidth () - clipData.w;
+        }
+        if (clipData.y + clipData.h > panorama.renderer.getViewportHeight ()) {
+            clipData.y = panorama.renderer.getViewportHeight () - clipData.h;
+        }
+        
+        return true;
+    }
+}
+
+/**
+ * Progressively fades the hotspot as it gets closer to the viewport edges.
+ *
+ * @param {number} borderSizeInPixels the distance from the edge, in pixels,
+ * where the hotspot is completely opaque.
+ * @see bigshot.VRHotspot#clip
+ * @see bigshot.VRHotspot#clippingStrategy
+ */
+bigshot.VRHotspot.CLIP_FADE = function (panorama, borderSizeInPixels) {
+    return function (clipData) {
+        var distance = Math.min (
+            clipData.x, 
+            clipData.y, 
+            panorama.renderer.getViewportWidth () - (clipData.x + clipData.w), 
+            panorama.renderer.getViewportHeight () - (clipData.y + clipData.h));
+        
+        if (distance <= 0) {
+            return false;
+        } else if (distance <= borderSizeInPixels) {
+            clipData.opacity = (distance / borderSizeInPixels);
+            return true;
+        } else {
+            clipData.opacity = 1.0;
+            return true;
+        }
+    }
+}
+
+bigshot.VRHotspot.prototype = {
     
     /**
      * Layout and resize the hotspot. Called by the panorama.
      */
-    this.layout = function () {};
+    layout : function () {},
     
     /**
      * Helper function to rotate a point around an axis.
@@ -223,11 +229,11 @@ bigshot.VRHotspot = function (panorama) {
      * @type Vector
      * @private
      */
-    this.rotate = function (ang, vector, point) {
+    rotate : function (ang, vector, point) {
         var arad = ang * Math.PI / 180.0;
         var m = Matrix.Rotation(arad, $V([vector[0], vector[1], vector[2]])).ensure4x4 ();
         return m.x (point);
-    }
+    },
     
     /**
      * Converts the polar coordinates to world coordinates.
@@ -237,13 +243,13 @@ bigshot.VRHotspot = function (panorama) {
      * @param pitch the pitch, in degrees
      * @type number[3]
      */
-    this.toVector = function (yaw, pitch) {
+    toVector : function (yaw, pitch) {
         var point = $V([0, 0, -1, 1]);
         point = this.rotate (-pitch, [1, 0, 0], point);
         point = this.rotate (-yaw, [0, 1, 0], point);
         var res = [point.e(1), point.e(2), point.e(3)];
         return res;
-    }
+    },
     
     /**
      * Converts the world-coordinate point p to screen coordinates.
@@ -251,10 +257,10 @@ bigshot.VRHotspot = function (panorama) {
      * @param {number[3]} p the world-coordinate point
      * @type point
      */
-    this.toScreen = function (p) {
-        var res = panorama.renderer.transformToScreen (p)
+    toScreen : function (p) {
+        var res = this.panorama.renderer.transformToScreen (p)
         return res;
-    }
+    },
     
     /**
      * Clips the hotspot against the viewport. Both parameters 
@@ -271,7 +277,7 @@ bigshot.VRHotspot = function (panorama) {
      * @type boolean
      * @return true if the hotspot is visible, false otherwise
      */
-    this.clip = function (clipData) {
+    clip : function (clipData) {
         return this.clippingStrategy (clipData);
     }
 }

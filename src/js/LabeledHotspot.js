@@ -31,32 +31,35 @@
  * @constructor
  */
 bigshot.LabeledHotspot = function (x, y, w, h, labelText) {
-    var hs = new bigshot.Hotspot (x, y, w, h);
-    
-    /**
-     * Returns the label element.
-     *
-     * @type HTMLDivElement
-     */
-    this.getLabel = function () {
-        return this.label;
-    };
-    
-    this.layout = function (x0, y0, zoomFactor) {
-        this._super.layout (x0, y0, zoomFactor);
-        var labelSize = this.browser.getElementSize (this.label);
-        var sw = this.w * zoomFactor;
-        var sh = this.h * zoomFactor;
-        this.label.style.top = (sh + 4) + "px";
-        this.label.style.left = ((sw - labelSize.w) / 2) + "px";
-    };
+    bigshot.Hotspot.call (this, x, y, w, h);
     
     this.label = document.createElement ("div");
     this.label.style.position = "relative";
     this.label.style.display = "inline-block";
     
-    hs.getElement ().appendChild (this.label);
+    this.getElement ().appendChild (this.label);
     this.label.innerHTML = labelText;
+}
+
+bigshot.LabeledHotspot.prototype = {
+    /**
+     * Returns the label element.
+     *
+     * @type HTMLDivElement
+     */
+    getLabel : function () {
+        return this.label;
+    },
     
-    return bigshot.object.extend (hs, this);
+    layout : function (x0, y0, zoomFactor) {
+        this.layout._super.call (this, x0, y0, zoomFactor);
+        var labelSize = this.browser.getElementSize (this.label);
+        var sw = this.w * zoomFactor;
+        var sh = this.h * zoomFactor;
+        this.label.style.top = (sh + 4) + "px";
+        this.label.style.left = ((sw - labelSize.w) / 2) + "px";
+    }
 };
+
+bigshot.object.extend (bigshot.LabeledHotspot, bigshot.Hotspot);
+

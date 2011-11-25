@@ -32,10 +32,10 @@
  * @constructor
  */
 bigshot.LinkHotspot = function (x, y, w, h, labelText, url) {
-    var hs = new bigshot.LabeledHotspot (x, y, w, h, labelText);
-    hs.browser.registerListener (hs.getElement (), "click", function () {
+    bigshot.LabeledHotspot.call (this, x, y, w, h, labelText);
+    this.browser.registerListener (this.getElement (), "click", function () {
             document.location.href = url;
         });
-    
-    return bigshot.object.extend (hs, this);
 };
+
+bigshot.object.extend (bigshot.LinkHotspot, bigshot.LabeledHotspot);

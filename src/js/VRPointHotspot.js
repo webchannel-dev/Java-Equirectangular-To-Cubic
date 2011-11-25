@@ -35,45 +35,43 @@
  * to the hotspot's polar coordinates. Use this to center the hotspot vertically.
  */
 bigshot.VRPointHotspot = function (panorama, yaw, pitch, element, offsetX, offsetY) {
-    this.layout = function () {
+    bigshot.VRHotspot.call (this, panorama);
+    this.element = element;
+    this.offsetX = offsetX;
+    this.offsetY = offsetY;
+    this.point = this.toVector (yaw, pitch);
+}
+ 
+bigshot.VRPointHotspot.prototype = {
+    layout : function () {
         var p = this.toScreen (this.point);
         
         var visible = false;
         if (p != null) {
-            var s = panorama.browser.getElementSize (element);
+            var s = this.panorama.browser.getElementSize (this.element);
             p.w = s.w;
             p.h = s.h;
             
-            p.x += offsetX;
-            p.y += offsetY;
+            p.x += this.offsetX;
+            p.y += this.offsetY;
             
             if (this.clip (p)) {
-                element.style.top = (p.y) + "px";
-                element.style.left = (p.x) + "px";
-                element.style.width = (p.w) + "px";
-                element.style.height = (p.h) + "px";
+                this.element.style.top = (p.y) + "px";
+                this.element.style.left = (p.x) + "px";
+                this.element.style.width = (p.w) + "px";
+                this.element.style.height = (p.h) + "px";
                 if (p.opacity) {
-                    element.style.opacity = p.opacity;
+                    this.element.style.opacity = p.opacity;
                 }
-                element.style.visibility = "inherit";
+                this.element.style.visibility = "inherit";
                 visible = true;
             }
         }
         
         if (!visible) {
-            element.style.visibility = "hidden";
+            this.element.style.visibility = "hidden";
         }
     }
-    
-    /**
-     * Initializer
-     *
-     * @private
-     */
-    this.initialize = function () {
-        this.point = this.toVector (yaw, pitch);
-        return this;
-    }
-    
-    return bigshot.object.extend (new bigshot.VRHotspot (panorama), this).initialize ();
 }
+
+bigshot.object.extend (bigshot.VRPointHotspot, bigshot.VRHotspot);

@@ -21,12 +21,15 @@
  * @constructor
  */
 bigshot.Layer = function () {
+}
+
+bigshot.Layer.prototype = {
     /**
      * Returns the layer container.
      *
      * @type HTMLDivElement
      */
-    this.getContainer = function () {};
+    getContainer : function () {},
     
     /**
      * Sets the maximum number of image tiles that will be visible in the image.
@@ -34,7 +37,7 @@ bigshot.Layer = function () {
      * @param {int} x the number of tiles horizontally
      * @param {int} y the number of tiles vertically
      */
-    this.setMaxTiles = function (x, y) {};
+    setMaxTiles : function (x, y) {},
     
     /**
      * Called when the image's viewport is resized.
@@ -42,7 +45,7 @@ bigshot.Layer = function () {
      * @param {int} w the new width of the viewport, in css pixels
      * @param {int} h the new height of the viewport, in css pixels
      */
-    this.resize = function (w, h) {};
+    resize : function (w, h) {},
     
     /**
      * Lays out the layer.
@@ -57,7 +60,5 @@ bigshot.Layer = function () {
      *                 of a tile to the next tile's top-left corner.
      * @param {number} opacity the opacity of the layer.
      */
-    this.layout = function (zoom, x0, y0, tx0, ty0, size, stride, opacity) {};
-    
-    return this;
+    layout : function (zoom, x0, y0, tx0, ty0, size, stride, opacity) {}
 };

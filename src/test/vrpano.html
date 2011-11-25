@@ -103,7 +103,7 @@
                 
                 var hotspot2 = document.getElementById ("hotspot2");
                 var hs2 = new bigshot.VRPointHotspot (bvr, 180, -8, hotspot2, -16, -16);
-                hs2.clippingStrategy = hs2.CLIP_FADE (32);
+                hs2.clippingStrategy = bigshot.VRHotspot.CLIP_FADE (bvr, 32);
                 bvr.addHotspot (hs2);
                 bvr.render ();
             }

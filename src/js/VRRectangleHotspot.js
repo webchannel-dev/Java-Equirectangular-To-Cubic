@@ -34,7 +34,15 @@
  * @param {HTMLElement} element the HTML element
  */
 bigshot.VRRectangleHotspot = function (panorama, yaw0, pitch0, yaw1, pitch1, element) {
-    this.layout = function () {
+    bigshot.VRHotspot.call (this, panorama);
+    
+    this.element = element;
+    this.point0 = this.toVector (yaw0, pitch0);
+    this.point1 = this.toVector (yaw1, pitch1);
+}
+
+bigshot.VRRectangleHotspot.prototype = {
+    layout : function () {
         var p = this.toScreen (this.point0);
         var p1 = this.toScreen (this.point1);
         
@@ -49,31 +57,19 @@ bigshot.VRRectangleHotspot = function (panorama, yaw0, pitch0, yaw1, pitch1, ele
             };
             
             if (this.clip (cd)) {
-                element.style.top = (cd.y) + "px";
-                element.style.left = (cd.x) + "px";
-                element.style.width = (cd.w) + "px";
-                element.style.height = (cd.h) + "px";
-                element.style.visibility = "inherit";
+                this.element.style.top = (cd.y) + "px";
+                this.element.style.left = (cd.x) + "px";
+                this.element.style.width = (cd.w) + "px";
+                this.element.style.height = (cd.h) + "px";
+                this.element.style.visibility = "inherit";
                 visible = true;
             }
         }
         
         if (!visible) {
-            element.style.visibility = "hidden";
+            this.element.style.visibility = "hidden";
         }
     }
-    
-    /**
-     * Initializer
-     *
-     * @private
-     */
-    this.initialize = function () {
-        this.point0 = this.toVector (yaw0, pitch0);
-        this.point1 = this.toVector (yaw1, pitch1);
-        
-        return this;
-    }
-    
-    return bigshot.object.extend (new bigshot.VRHotspot (panorama), this).initialize ();
 }
+
+bigshot.object.extend (bigshot.VRRectangleHotspot, bigshot.VRHotspot);
