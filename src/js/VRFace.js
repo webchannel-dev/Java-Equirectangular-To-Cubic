@@ -55,7 +55,7 @@ bigshot.VRFace = function (owner, key, topLeft_, width_, u, v, onLoaded) {
      */
     this.tileCache = owner.renderer.createTileCache (function () { 
             that.updated = true;
-            owner.renderUpdated (owner.ONRENDER_TEXTURE_UPDATE);
+            owner.renderUpdated (bigshot.VRPanorama.ONRENDER_TEXTURE_UPDATE);
         }, onLoaded, this.parameters);
     
     this.fullSize = this.parameters.width;

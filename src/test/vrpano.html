@@ -77,15 +77,15 @@
                             pitchOffset : 10,
                             yawOffset : 0
                         }));
-                bvr.registerRenderListener (function (state) {
-                        if (state) {
+                bvr.addRenderListener (function (state, cause, data) {
+                        if (state == bigshot.VRPanorama.ONRENDER_BEGIN) {
                             var s = document.getElementById ("position-yaw");
                             s.innerHTML = bvr.getYaw ().toFixed (3);
                             s = document.getElementById ("position-pitch");
                             s.innerHTML = bvr.getPitch ().toFixed (3);
                         }
                     });
-                bvr.registerRenderListener (
+                bvr.addRenderListener (
                     new bigshot.AdaptiveLODMonitor (
                         new bigshot.AdaptiveLODMonitorParameters ({
                                 vrPanorama : bvr,
@@ -95,8 +95,15 @@
                                 minMag : 1.5,
                                 maxMag : 16
                             })));
+                
+                document.getElementById ("container").addEventListener ("click", function (e) {
+                        var container = document.getElementById ("container");
+                        var clicked = bvr.screenToPolar (e.clientX - container.offsetLeft, e.clientY - container.offsetTop);
+                    document.getElementById ("clicked").innerHTML = clicked.yaw + " " + clicked.pitch;
+                    });
+                
                 //bvr.autoRotateWhenIdle (3);
-                bvr.setDragMode (bvr.DRAG_GRAB);
+                bvr.setDragMode (bigshot.VRPanorama.DRAG_GRAB);
                 bvr.autoResizeContainer (document.getElementById ("outerContainer"));
                 bvr.onresize ();
                 bvr.addHotspot (new bigshot.VRRectangleHotspot (bvr, 170, -8, 190, 2, hotspot));
@@ -209,8 +216,8 @@
         
         <p>
         Drag mode:
-        <input type="radio" name="panMode" value="drag" onchange="bvr.setDragMode (bvr.DRAG_PAN);"/> Pan
-        <input type="radio" name="panMode" value="grab" onchange="bvr.setDragMode (bvr.DRAG_GRAB);" checked="true"/> Grab
+        <input type="radio" name="panMode" value="drag" onchange="bvr.setDragMode (bigshot.VRPanorama.DRAG_PAN);"/> Pan
+        <input type="radio" name="panMode" value="grab" onchange="bvr.setDragMode (bigshot.VRPanorama.DRAG_GRAB);" checked="true"/> Grab
         </p>
         
         <p>
@@ -219,7 +226,7 @@
         </p>
         
         <p>
-        Other
+        Clicked <span id="clicked">none</span>
         </p>
         
         <p>

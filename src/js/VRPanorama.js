@@ -15,7 +15,7 @@
  */
 
 /**
- * Creates a new VR panorama in a canvas. <b>Requires WebGL support.</b>
+ * Creates a new VR panorama in a canvas. <b>Requires WebGL or CSS3D support.</b>
  * (Note: See {@link bigshot.VRPanorama#dispose} for important information.)
  * 
  * <h3 id="creating-a-cubemap">Creating a Cube Map</h3>
@@ -240,20 +240,31 @@ bigshot.VRPanorama = function (parameters) {
         new bigshot.CSS3DVRRenderer (this.container);
     }
     
+    /**
+     * List of render listeners to call at the start and end of each render.
+     *
+     * @private
+     */
     this.renderListeners = new Array (); 
+    
+    this.renderables = new Array ();
     
     /**
      * Current value of the idle counter.
+     *
+     * @private
      */
     this.idleCounter = 0;
     
     /**
      * Maximum value of the idle counter before any idle events start,
      * such as autorotation.
+     *
+     * @private
      */
     this.maxIdleCounter = -1;
-
-        
+    
+    
     /**
      * Integer acting as a "permit". When the smoothRotate function
      * is called, the current value is incremented and saved. If the number changes
@@ -274,23 +285,25 @@ bigshot.VRPanorama = function (parameters) {
         }
         return false;
     };
-
+    
     /**
      * Full screen handler.
      *
      * @private
      */
     this.fullScreenHandler = null;
-        
+    
     this.renderAsapPermitTaken = false;
-        
+    
     /**
      * An element to use as reference when resizing the canvas element.
      * If non-null, any onresize() calls will result in the canvas being
      * resized to the size of this element.
+     *
+     * @private
      */
     this.sizeContainer = null;
-        
+    
     /**
      * The six cube faces.
      *
@@ -302,7 +315,7 @@ bigshot.VRPanorama = function (parameters) {
         faceLoaded : function () {
             this.facesLeft--;
             if (this.facesLeft == 0) {
-               if (that.parameters.onload) {
+                if (that.parameters.onload) {
                     that.parameters.onload ();
                 }
             }
@@ -411,6 +424,80 @@ bigshot.VRPanorama = function (parameters) {
     this.setFov (45.0);
 }
 
+/*
+ * Statics
+ */
+
+/**
+ * When the mouse is pressed and dragged, the camera rotates
+ * proportionally to the length of the dragging.
+ *
+ * @constant
+ * @public
+ * @static
+ */
+bigshot.VRPanorama.DRAG_GRAB = "grab";
+
+/**
+ * When the mouse is pressed and dragged, the camera continuously
+ * rotates with a speed that is proportional to the length of the 
+ * dragging.
+ *
+ * @constant
+ * @public
+ * @static
+ */
+bigshot.VRPanorama.DRAG_PAN = "pan";
+
+/**
+ * A RenderListener state parameter value used at the start of each render.
+ * 
+ * @constant
+ * @public
+ * @static
+ */
+bigshot.VRPanorama.ONRENDER_BEGIN = 0;
+
+/**
+ * A RenderListener state parameter value used at the end of each render.
+ * 
+ * @constant
+ * @public
+ * @static
+ */
+bigshot.VRPanorama.ONRENDER_END = 1;
+
+/**
+ * A RenderListener cause parameter indicating that a previously requested 
+ * texture has loaded and a render is forced. The data parameter is not used.
+ *
+ * @constant
+ * @public
+ * @static
+ */
+bigshot.VRPanorama.ONRENDER_TEXTURE_UPDATE = 0;
+
+/**
+ * Specification for functions passed to {@link bigshot.VRPanorama#addRenderListener}.
+ *
+ * @name bigshot.VRPanorama.RenderListener
+ * @function
+ * @param state The state of the renderer. Can be {@link bigshot.VRPanorama.ONRENDER_BEGIN} or {@link bigshot.VRPanorama.ONRENDER_END}
+ * @param [cause] The reason for rendering the scene. Can be undefined or {@link bigshot.VRPanorama.ONRENDER_TEXTURE_UPDATE}
+ * @param [data] An optional data object that is dependent on the cause. See the documentation 
+ *             for the different causes.
+ */
+
+/**
+ * Specification for functions passed to {@link bigshot.VRPanorama#addRenderable}.
+ *
+ * @name bigshot.VRPanorama.Renderable
+ * @function
+ * @param {bigshot.VRRenderer} renderer The renderer object to use.
+ * @param {bigshot.TexturedQuadScene} scene The scene to render into.
+ */
+
+/** */
 bigshot.VRPanorama.prototype = {
     /**
      * Adds a hotstpot.
@@ -430,12 +517,26 @@ bigshot.VRPanorama.prototype = {
         return this.parameters;
     },
     
+    /**
+     * Sets the view translation.
+     *
+     * @param x translation of the viewer along the X axis
+     * @param y translation of the viewer along the Y axis
+     * @param z translation of the viewer along the Z axis
+     */
     setTranslation : function (x, y, z) {
         this.state.tx = x;
         this.state.ty = y;
         this.state.tz = z;
     },
     
+    /**
+     * Returns the current view translation as an x-y-z triplet.
+     *
+     * @returns {number} x translation of the viewer along the X axis
+     * @returns {number} y translation of the viewer along the Y axis
+     * @returns {number} z translation of the viewer along the Z axis
+     */
     getTranslation : function () {
         return {
             x : this.state.tx,
@@ -464,6 +565,52 @@ bigshot.VRPanorama.prototype = {
         return this.state.fov;
     },
     
+    /**
+     * Returns the angle (yaw, pitch) for a given pixel coordinate.
+     *
+     * @param {number} x the x-coordinate of the pixel, measured in pixels 
+     *                 from the left edge of the panorama.
+     * @param {number} y the y-coordinate of the pixel, measured in pixels 
+     *                 from the top edge of the panorama.
+     * @return {number} .yaw the yaw angle of the pixel (0 &lt;= yaw &lt; 360)
+     * @return {number} .pitch the pitch angle of the pixel (-180 &lt;= pitch &lt;= 180)
+     *
+     * @example
+     * var container = ...; // an HTML element
+     * var pano = ...; // a bigshot.VRPanorama
+     * ...
+     * container.addEventListener ("click", function (e) {
+     *     var clickX = e.clientX - container.offsetX;
+     *     var clickY = e.clientY - container.offsetY;
+     *     var polar = pano.screenToPolar (clickX, clickY);
+     *     alert ("You clicked at: " + 
+     *            "Yaw: " + polar.yaw + 
+     *            "  Pitch: " + polar.pitch);
+     * });
+     */
+    screenToPolar : function (x, y) {
+        var dray = this.screenToRayDelta (x, y);
+        var ray = $V([dray.x, dray.y, dray.z, 1.0]);
+        
+        ray = Matrix.RotationX (this.getPitch () * Math.PI / 180.0).ensure4x4 ().x (ray);
+        ray = Matrix.RotationY (-this.getYaw () * Math.PI / 180.0).ensure4x4 ().x (ray);
+        
+        var dx = ray.e(1);
+        var dy = ray.e(2);
+        var dz = ray.e(3);
+        
+        var dxz = Math.sqrt (dx * dx + dz * dz);
+        
+        var dyaw = Math.atan2 (dx, -dz) * 180 / Math.PI;
+        var dpitch = Math.atan2 (dy, dxz) * 180 / Math.PI;
+        
+        var res = {};
+        res.yaw = (dyaw + 360) % 360.0;
+        res.pitch = dpitch;
+        
+        return res;
+    },
+    
     snapPitch : function (p) {
         p = Math.min (this.parameters.maxPitch, p);
         p = Math.max (this.parameters.minPitch, p);
@@ -481,6 +628,8 @@ bigshot.VRPanorama.prototype = {
     
     /**
      * Subtraction mod 360, sort of...
+     *
+     * @private
      * @returns the angular distance with smallest magnitude to add to p0 to get to p1 % 360
      */
     circleDistance : function (p0, p1) {
@@ -499,6 +648,7 @@ bigshot.VRPanorama.prototype = {
     
     /**
      * Subtraction mod 360, sort of...
+     *
      * @private
      */
     circleSnapTo : function (p, p1, p2) {
@@ -507,6 +657,11 @@ bigshot.VRPanorama.prototype = {
         return Math.abs (d1) < Math.abs (d2) ? p1 : p2;
     },
     
+    /**
+     * Constrains a yaw value to the required minimum and maximum values.
+     *
+     * @private
+     */
     snapYaw : function (y) {
         y %= 360;
         if (y < 0) {
@@ -532,7 +687,7 @@ bigshot.VRPanorama.prototype = {
         }
         return y;
     },
-
+    
     /**
      * Sets the current camera yaw. The yaw is normalized between
      * 0 <= y < 360.
@@ -574,34 +729,40 @@ bigshot.VRPanorama.prototype = {
     },
     
     /**
-     * Sets up transformation matrices etc.
+     * Sets up transformation matrices etc. Calls all render listeners with a state parameter
+     * of {@link bigshot.VRPanorama.ONRENDER_BEGIN}.
+     *
+     * @private
+     *
+     * @param [cause] parameter for the {@link bigshot.VRPanorama.RenderListener}s.
+     * @param [data] parameter for the {@link bigshot.VRPanorama.RenderListener}s.
      */
     beginRender : function (cause, data) {
-        this.onrender (this.ONRENDER_BEGIN, cause, data);
+        this.onrender (bigshot.VRPanorama.ONRENDER_BEGIN, cause, data);
         this.renderer.beginRender (this.state.y, this.state.p, this.state.fov, this.state.tx, this.state.ty, this.state.tz, this.transformOffsets.yaw, this.transformOffsets.pitch, this.transformOffsets.roll);
     },
     
     
     /**
-     * Add a function that will be called at the end of every render.
+     * Add a function that will be called at various times during the render.
      *
-     * @param {function(state)} listener
+     * @param {bigshot.VRPanorama.RenderListener} listener the listener function
      */
-    registerRenderListener : function (listener) {
+    addRenderListener : function (listener) {
         var rl = new Array ();
-        rl.concat (this.renderListeners);
+        rl = rl.concat (this.renderListeners);
         rl.push (listener);
         this.renderListeners = rl;
     },
     
     /**
-     * Removes a function that will be called at the end of every render.
+     * Removes a function that will be called at various times during the render.
      *
-     * @param {function()} listener
+     * @param {bigshot.VRPanorama.RenderListener} listener the listener function
      */
-    unregisterRenderListener : function (listener) {
+    removeRenderListener : function (listener) {
         var rl = new Array ();
-        rl.concat (this.renderListeners);
+        rl = rl.concat (this.renderListeners);
         for (var i = 0; i < rl.length; ++i) {
             if (rl[i] == listener) {
                 rl = rl.splice (i, 1);
@@ -610,10 +771,6 @@ bigshot.VRPanorama.prototype = {
         }
         this.renderListeners = rl;
     },
-    
-    ONRENDER_BEGIN : 0,
-    ONRENDER_END : 1,
-    ONRENDER_TEXTURE_UPDATE : 0,
     
     /**
      * Called at the start and end of every render.
@@ -630,18 +787,58 @@ bigshot.VRPanorama.prototype = {
     },
     
     /**
-     * Performs per-render cleanup.
+     * Performs per-render cleanup. Calls all render listeners with a state parameter
+     * of {@link bigshot.VRPanorama.ONRENDER_END}.
+     *
+     * @private
+     *    
+     * @param [cause] parameter for the {@link bigshot.VRPanorama.RenderListener}s.
+     * @param [data] parameter for the {@link bigshot.VRPanorama.RenderListener}s.
      */
     endRender : function (cause, data) {
         for (var f in this.vrFaces) {
             this.vrFaces[f].endRender ();
         }
         this.renderer.endRender ();
-        this.onrender (this.ONRENDER_END, cause, data);
+        this.onrender (bigshot.VRPanorama.ONRENDER_END, cause, data);
+    },
+    
+    /**
+     * Add a function that will be called to render any additional quads.
+     *
+     * @param {bigshot.VRPanorama.Renderable} renderable The renderable, a function responsible for
+     * rendering additional scene elements.
+     */
+    addRenderable : function (renderable) {
+        var rl = new Array ();
+        rl.concat (this.renderables);
+        rl.push (listener);
+        this.renderables = rl;
+    },
+    
+    /**
+     * Removes a function that will be called to render any additional quads.
+     *
+     * @param {bigshot.VRPanorama.Renderable} renderable The renderable added using
+     * {@link bigshot.VRPanorama#addRenderable}.
+     */
+    removeRenderable : function (renderable) {
+        var rl = new Array ();
+        rl.concat (this.renderables);
+        for (var i = 0; i < rl.length; ++i) {
+            if (rl[i] == listener) {
+                rl = rl.splice (i, 1);
+                break;
+            }
+        }
+        this.renderables = rl;
     },
     
     /**
      * Renders the VR cube.
+     *
+     * @param [cause] parameter for the {@link bigshot.VRPanorama.RenderListener}s.
+     * @param [data] parameter for the {@link bigshot.VRPanorama.RenderListener}s.
      */
     render : function (cause, data) {
         this.beginRender (cause, data);
@@ -650,6 +847,10 @@ bigshot.VRPanorama.prototype = {
         
         for (var f in this.vrFaces) {
             this.vrFaces[f].render (scene);
+        }
+        
+        for (var i = 0; i < this.renderables.length; ++i) {
+            this.renderables[i](this.renderer, scene);
         }
         
         scene.render ();
@@ -663,6 +864,9 @@ bigshot.VRPanorama.prototype = {
     
     /**
      * Render updated faces. Called as tiles are loaded from the server.
+     *
+     * @param [cause] parameter for the {@link bigshot.VRPanorama.RenderListener}s.
+     * @param [data] parameter for the {@link bigshot.VRPanorama.RenderListener}s.
      */
     renderUpdated : function (cause, data) {
         if (this.renderer.supportsUpdate ()) {
@@ -689,28 +893,16 @@ bigshot.VRPanorama.prototype = {
     },
     
     /**
-     * When the mouse is pressed and dragged, the camera rotates
-     * proportionally to the length of the dragging.
-     */
-    DRAG_GRAB : "grab",
-    
-    /**
-     * When the mouse is pressed and dragged, the camera continuously
-     * rotates with a speed that is proportional to the length of the 
-     * dragging.
-     */
-    DRAG_PAN : "pan",
-    
-    /**
      * The current drag mode.
+     * 
      * @private
      */
-    dragMode : this.DRAG_GRAB,
+    dragMode : bigshot.VRPanorama.DRAG_GRAB,
     
     /**
      * Sets the mouse dragging mode.
      *
-     * @param mode one of DRAG_GRAB or DRAG_PAN.
+     * @param mode one of {@link bigshot.VRPanorama.DRAG_PAN} or {@link bigshot.VRPanorama.DRAG_GRAB}.
      */
     setDragMode : function (mode) {
         this.dragMode = mode;
@@ -728,7 +920,7 @@ bigshot.VRPanorama.prototype = {
     
     dragMouseMove : function (e) {
         if (this.dragStart != null && this.currentGesture == null) {
-            if (this.dragMode == this.DRAG_GRAB) {
+            if (this.dragMode == bigshot.VRPanorama.DRAG_GRAB) {
                 this.smoothRotate ();
                 var scale = this.state.fov / this.renderer.getViewportHeight ();
                 var dx = e.clientX - this.dragStart.clientX;
@@ -797,10 +989,20 @@ bigshot.VRPanorama.prototype = {
         }
     },
     
+    /**
+     * Sets the maximum texture magnification.
+     *
+     * @see bigshot.VRPanoramaParameters#maxTextureMagnification
+     */
     setMaxTextureMagnification : function (v) {
         this.maxTextureMagnification = v;
     },
     
+    /**
+     * Gets the current maximum texture magnification.
+     *
+     * @see bigshot.VRPanoramaParameters#maxTextureMagnification
+     */
     getMaxTextureMagnification : function () {
         return this.maxTextureMagnification;
     },
@@ -831,6 +1033,9 @@ bigshot.VRPanorama.prototype = {
         return mz * 2;
     },
     
+    /**
+     * @private
+     */
     screenToRay : function (x, y) {
         var dray = this.screenToRayDelta (x, y);
         var ray = this.renderer.transformToWorld ([dray.x, dray.y, dray.z]);
@@ -844,6 +1049,9 @@ bigshot.VRPanorama.prototype = {
         };
     },
     
+    /**
+     * @private
+     */
     screenToRayDelta : function (x, y) {
         var halfHeight = this.renderer.getViewportHeight () / 2;
         var halfWidth = this.renderer.getViewportWidth () / 2;
@@ -873,12 +1081,9 @@ bigshot.VRPanorama.prototype = {
      * @param {int} y the y-coordinate, in pixels from the top edge
      */
     smoothRotateToXY : function (x, y) {
-        var ray = this.screenToRayDelta (x, y);
+        var polar = this.screenToPolar (x, y);
         
-        var dpitch = Math.atan (ray.y) * 180 / Math.PI;
-        var dyaw = Math.atan (ray.x) * 180 / Math.PI;
-        
-        this.smoothRotateTo (this.snapYaw (this.getYaw () + dyaw), this.snapPitch (this.getPitch () + dpitch), this.getFov (), this.state.fov / 200);
+        this.smoothRotateTo (this.snapYaw (polar.yaw), this.snapPitch (polar.pitch), this.getFov (), this.state.fov / 200);
     },
     
     /**
@@ -1015,7 +1220,7 @@ bigshot.VRPanorama.prototype = {
             }
         );
     },
-
+    
     
     /**
      * Smoothly rotates the camera. If all of the dp, dy and df functions are null, stops
@@ -1059,7 +1264,7 @@ bigshot.VRPanorama.prototype = {
      * @private
      */
     onresizeHandler : function (e) {
-        that.onresize ();
+        this.onresize ();
     },
     
     
@@ -1205,6 +1410,7 @@ bigshot.VRPanorama.prototype = {
                     opacity -= 0.02;
                     if (message.parentNode) {
                         if (opacity <= 0) {
+                            message.style.display = "none";
                             try {
                                 div.removeChild (message);
                             } catch (x) {}
@@ -1256,7 +1462,7 @@ bigshot.VRPanorama.prototype = {
                 }, 1);
         }
     },
-
+    
     
     /**
      * Automatically resizes the canvas element to the size of the 
@@ -1268,5 +1474,5 @@ bigshot.VRPanorama.prototype = {
     autoResizeContainer : function (sizeContainer) {
         this.sizeContainer = sizeContainer;
     }
-
+    
 }

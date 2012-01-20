@@ -77,6 +77,5 @@ bigshot.CSS3DTexturedQuad.prototype = {
         this.image.style.WebkitTransformOrigin = "0px 0px 0px";
         this.image.style.WebkitTransform = 
             this.quadTransform ([(p.x + view.x) * ps, (-p.y + view.y) * ps, (p.z + view.z) * ps], [u.x * s, -u.y * s, u.z * s], [v.x * s, -v.y * s, v.z * s]);
-        
     }
 }

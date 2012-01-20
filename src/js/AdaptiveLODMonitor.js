@@ -117,7 +117,7 @@ bigshot.AdaptiveLODMonitor.prototype = {
             return;
         }
         
-        if (this.hqMode && cause == this.parameters.vrPanorama.ONRENDER_TEXTURE_UPDATE) {
+        if (this.hqMode && cause == bigshot.VRPanorama.ONRENDER_TEXTURE_UPDATE) {
             this.parameters.vrPanorama.setMaxTextureMagnification (this.parameters.minMag);
             return;
         } else {
@@ -127,7 +127,7 @@ bigshot.AdaptiveLODMonitor.prototype = {
         this.parameters.vrPanorama.setMaxTextureMagnification (this.currentAdaptiveMagnification);
         
         this.frames++;
-        if ((this.frames < 20 || this.frames % 5 == 0) && state == this.parameters.vrPanorama.ONRENDER_BEGIN) {
+        if ((this.frames < 20 || this.frames % 5 == 0) && state == bigshot.VRPanorama.ONRENDER_BEGIN) {
             this.startTime = new Date ().getTime ();
             this.lastRender = this.startTime;
             var that = this;
