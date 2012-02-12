@@ -18,7 +18,6 @@ package bigshot;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.RenderedImage;
-import java.awt.Image;
 import java.awt.Color;
 import javax.imageio.ImageIO;
 import javax.imageio.ImageWriter;
@@ -346,6 +345,8 @@ public class MakeImagePyramid {
             double yawOffset = getParameterAsDouble (parameters, "yaw-offset", 0);
             double pitchOffset = getParameterAsDouble (parameters, "pitch-offset", 0);
             double rollOffset = getParameterAsDouble (parameters, "roll-offset", 0);
+            int oversampling = getParameterAsInt (parameters, "oversampling", 1);
+            double jitter = getParameterAsDouble (parameters, "jitter", -1);
             
             int outputSizeW = getParameterAsInt (parameters, "output-width", 640);
             int outputSizeH = getParameterAsInt (parameters, "output-height", 480);
@@ -362,13 +363,17 @@ public class MakeImagePyramid {
             }
             output.configure (parameters);
             
-            EquirectangularToCubic.Image in = EquirectangularToCubic.Image.read (input);
+            Image in = Image.read (input);
             
-            EquirectangularToCubic.Image outImage = EquirectangularToCubic.transform (
-                in, fov, 
-                yawOffset, pitchOffset, rollOffset,
-                yaw, pitch, roll, outputSizeW, outputSizeH
-                );
+            Image outImage = new EquirectangularToCubic ()
+                .input (in)
+                .vfov (fov)
+                .offset (yawOffset, pitchOffset, rollOffset)
+                .view (yaw, pitch, roll)
+                .size (outputSizeW, outputSizeH)
+                .oversampling (oversampling)
+                .jitter (jitter)
+                .transform ();
             
             output.write (outImage.toBuffered (), outputBase);
         } else if ("carousel".equals (parameters.get ("transform"))) {
@@ -418,10 +423,16 @@ public class MakeImagePyramid {
             
             double frontAt = getParameterAsDouble (parameters, "front-at", 0.0);
             
-            EquirectangularToCubic.Image in = EquirectangularToCubic.Image.read (input);
+            Image in = Image.read (input);
             for (int i = 0; i < steps; ++i) {
                 File outFile = new File (pyramidBase, String.valueOf (i) + output.getSuffix ());
-                EquirectangularToCubic.Image outImage = EquirectangularToCubic.transform (in, fov, frontAt, 0.0, 0.0, i * 360 / steps, 0, 0, outputSizeW, outputSizeH);
+                Image outImage = new EquirectangularToCubic ()
+                    .input (in)
+                    .vfov (fov)
+                    .offset (frontAt, 0.0, 0.0)
+                    .view (i * 360 / steps, 0, 0)
+                    .size (outputSizeW, outputSizeH)
+                    .transform ();
                 output.write (outImage.toBuffered (), outFile);
             }
             
@@ -605,7 +616,7 @@ public class MakeImagePyramid {
             
             BufferedImage poster = new BufferedImage (pw, ph, BufferedImage.TYPE_INT_RGB);
             Graphics2D g = poster.createGraphics ();
-            g.drawImage (full.getScaledInstance (pw, ph, Image.SCALE_AREA_AVERAGING), 0, 0, null);
+            g.drawImage (full.getScaledInstance (pw, ph, java.awt.Image.SCALE_AREA_AVERAGING), 0, 0, null);
             g.dispose ();
             
             output.write (poster, new File (folders, "poster" + output.getSuffix ()));
@@ -645,7 +656,7 @@ public class MakeImagePyramid {
                 
                 BufferedImage reduced = new BufferedImage (w, h, BufferedImage.TYPE_INT_RGB);
                 Graphics2D g = reduced.createGraphics ();
-                g.drawImage (full.getScaledInstance (w, h, Image.SCALE_AREA_AVERAGING), 0, 0, null);
+                g.drawImage (full.getScaledInstance (w, h, java.awt.Image.SCALE_AREA_AVERAGING), 0, 0, null);
                 g.dispose ();
                 full = reduced;
             }
