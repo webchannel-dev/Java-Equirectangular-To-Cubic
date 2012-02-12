@@ -161,30 +161,34 @@ public class MinimalHttpd {
                             new IncludeProcessor ().process (f, new File[]{ f.getParentFile () }, os);
                         } else if (f.exists () && !f.isDirectory ()) {
                             FileInputStream fis = new FileInputStream (f);
-                            os.write ("HTTP/1.0 200 OK\r\n".getBytes ());
-                            if (type != null) {                                
-                                os.write (("Content-Type: " + type + "\r\n").getBytes ());
-                            }
-                            
-                            os.write ("\r\n".getBytes ());
-                            byte[] buffer = new byte[32768];
-                            while (startRange > 0) {
-                                startRange -= fis.skip (startRange);
-                            }
-                            while (true) {
-                                int numRead = fis.read (buffer);
-                                if (numRead <= 0) {
-                                    break;
+                            try {
+                                os.write ("HTTP/1.0 200 OK\r\n".getBytes ());
+                                if (type != null) {                                
+                                    os.write (("Content-Type: " + type + "\r\n").getBytes ());
                                 }
-                                long delay = 1000L * numRead / throttle;
-                                Thread.sleep ((int) delay);
-                                numRead = Math.min (lengthRange, numRead);
-                                lengthRange -= numRead;
-                                os.write (buffer, 0, numRead);                                
-                                if (lengthRange <= 0) {
-                                    break;
+                                
+                                os.write ("\r\n".getBytes ());
+                                byte[] buffer = new byte[32768];
+                                while (startRange > 0) {
+                                    startRange -= fis.skip (startRange);
                                 }
-                            }
+                                while (true) {
+                                    int numRead = fis.read (buffer);
+                                    if (numRead <= 0) {
+                                        break;
+                                    }
+                                    long delay = 1000L * numRead / throttle;
+                                    Thread.sleep ((int) delay);
+                                    numRead = Math.min (lengthRange, numRead);
+                                    lengthRange -= numRead;
+                                    os.write (buffer, 0, numRead);                                
+                                    if (lengthRange <= 0) {
+                                        break;
+                                    }
+                                }
+                            } finally {
+                                fis.close ();
+                            }                            
                         } else {
                             os.write ("HTTP/1.0 404 Not found\r\n\r\n".getBytes ());
                         }
