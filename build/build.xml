@@ -1,5 +1,5 @@
 <!--
-- Copyright 2010 Leo Sutic <leo.sutic@gmail.com>
+- Copyright 2010 - 2012 Leo Sutic <leo.sutic@gmail.com>
 -  
 - Licensed under the Apache License, Version 2.0 (the "License"); 
 - you may not use this file except in compliance with the License. 
@@ -242,44 +242,6 @@ http://localhost/src/test/vrpano.html
 			
 			<arg value="--jitter"/>
             <arg value="0.2"/>
-			
-            <jvmarg value="-Xmx2024M"/>
-        </java>
-		
-		<java fork="yes" jar="${package-dir}/bigshot.jar"
-            dir="${basedir}">
-            <arg value="${basedir}/test/pano_final.png"/>
-            <arg value="${temp}/hires-nopost.png"/>
-			
-            <arg value="--transform"/>
-            <arg value="face"/>
-			
-			<arg value="--image-format"/>
-            <arg value="png"/>			
-			
-            <arg value="--yaw"/>
-            <arg value="238"/>
-			<arg value="--pitch"/>
-            <arg value="-12"/>
-			
-			<arg value="--yaw-offset"/>
-            <arg value="151"/>
-			<arg value="--pitch-offset"/>
-            <arg value="-0.25"/>
-			<arg value="--roll-offset"/>
-            <arg value="-1.0"/>
-			
-			<arg value="--output-width"/>
-            <arg value="2480"/>
-			<arg value="--output-height"/>
-            <arg value="3500"/>
-
-			<!--
-			<arg value="-output-width"/>
-            <arg value="2480"/>
-			<arg value="-output-height"/>
-            <arg value="3507"/>
-			-->
 			
             <jvmarg value="-Xmx2024M"/>
         </java>
