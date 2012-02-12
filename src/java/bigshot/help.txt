@@ -6,7 +6,13 @@ Usage:
         Shows help - this page. 
  
     java -jar bigshot.jar _infile_ _out_ [options]
-        Builds a tiles image pyramid. 
+        Builds a tiled image pyramid. 
+
+    java -Xmx<memory>M -jar bigshot.jar _infile_ _out_ [options]
+        Builds a tiled image pyramid and allocates more memory
+        to the program. Specify the amount of memory, in MB
+        that you want to use. Use this if you run out of
+        Java heap space.
 
 Options:
 
@@ -120,8 +126,17 @@ Example:
 
     Creates a bigshot archive of big.jpg.
 
+
     java -jar bigshot.jar big.jpg big.bigshot 
         --preset dzi-cubemap
             
     Creates a Deep Zoom Image cubic facemap from an 
     equirectangular image map.
+
+
+    java -Xmx800M -jar bigshot.jar big.jpg big.bigshot 
+        --preset dzi-cubemap
+            
+    Creates a Deep Zoom Image cubic facemap from an 
+    equirectangular image map, and allocates 800MB
+    to the program.
