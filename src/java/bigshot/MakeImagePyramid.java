@@ -338,6 +338,39 @@ public class MakeImagePyramid {
             } finally {
                 deleteAll (facesOut);
             }
+        } else if ("face".equals (parameters.get ("transform"))) {
+            double fov = getParameterAsDouble (parameters, "fov", 60);
+            double yaw = getParameterAsDouble (parameters, "yaw", 0);
+            double pitch = getParameterAsDouble (parameters, "pitch", 0);
+            double roll = getParameterAsDouble (parameters, "roll", 0);
+            double yawOffset = getParameterAsDouble (parameters, "yaw-offset", 0);
+            double pitchOffset = getParameterAsDouble (parameters, "pitch-offset", 0);
+            double rollOffset = getParameterAsDouble (parameters, "roll-offset", 0);
+            
+            int outputSizeW = getParameterAsInt (parameters, "output-width", 640);
+            int outputSizeH = getParameterAsInt (parameters, "output-height", 480);
+            
+            Output output = null;
+            String imageFormat = getParameter (parameters, "image-format", "jpg");
+            if ("jpg".equals (imageFormat)) {
+                output = new JpegOutput ();
+            } else if ("png".equals (imageFormat)) {
+                output = new PngOutput ();
+            } else {
+                System.err.println ("Unknown image format: \"" + imageFormat + "\". Using JPEG.");
+                output = new JpegOutput ();
+            }
+            output.configure (parameters);
+            
+            EquirectangularToCubic.Image in = EquirectangularToCubic.Image.read (input);
+            
+            EquirectangularToCubic.Image outImage = EquirectangularToCubic.transform (
+                in, fov, 
+                yawOffset, pitchOffset, rollOffset,
+                yaw, pitch, roll, outputSizeW, outputSizeH
+                );
+            
+            output.write (outImage.toBuffered (), outputBase);
         } else if ("carousel".equals (parameters.get ("transform"))) {
             boolean archive = "archive".equals (parameters.get ("format"));
             
