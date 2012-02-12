@@ -73,8 +73,8 @@
                             textureMagFilter : linear,
                             //maxTesselation : 1,
                             maxTextureMagnification : 3,
-                            rollOffset : 10,
-                            pitchOffset : 10,
+                            rollOffset : 0,
+                            pitchOffset : 0,
                             yawOffset : 0
                         }));
                 bvr.addRenderListener (function (state, cause, data) {
@@ -85,8 +85,7 @@
                             s.innerHTML = bvr.getPitch ().toFixed (3);
                         }
                     });
-                bvr.addRenderListener (
-                    new bigshot.AdaptiveLODMonitor (
+				var lodMonitor = new bigshot.AdaptiveLODMonitor (
                         new bigshot.AdaptiveLODMonitorParameters ({
                                 vrPanorama : bvr,
                                 targetFps : 30,
@@ -94,7 +93,8 @@
                                 rate : 0.1,
                                 minMag : 1.5,
                                 maxMag : 16
-                            })));
+							}));
+                bvr.addRenderListener (lodMonitor.getListener ());
                 
                 document.getElementById ("container").addEventListener ("click", function (e) {
                         var container = document.getElementById ("container");

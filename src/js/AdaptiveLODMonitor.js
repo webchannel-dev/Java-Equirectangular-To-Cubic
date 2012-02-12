@@ -15,22 +15,19 @@
  */
 
 /**
- * @class An adaptive LOD monitor.
+ * @class An adaptive LOD monitor. Use the {@link #getListener} to 
+ * get a render listener.
  */
 bigshot.AdaptiveLODMonitor = function (parameters) {
-    this.currentAdaptiveMagnification = parameters.vrPanorama.getMaxTextureMagnification ();
+	this.setParameters (parameters);
+
+	this.currentAdaptiveMagnification = parameters.vrPanorama.getMaxTextureMagnification ();
     
-    this.parameters = parameters;
     this.frames = 0;
     this.samples = 0;
     this.renderTimeTotal = 0;
     this.renderTimeLast = 0;
     this.samplesLast = 0;
-    
-    this.targetTime = 1000 / parameters.targetFps;
-    
-    this.lowerTime = this.targetTime / (1.0 + parameters.tolerance);
-    this.upperTime = this.targetTime * (1.0 + parameters.tolerance);
     
     this.startTime = 0;
     this.lastRender = 0;
@@ -38,14 +35,6 @@ bigshot.AdaptiveLODMonitor = function (parameters) {
     this.hqRender = false;
     this.hqMode = false;
     this.hqRenderWaiting = false;
-    
-    var that = this;
-    var getListener = function () {
-        return function (state, cause, data) {
-            that.listener (state, cause, data);
-        }                    
-    };
-    return getListener ();
 };
 
 bigshot.AdaptiveLODMonitor.prototype = {
@@ -56,6 +45,17 @@ bigshot.AdaptiveLODMonitor.prototype = {
             return -1;
         }
     },
+	
+	/**
+	 * @param {bigshot.AdaptiveLODMonitorParameters} parameters
+	 */
+	setParameters : function (parameters) {
+	    this.parameters = parameters;
+    	this.targetTime = 1000 / this.parameters.targetFps;
+    
+    	this.lowerTime = this.targetTime / (1.0 + this.parameters.tolerance);
+    	this.upperTime = this.targetTime * (1.0 + this.parameters.tolerance);
+	},
     
     averageRenderTimeLast : function () {
         if (this.samples > 0) {
@@ -64,7 +64,14 @@ bigshot.AdaptiveLODMonitor.prototype = {
             return -1;
         }
     },
-    
+	
+	getListener : function () {
+		var that = this;
+		return function (state, cause, data) {
+            that.listener (state, cause, data);
+        }                    
+	},
+	   
     increaseDetail : function () {
         this.currentAdaptiveMagnification = Math.max (this.parameters.minMag, this.currentAdaptiveMagnification / (1.0 + this.parameters.rate));
     },
