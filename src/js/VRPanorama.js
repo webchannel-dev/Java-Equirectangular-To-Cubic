@@ -276,15 +276,11 @@ bigshot.VRPanorama = function (parameters) {
     this.smoothrotatePermit = 0;
     
     /**
-     * Helper function to consume events.
+     * The current drag mode.
+     * 
      * @private
      */
-    var consumeEvent = function (event) {
-        if (event.preventDefault) {
-            event.preventDefault ();
-        }
-        return false;
-    };
+    this.dragMode = bigshot.VRPanorama.DRAG_GRAB;
     
     /**
      * Full screen handler.
@@ -333,6 +329,17 @@ bigshot.VRPanorama = function (parameters) {
     this.vrFaces[4] = new bigshot.VRFace (this, "u", {x:-1, y:1, z:1}, 2.0, {x:1, y:0, z:0}, {x:0, y:0, z:-1}, onFaceLoad);
     this.vrFaces[5] = new bigshot.VRFace (this, "d", {x:-1, y:-1, z:-1}, 2.0, {x:1, y:0, z:0}, {x:0, y:0, z:1}, onFaceLoad);
     
+	/**
+     * Helper function to consume events.
+     * @private
+     */
+    var consumeEvent = function (event) {
+        if (event.preventDefault) {
+            event.preventDefault ();
+        }
+        return false;
+    };
+	
     /**
      * Helper function to translate touch events to mouse-like events.
      * @private
@@ -611,6 +618,13 @@ bigshot.VRPanorama.prototype = {
         return res;
     },
     
+	/**
+	 * Constrains a pitch value to be within the allowed range.
+	 *
+	 * @type float
+	 * @param {float} p the pitch value
+	 * @private
+	 */
     snapPitch : function (p) {
         p = Math.min (this.parameters.maxPitch, p);
         p = Math.max (this.parameters.minPitch, p);
@@ -893,13 +907,6 @@ bigshot.VRPanorama.prototype = {
     },
     
     /**
-     * The current drag mode.
-     * 
-     * @private
-     */
-    dragMode : bigshot.VRPanorama.DRAG_GRAB,
-    
-    /**
      * Sets the mouse dragging mode.
      *
      * @param mode one of {@link bigshot.VRPanorama.DRAG_PAN} or {@link bigshot.VRPanorama.DRAG_GRAB}.
@@ -992,6 +999,8 @@ bigshot.VRPanorama.prototype = {
     /**
      * Sets the maximum texture magnification.
      *
+	 * @param {float} v the maximum accepted texture magnification, before
+	 * the textured quad is further tesselated.
      * @see bigshot.VRPanoramaParameters#maxTextureMagnification
      */
     setMaxTextureMagnification : function (v) {
@@ -1001,6 +1010,7 @@ bigshot.VRPanorama.prototype = {
     /**
      * Gets the current maximum texture magnification.
      *
+	 * @type float
      * @see bigshot.VRPanoramaParameters#maxTextureMagnification
      */
     getMaxTextureMagnification : function () {
@@ -1012,7 +1022,7 @@ bigshot.VRPanorama.prototype = {
      * have to stretch the textures more than given by the
      * {@link bigshot.VRPanoramaParameters#maxTextureMagnification} parameter.
      *
-     * @type number
+     * @type float
      * @return the minimum FOV, below which it is necessary to stretch the 
      * vr cube texture more than the given {@link bigshot.VRPanoramaParameters#maxTextureMagnification}
      */
@@ -1031,22 +1041,6 @@ bigshot.VRPanorama.prototype = {
         var mz = Math.atan (wy) * 180 / Math.PI;
         
         return mz * 2;
-    },
-    
-    /**
-     * @private
-     */
-    screenToRay : function (x, y) {
-        var dray = this.screenToRayDelta (x, y);
-        var ray = this.renderer.transformToWorld ([dray.x, dray.y, dray.z]);
-        ray = Matrix.RotationY (-this.transformOffsets.yaw * Math.PI / 180.0).ensure4x4 ().x (ray);
-        ray = Matrix.RotationX (-this.transformOffsets.pitch * Math.PI / 180.0).ensure4x4 ().x (ray);
-        ray = Matrix.RotationZ (-this.transformOffsets.roll * Math.PI / 180.0).ensure4x4 ().x (ray);
-        return {
-            x : ray.e(1),
-            y : ray.e(2),
-            z : ray.e(3)
-        };
     },
     
     /**
@@ -1165,7 +1159,7 @@ bigshot.VRPanorama.prototype = {
     /**
      * Starts auto-rotation of the camera. If the yaw is constrained,
      * will pan back and forth between the yaw endpoints. Call
-     * {@link #smoothRotate}() to stop the rotation.
+     * {@link bigshot.VRPanorama#smoothRotate}() to stop the rotation.
      */
     autoRotate : function () {
         var that = this;

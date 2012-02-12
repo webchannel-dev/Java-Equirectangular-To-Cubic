@@ -15,10 +15,18 @@
  */
 
 /**
+ * Creates a new parameter object instance.
  * @class Parameters for the adaptive LOD monitor.
+ * @param {Object} [values] an object literal with parameter values. Those
+ * that are not set will be set to the default values.
+ * @see bigshot.AdaptiveLODMonitor
  */
 bigshot.AdaptiveLODMonitorParameters = function (values) {
     
+	/**
+	 * The instance of {@link bigshot.VRPanorama} to control.
+	 * @type bigshot.VRPanorama
+	 */
     this.vrPanorama = null;
     
     /**
@@ -45,32 +53,46 @@ bigshot.AdaptiveLODMonitorParameters = function (values) {
     /**
      * The rate at which the level of detail is adjusted.
      * For detail increase, the detail is multiplied with (1.0 + rate),
-     * for decrease divided.
+     * for decrease divided by the same amount.
+	 * @type float
+	 * @default 0.1
      */
     this.rate = 0.1;
     
     /**
      * Minimum texture magnification.
+	 * @type float
+	 * @default 1.5
      */
     this.minMag = 1.5;
     
     /**
      * Maximum texture magnification.
+	 * @type float
+	 * @default 16
      */
     this.maxMag = 16;
     
     /**
      * Texture magnification for HQ render passes.
+	 * @type float
+	 * @default 1.5
      */
     this.hqRenderMag = 1.5;
     
     /**
-     * Delay before executing a HQ render pass.
+     * Delay before executing a HQ render pass in milliseconds.
+	 * @default 2000
+  	 * @type int
      */
     this.hqRenderDelay = 2000;
     
     /**
-     * Interval for the HQ render pass timer.
+     * Interval for the HQ render pass timer in milliseconds.
+	 * The monitor will check if a high-quality render
+	 * should be done with this frequency.
+	 * @type int
+	 * @default 1000
      */
     this.hqRenderInterval = 1000;
     

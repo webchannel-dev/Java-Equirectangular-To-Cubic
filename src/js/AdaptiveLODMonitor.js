@@ -15,21 +15,92 @@
  */
 
 /**
- * @class An adaptive LOD monitor. Use the {@link #getListener} to 
- * get a render listener.
+ * Creates a new adaptive level-of-detail monitor.
+ *
+ * @class An adaptive LOD monitor that adjusts the level of detail of a VR panorama
+ * to achieve a desired frame rate. To connect it to a VR panorama, use the 
+ * {@link bigshot.AdaptiveLODMonitor#getListener} method to get a render listener 
+ * that can be passed to {@link bigshot.VRPanorama#addRenderListener}.
+ *
+ * <p>The monitor maintains two render modes - a high quality one with a fixed
+ * level of detail, and a low(er) quality one with variable level of detail.
+ * If the panorama is idle for more than a set interval, a high-quality render is
+ * performed.
+ * 
+ * @param {bigshot.AdaptiveLODMonitorParameters} parameters parameters for the LOD monitor.
+ *
+ * @see bigshot.AdaptiveLODMonitorParameters for a list of parameters
+ *
+ * @example
+ * var bvr = new bigshot.VRPanorama ( ... );
+ * var lodMonitor = new bigshot.AdaptiveLODMonitor (
+ *     new bigshot.AdaptiveLODMonitorParameters ({
+ *         vrPanorama : bvr,
+ *         targetFps : 30,
+ *         tolerance : 0.3,
+ *         rate : 0.1,
+ *         minMag : 1.5,
+ *         maxMag : 16
+ *     }));
+ * bvr.addRenderListener (lodMonitor.getListener ());
  */
 bigshot.AdaptiveLODMonitor = function (parameters) {
 	this.setParameters (parameters);
 
+	/**
+	 * The current adaptive detail level.
+	 * @type float
+	 * @private
+	 */
 	this.currentAdaptiveMagnification = parameters.vrPanorama.getMaxTextureMagnification ();
     
+	/**
+	 * The number of frames that have been rendered.
+	 * @type int
+	 * @private
+	 */
     this.frames = 0;
+	
+	/**
+	 * The total number of times we have sampled the render time.
+	 * @type int
+	 * @private
+	 */
     this.samples = 0;
+	
+	/**
+	 * The sum of sample times from all samples of render time in milliseconds.
+	 * @type int
+	 * @private
+	 */
     this.renderTimeTotal = 0;
+	
+	/**
+	 * The sum of sample times from the recent sample pass in milliseconds.
+	 * @type int
+	 * @private
+	 */
     this.renderTimeLast = 0;
+	
+	/**
+	 * The number of samples currently done in the recent sample pass.
+	 * @type int
+	 * @private
+	 */
     this.samplesLast = 0;
     
+	/**
+	 * The start time, in milliseconds, of the last sample.
+	 * @type int
+	 * @private
+	 */
     this.startTime = 0;
+	
+	/**
+	 * The time, in milliseconds, when the panorama was last rendered.
+	 * @type int
+	 * @private
+	 */
     this.lastRender = 0;
     
     this.hqRender = false;
@@ -38,7 +109,12 @@ bigshot.AdaptiveLODMonitor = function (parameters) {
 };
 
 bigshot.AdaptiveLODMonitor.prototype = {
-    averageRenderTime : function () {
+	/**
+	 * Returns the avrage render time for all samples.
+	 * @type float
+     * @private
+     */
+	averageRenderTime : function () {
         if (this.samples > 0) {
             return this.renderTimeTotal / this.samples;
         } else {
@@ -47,6 +123,8 @@ bigshot.AdaptiveLODMonitor.prototype = {
     },
 	
 	/**
+	 * Resets the parameters for this monitor.
+	 *
 	 * @param {bigshot.AdaptiveLODMonitorParameters} parameters
 	 */
 	setParameters : function (parameters) {
@@ -57,6 +135,11 @@ bigshot.AdaptiveLODMonitor.prototype = {
     	this.upperTime = this.targetTime * (1.0 + this.parameters.tolerance);
 	},
     
+	/**
+	 * Returns the avrage render time for the recent set of samples.
+	 * @type float
+     * @private
+     */
     averageRenderTimeLast : function () {
         if (this.samples > 0) {
             return this.renderTimeLast / this.samplesLast;
@@ -65,21 +148,42 @@ bigshot.AdaptiveLODMonitor.prototype = {
         }
     },
 	
+	/**
+	 * Creates a render listener.
+	 * @type bigshot.VRPanorama.RenderListener
+	 */
 	getListener : function () {
 		var that = this;
 		return function (state, cause, data) {
             that.listener (state, cause, data);
         }                    
 	},
-	   
-    increaseDetail : function () {
+
+	/**
+	 * Increases the detail level.
+	 *
+	 * @type float
+     * @private
+     */
+	increaseDetail : function () {
         this.currentAdaptiveMagnification = Math.max (this.parameters.minMag, this.currentAdaptiveMagnification / (1.0 + this.parameters.rate));
     },
     
+	/**
+	 * Decreases the detail level.
+	 *
+	 * @type float
+     * @private
+     */
     decreaseDetail : function () {
         this.currentAdaptiveMagnification = Math.min (this.parameters.maxMag, this.currentAdaptiveMagnification * (1.0 + this.parameters.rate));
     },
     
+	/**
+	 * Samples the render time at the end of a render pass.
+	 *
+     * @private
+     */
     sample : function () {
         var deltat = new Date ().getTime () - this.startTime;
         this.samples++;
@@ -102,6 +206,11 @@ bigshot.AdaptiveLODMonitor.prototype = {
         }
     },
     
+	/**
+	 * Optionally perform a high-quality render pass.
+	 *
+	 * @private
+	 */
     hqRenderTick : function () {
         if (this.lastRender < new Date ().getTime () - this.parameters.hqRenderDelay) {
             this.hqRender = true;
@@ -119,6 +228,12 @@ bigshot.AdaptiveLODMonitor.prototype = {
         }
     },
     
+	/**
+	 * Implementation of the {@link bigshot.VRPanorama.RenderListener} 
+	 * interface.
+	 *
+	 * @private
+	 */
     listener : function (state, cause, data) {
         if (this.hqRender) {
             return;
