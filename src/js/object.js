@@ -1,0 +1,64 @@
+/*
+ * Copyright 2010 - 2012 Leo Sutic <leo.sutic@gmail.com>
+ *  
+ * Licensed under the Apache License, Version 2.0 (the "License"); 
+ * you may not use this file except in compliance with the License. 
+ * You may obtain a copy of the License at 
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0 
+ *     
+ * Unless required by applicable law or agreed to in writing, software 
+ * distributed under the License is distributed on an "AS IS" BASIS, 
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
+ * See the License for the specific language governing permissions and 
+ * limitations under the License. 
+ */
+
+/**
+ * @class Object-oriented support functions, used to make JavaScript
+ * a bit more palatable to a Java-head.
+ */
+bigshot.object = {
+    /**
+     *
+     * @param {Function} base the base-class
+     * @param {Function} derived the derived-class
+     */
+    extend : function (base, derived) {
+        for (var k in derived.prototype) {
+            if (base.prototype[k]) {
+                base.prototype[k]._super = derived.prototype[k];
+            } else {
+                base.prototype[k] = derived.prototype[k];
+            }
+        }
+    },
+    
+    /**
+     * Utility function to show an object's fields in a message box.
+     *
+     * @param {Object} o the object
+     */
+    alertr : function (o) {
+        var sb = "";
+        for (var k in o) {
+            sb += k + ":" + o[k] + "\n";
+        }
+        alert (sb);
+    },
+    
+    /**
+     * Utility function to show an object's fields in the console log.
+     *
+     * @param {Object} o the object
+     */
+    logr : function (o) {
+        var sb = "";
+        for (var k in o) {
+            sb += k + ":" + o[k] + "\n";
+        }
+        if (console) {
+            console.log (sb);
+        }
+    }
+};
