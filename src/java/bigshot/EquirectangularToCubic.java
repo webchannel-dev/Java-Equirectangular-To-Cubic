@@ -65,7 +65,7 @@ public class EquirectangularToCubic {
     }
     
     public EquirectangularToCubic vfov (double vfov) {
-        this.vfov = vfov;
+        this.vfov = MathUtil.toRad (vfov);
         return this;
     }
     
@@ -102,7 +102,6 @@ public class EquirectangularToCubic {
     protected Image transform () throws Exception {
         final Image output = new Image (width, height);
         
-        vfov = MathUtil.toRad (vfov);
         final Point3D topLeft = new Point3D (-Math.tan (vfov / 2) * width / height, -Math.tan (vfov / 2), 1.0);
         final Point3D uv = new Point3D (- 2 * topLeft.x / width, - 2 * topLeft.y / height, 0.0);
         if (oversampling != 1) {
