@@ -173,7 +173,7 @@
             <arg value="dzi-cubemap"/>
             <arg value="--format"/>
             <arg value="archive"/>
-            <jvmarg value="-Xmx2024M"/>
+            <jvmarg value="-Xmx1524M"/>
         </java>
     </target>
     
