@@ -19,14 +19,18 @@
  *
  * @augments bigshot.FileSystem
  * @class Folder-based filesystem.
- * @param {bigshot.ImageParameters or bigshot.VRPanoramaParameters} parameters the associated image parameters
+ * @param {bigshot.ImageParameters|bigshot.VRPanoramaParameters} parameters the associated image parameters
  * @constructor
  */
 bigshot.FolderFileSystem = function (parameters) {
     this.prefix = null;
     this.suffix = "";
-    
-    this.getDescriptor = function () {
+    this.parameters = parameters;
+}
+
+
+bigshot.FolderFileSystem.prototype = {    
+    getDescriptor : function () {
         this.browser = new bigshot.Browser ();
         var req = this.browser.createXMLHttpRequest ();
         
@@ -47,30 +51,32 @@ bigshot.FolderFileSystem = function (parameters) {
         } else {
             throw new Error ("Unable to find descriptor.");
         }
-    }
+    },
     
-    this.getPosterFilename = function () {
+    getPosterFilename : function () {
         return this.getFilename ("poster" + this.suffix);
-    }
+    },
     
-    this.setPrefix = function (prefix) {
+    setPrefix : function (prefix) {
         this.prefix = prefix;
-    }
+    },
     
-    this.getPrefix = function () {
+    getPrefix : function () {
         if (this.prefix) {
             return this.prefix + "/";
         } else {
             return "";
         }
-    }
+    },
     
-    this.getFilename = function (name) {
-        return parameters.basePath + "/" + this.getPrefix () + name;
-    };
+    getFilename : function (name) {
+        return this.parameters.basePath + "/" + this.getPrefix () + name;
+    },
     
-    this.getImageFilename = function (tileX, tileY, zoomLevel) {
+    getImageFilename : function (tileX, tileY, zoomLevel) {
         var key = (-zoomLevel) + "/" + tileX + "_" + tileY + this.suffix;
         return this.getFilename (key);
-    };
+    }
 };
+
+bigshot.object.validate ("bigshot.FolderFileSystem", bigshot.FileSystem);

@@ -5,6 +5,12 @@ import java.util.*;
 
 public class IncludeProcessor {
     
+    private Map<String,String> defines = new HashMap<String,String> ();
+    
+    public void define (String key, String value) {
+        defines.put (key, value);
+    }
+    
     public void process (File root, File[] includePaths, OutputStream os) throws Exception {
         readFile (new HashSet<String> (), root, includePaths, os);
     }
@@ -29,6 +35,17 @@ public class IncludeProcessor {
                         if (!found) {
                             throw new FileNotFoundException (ref + " referenced from " + current.getPath ());
                         }
+                    } else if (line.trim ().startsWith ("#ifdef ")) {
+                        String key = line.trim ().substring (7).trim ();
+                        if (!defines.containsKey (key)) {
+                            while ((line = br.readLine ()) != null) {
+                                if (line.trim ().startsWith ("#endif")) {
+                                    break;
+                                }
+                            }
+                        }
+                    } else if (line.trim ().startsWith ("#endif")) {
+                        // Always ignore
                     } else {
                         os.write (line.getBytes ());
                         os.write ('\n');
@@ -55,4 +72,3 @@ public class IncludeProcessor {
         os.close ();
     }
 }
-    

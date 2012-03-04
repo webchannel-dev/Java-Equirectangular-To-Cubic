@@ -18,6 +18,7 @@
  * Creates a new cache instance.
  *
  * @class Tile texture cache for a {@link bigshot.VRFace}.
+ * @augments bigshot.VRTileCache
  * @param {function()} onLoaded function that is called whenever a texture tile has been
  * loaded.
  * @param {bigshot.VRPanoramaParameters} image parameters
@@ -185,3 +186,5 @@ bigshot.TextureTileCache.prototype = {
     }
 };
 
+
+bigshot.object.validate ("bigshot.TextureTileCache", bigshot.VRTileCache);

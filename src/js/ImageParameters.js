@@ -204,7 +204,7 @@ bigshot.ImageParameters = function (values) {
      *
      * @type boolean
      * @default true
-     * @depreciated
+     * @deprecated Bigshot supports all common touch-gestures.
      */
     this.touchUI = false;
     

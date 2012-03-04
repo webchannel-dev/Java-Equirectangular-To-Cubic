@@ -18,7 +18,7 @@
  * Creates a new instance of a <code>.bigshot</code> archive filesystem adapter.
  * 
  * @class Bigshot archive filesystem.
- * @param {bigshot.ImageParameters or bigshot.VRPanoramaParameters} parameters the associated image parameters
+ * @param {bigshot.ImageParameters|bigshot.VRPanoramaParameters} parameters the associated image parameters
  * @augments bigshot.FileSystem
  * @constructor
  */     
@@ -58,7 +58,6 @@ bigshot.ArchiveFileSystem = function (parameters) {
     } else {
         alert ("The header of \"" + this.parameters.basePath + "\" could not be loaded: " + req.status);
     }
-    return this;
 };
 
 
@@ -123,3 +122,5 @@ bigshot.ArchiveFileSystem.prototype = {
         this.prefix = prefix;
     }
 }
+
+bigshot.object.validate ("bigshot.ArchiveFileSystem", bigshot.FileSystem);

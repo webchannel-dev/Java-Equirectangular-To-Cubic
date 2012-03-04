@@ -43,38 +43,41 @@ bigshot.HotspotLayer = function (image) {
     this.browser = new bigshot.Browser ();
     this.container = image.createLayerContainer ();
     this.parentContainer = image.getContainer ();
+    this.resize (0, 0);
+}
+
+bigshot.HotspotLayer.prototype = {
     
-    this.getContainer = function () {
+    getContainer : function () {
         return this.container;
-    };
+    },
     
-    this.resize = function (w, h) {
+    resize : function (w, h) {
         this.container.style.width = this.parentContainer.clientWidth + "px";
         this.container.style.height = this.parentContainer.clientHeight + "px";
-    };
+    },
     
-    this.layout = function (zoom, x0, y0, tx0, ty0, size, stride, opacity) {
+    layout : function (zoom, x0, y0, tx0, ty0, size, stride, opacity) {
         var zoomFactor = Math.pow (2, zoom);
         x0 -= stride * tx0;
         y0 -= stride * ty0;
         for (var i = 0; i < this.hotspots.length; ++i) {
             this.hotspots[i].layout (x0, y0, zoomFactor);
         }            
-    };
+    },
     
-    this.setMaxTiles = function (mtx, mty) {
-    };
+    setMaxTiles : function (mtx, mty) {
+    },
     
     /**
      * Adds a hotspot to the layer. 
      *
      * @param {bigshot.Hotspot} hotspot the hotspot to add.
      */
-    this.addHotspot = function (hotspot) {
+    addHotspot : function (hotspot) {
         this.container.appendChild (hotspot.getElement ());
         this.hotspots.push (hotspot);
-    };
-    
-    this.resize (0, 0);
-    return bigshot.object.extend (new bigshot.Layer (), this);
+    }
 }
+
+bigshot.object.validate ("bigshot.HotspotLayer", bigshot.Layer);

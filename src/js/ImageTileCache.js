@@ -26,13 +26,13 @@ bigshot.ImageTileCache = function (onLoaded, onCacheInit, parameters) {
     this.parameters = parameters;
     
     /**
-      * Reduced-resolution preview of the full image.
-      * Loaded from the "poster" image created by 
-      * MakeImagePyramid
-      *
-      * @private
-      * @type HTMLImageElement
-      */
+     * Reduced-resolution preview of the full image.
+     * Loaded from the "poster" image created by 
+     * MakeImagePyramid
+     *
+     * @private
+     * @type HTMLImageElement
+     */
     this.fullImage = null;
     parameters.dataLoader.loadImage (parameters.fileSystem.getPosterFilename (), function (tile) {
             that.fullImage = tile;

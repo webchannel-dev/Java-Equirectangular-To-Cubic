@@ -47,7 +47,7 @@ bigshot.TransformStack.prototype = {
      * If omitted, the current is used
      * @type Matrix
      */
-    mvPushMatrix : function (matrix) {
+    push : function (matrix) {
         if (matrix) {
             this.mvMatrixStack.push (matrix.dup());
             this.mvMatrix = matrix.dup();
@@ -64,7 +64,7 @@ bigshot.TransformStack.prototype = {
      * @type Matrix
      * @return the previously-pushed matrix
      */
-    mvPopMatrix : function () {
+    pop : function () {
         if (this.mvMatrixStack.length == 0) {
             throw new Error ("Invalid popMatrix!");
         }
@@ -84,7 +84,7 @@ bigshot.TransformStack.prototype = {
      *
      * @param {Matrix} matrix the matrix to multiply with
      */
-    mvMultiply : function (matrix) {
+    multiply : function (matrix) {
         this.mvMatrix = matrix.x (this.mvMatrix);
     },
     
@@ -95,7 +95,7 @@ bigshot.TransformStack.prototype = {
      */
     translate : function (vector) {
         var m = Matrix.Translation($V([vector[0], vector[1], vector[2]])).ensure4x4 ();
-        this.mvMultiply (m);
+        this.multiply (m);
     },
     
     /**
@@ -107,7 +107,7 @@ bigshot.TransformStack.prototype = {
     rotate : function (ang, vector) {
         var arad = ang * Math.PI / 180.0;
         var m = Matrix.Rotation(arad, $V([vector[0], vector[1], vector[2]])).ensure4x4 ();
-        this.mvMultiply (m);
+        this.multiply (m);
     },
     
     /**
@@ -121,7 +121,7 @@ bigshot.TransformStack.prototype = {
      */
     perspective : function (fovy, aspect, znear, zfar) {
         var m = makePerspective (fovy, aspect, znear, zfar);
-        this.mvMultiply (m);
+        this.multiply (m);
     },
     
     matrix : function () {

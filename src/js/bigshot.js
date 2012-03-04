@@ -58,20 +58,20 @@ if (!self["bigshot"]) {
      */
     bigshot = {};
     
+    #include object.js
     #include Browser.js
     #include FullScreen.js
     #include DataLoader.js
     #include DefaultDataLoader.js
     #include CachingDataLoader.js
-    #include object.js
     #include Hotspot.js
+    #include Layer.js
     #include LabeledHotspot.js
     #include LinkHotspot.js
     #include HotspotLayer.js
     #include TileLayer.js
     #include LRUMap.js
     #include ImageTileCache.js
-    #include Layer.js
     #include ImageParameters.js
     #include Image.js
     #include FileSystem.js
@@ -99,9 +99,6 @@ if (!self["bigshot"]) {
     #include VRHotspot.js
     #include VRPointHotspot.js
     #include VRRectangleHotspot.js
-    #include ImageCarouselPanoramaVRRenderer.js
-    #include ImageCarouselPanoramaParameters.js
-    #include ImageCarouselPanorama.js
     #include AdaptiveLODMonitorParameters.js
     #include AdaptiveLODMonitor.js
 }

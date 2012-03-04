@@ -73,3 +73,4 @@ bigshot.VRRectangleHotspot.prototype = {
 }
 
 bigshot.object.extend (bigshot.VRRectangleHotspot, bigshot.VRHotspot);
+bigshot.object.validate ("bigshot.VRRectangleHotspot", bigshot.VRHotspot);

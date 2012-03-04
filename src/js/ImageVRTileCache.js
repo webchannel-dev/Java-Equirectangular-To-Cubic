@@ -15,11 +15,13 @@
  */
     
 /**
- * @class Img impl.
+ * @class A VR tile cache backed by a {@link bigshot.ImageTileCache}.
+ * @augments bigshot.VRTileCache
  */
 bigshot.ImageVRTileCache = function (onloaded, onCacheInit, parameters) {
     this.imageTileCache = new bigshot.ImageTileCache (onloaded, onCacheInit, parameters);
     
+    // Keep the imageTileCache from wrapping around.
     this.imageTileCache.setMaxTiles (999999, 999999);
 }
 
@@ -33,3 +35,5 @@ bigshot.ImageVRTileCache.prototype = {
         this.imageTileCache.resetUsed ();
     }
 }
+
+bigshot.object.validate ("bigshot.ImageVRTileCache", bigshot.VRTileCache);

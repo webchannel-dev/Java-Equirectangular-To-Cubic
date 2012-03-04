@@ -158,7 +158,9 @@ public class MinimalHttpd {
                             
                             os.write ("\r\n".getBytes ());
                             
-                            new IncludeProcessor ().process (f, new File[]{ f.getParentFile () }, os);
+                            IncludeProcessor ip = new IncludeProcessor ();
+                            ip.define ("DEBUG", "true");
+                            ip.process (f, new File[]{ f.getParentFile () }, os);
                         } else if (f.exists () && !f.isDirectory ()) {
                             FileInputStream fis = new FileInputStream (f);
                             try {

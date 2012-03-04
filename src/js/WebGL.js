@@ -22,9 +22,18 @@
  * @see #onresize()
  */
 bigshot.WebGL = function (canvas_) {
-    
+    /**
+     * The html canvas element we'll be rendering in.
+     *
+     * @type HTMLCanvasElement
+     */
     this.canvas = canvas_;
     
+    /**
+     * Our WebGL context.
+     *
+     * @type WebGLRenderingContext
+     */
     this.gl = bigshot.webglutil.createContext (this.canvas); 
             
     /**
@@ -34,6 +43,11 @@ bigshot.WebGL = function (canvas_) {
      */
     this.mvMatrix = new bigshot.TransformStack ();
     
+    /**
+     * The current perspective transform matrix.
+     *
+     * @type bigshot.TransformStack
+     */
     this.pMatrix = new bigshot.TransformStack ();
     
     /**

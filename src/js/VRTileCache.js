@@ -15,12 +15,24 @@
  */
     
 /**
- * @class Abstract base.
+ * @class Abstract base class.
  */
 bigshot.VRTileCache = function () {
 }
 
 bigshot.VRTileCache.prototype = {
+    /**
+     * Returns the texture object for the given tile-x, tile-y and zoom level.
+     * The return type is dependent on the renderer. The WebGL renderer, for example
+     * uses a tile cache that returns WebGL textures, while the CSS3D renderer
+     * returns HTML img or canvas elements.
+     */
     getTexture : function (tileX, tileY, zoomLevel) {},
+    
+    /**
+     * Purges the cache of old entries.
+     *
+     * @type void
+     */
     purge : function () {}
 }

@@ -19,7 +19,7 @@
  *
  * @augments bigshot.FileSystem
  * @class Folder-based filesystem.
- * @param {bigshot.ImageParameters or bigshot.VRPanoramaParameters} parameters the associated image parameters
+ * @param {bigshot.ImageParameters|bigshot.VRPanoramaParameters} parameters the associated image parameters
  * @constructor
  */
 bigshot.DeepZoomImageFileSystem = function (parameters) {

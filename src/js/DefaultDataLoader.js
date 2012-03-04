@@ -15,6 +15,9 @@
  */
 
 /**
+ * Creates a new data loader.
+ *
+ * @param {int} [maxRetries=0] the maximum number of times to retry requests
  * @class Data loader using standard browser functions.
  * @augments bigshot.DataLoader
  */
@@ -75,3 +78,5 @@ bigshot.DefaultDataLoader.prototype = {
         }
     }
 }
+
+bigshot.object.validate ("bigshot.DefaultDataLoader", bigshot.DataLoader);

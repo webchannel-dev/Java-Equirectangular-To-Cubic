@@ -104,3 +104,5 @@ bigshot.WebGLVRRenderer.prototype = {
         this.webGl.onresize ();
     }
 }
+
+bigshot.object.validate ("bigshot.WebGLVRRenderer", bigshot.VRRenderer);

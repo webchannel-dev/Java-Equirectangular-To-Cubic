@@ -35,11 +35,16 @@ bigshot.TileLayer = function (image, parameters, w, h, itc) {
     this.h = h;
     this.imageTileCache = itc;
     
-    this.getContainer = function () {
+    this.resize (w, h);
+    return this;
+}
+ 
+bigshot.TileLayer.prototype = {
+    getContainer : function () {
         return this.container;
-    };
+    },
     
-    this.resize = function (w, h) {
+    resize : function (w, h) {
         this.container.style.width = this.parentContainer.clientWidth + "px";
         this.container.style.height = this.parentContainer.clientHeight + "px";
         
@@ -66,9 +71,9 @@ bigshot.TileLayer = function (image, parameters, w, h, itc) {
             }
             this.rows.push (row);
         }
-    };
+    },
     
-    this.layout = function (zoom, x0, y0, tx0, ty0, size, stride, opacity) {
+    layout : function (zoom, x0, y0, tx0, ty0, size, stride, opacity) {
         zoom = Math.min (0, Math.ceil (zoom));
         this.imageTileCache.resetUsed ();
         var y = y0;
@@ -104,12 +109,11 @@ bigshot.TileLayer = function (image, parameters, w, h, itc) {
             }
             y += stride;
         }
-    };
+    },
     
-    this.setMaxTiles = function (mtx, mty) {
+    setMaxTiles : function (mtx, mty) {
         this.imageTileCache.setMaxTiles (mtx, mty);
-    };
-    this.resize (w, h);
-    return this;
+    }
 };
-    
+
+bigshot.object.validate ("bigshot.TileLayer", bigshot.Layer);

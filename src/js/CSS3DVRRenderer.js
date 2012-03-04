@@ -56,7 +56,7 @@ bigshot.CSS3DVRRenderer = function (_container) {
     
     this.onresize = function () {
     };    
-}
+};
 
 bigshot.CSS3DVRRenderer.prototype = {
     browser : new bigshot.Browser (),
@@ -190,4 +190,6 @@ bigshot.CSS3DVRRenderer.prototype = {
             }
         }
     }    
-}
+};
+
+bigshot.object.validate ("bigshot.CSS3DVRRenderer", bigshot.VRRenderer);

@@ -776,6 +776,7 @@ bigshot.Image.prototype = {
      * documentation for an explanation of the touch ui.
      * 
      * @public
+     * @deprecated All common touch gestures are supported by default.
      * @see bigshot.ImageParameters#touchUI
      * @param {int} [delay] milliseconds before fading out
      * @param {int} [fadeOut] milliseconds to fade out the zone overlays in

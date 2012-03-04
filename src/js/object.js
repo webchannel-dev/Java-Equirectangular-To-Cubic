@@ -35,6 +35,33 @@ bigshot.object = {
     },
     
     /**
+     * Resolves a name relative to <code>self</code>.
+     *
+     * @param {String} name the name to resolve
+     * @type {Object}
+     */
+    resolve : function (name) {
+        var c = name.split (".");
+        var clazz = self;
+        for (var i = 0; i < c.length; ++i) {
+            clazz = clazz[c[i]];
+        }
+        return clazz;
+    },
+    
+    validate : function (clazzName, iface) {
+        #ifdef DEBUG
+            console.log ("Validating " + clazzName);
+        var clazz = this.resolve (clazzName);
+        for (var k in iface.prototype) {
+            if (!clazz.prototype[k]) {
+                throw new Error (clazzName + " doesn't implement " + k);
+            }
+        }
+        #endif
+    },
+    
+    /**
      * Utility function to show an object's fields in a message box.
      *
      * @param {Object} o the object
