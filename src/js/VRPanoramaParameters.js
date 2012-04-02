@@ -241,10 +241,25 @@ bigshot.VRPanoramaParameters = function (values) {
      */
     this.maxYaw = 720;
     
+    /**
+     * Transform offset for yaw.
+     * @default 0.0
+     * @type number
+     */
     this.yawOffset = 0.0;
     
+    /**
+     * Transform offset for pitch.
+     * @default 0.0
+     * @type number
+     */
     this.pitchOffset = 0.0;
     
+    /**
+     * Transform offset for roll.
+     * @default 0.0
+     * @type number
+     */
     this.rollOffset = 0.0;
     
     /**

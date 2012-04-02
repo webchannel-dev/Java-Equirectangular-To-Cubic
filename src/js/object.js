@@ -20,6 +20,7 @@
  */
 bigshot.object = {
     /**
+     * Extends a base class with a derived class.
      *
      * @param {Function} base the base-class
      * @param {Function} derived the derived-class
