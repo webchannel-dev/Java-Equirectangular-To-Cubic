@@ -195,26 +195,44 @@ bigshot.VRPanorama = function (parameters) {
     this.state = {
         /**
          * Pitch in degrees.
+         * @type float
          * @private
          */
         p : 0.0,
         
         /**
          * Yaw in degrees.
+         * @type float
          * @private
          */
         y : 0.0,
         
         /**
          * Field of view (vertical) in degrees.
+         * @type float
          * @private
          */
         fov : 45,
         
+        /**
+         * Translation along X-axis.
+         * @private
+         * @type float
+         */
         tx : 0.0,
         
+        /**
+         * Translation along Y-axis.
+         * @private
+         * @type float
+         */
         ty : 0.0,
         
+        /**
+         * Translation along Z-axis.
+         * @private
+         * @type float
+         */
         tz : 0.0
     };
     
@@ -417,7 +435,17 @@ bigshot.VRPanorama = function (parameters) {
             return consumeEvent (e);
         }, false);
     
+    /**
+     * Stub function to call onresize on this instance.
+     *
+     * @private
+     */
+    this.onresizeHandler = function (e) {
+        that.onresize ();
+    };
+    
     this.browser.registerListener (window, 'resize', this.onresizeHandler, false);
+    this.browser.registerListener (document.body, 'orientationchange', this.onresizeHandler, false);
     
     this.setPitch (0.0);
     this.setYaw (0.0);
@@ -726,6 +754,7 @@ bigshot.VRPanorama.prototype = {
      */
     dispose : function () {
         this.browser.unregisterListener (window, "resize", this.onresizeHandler, false);
+        this.browser.unregisterListener (document.body, "orientationchange", this.onresizeHandler, false);
     },
     
     /**
@@ -1257,16 +1286,6 @@ bigshot.VRPanorama.prototype = {
         };
         stepper ();
     },
-    
-    /**
-     * Stub function to call onresize on this instance.
-     *
-     * @private
-     */
-    onresizeHandler : function (e) {
-        this.onresize ();
-    },
-    
     
     /**
      * Translates mouse wheel events.
