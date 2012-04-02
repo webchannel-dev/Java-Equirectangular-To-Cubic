@@ -145,19 +145,6 @@
         </java>
     </target>
     
-    <target name="build-carousel">
-        <java fork="yes" jar="${package-dir}/bigshot.jar"
-            dir="${basedir}">
-            <arg value="${basedir}/test/vr-sample.jpg"/>
-            <arg value="${temp}/carousel.bigshot"/>
-            <arg value="--transform"/>
-            <arg value="carousel"/>
-            <arg value="--format"/>
-            <arg value="archive"/>
-            <jvmarg value="-Xmx1024M"/>
-        </java>
-    </target>
-    
     <target name="build-vr">
         <!--
         <mkdir dir="${temp}/vr.bigshot"/>
@@ -189,14 +176,12 @@
     
     <target name="host">
         <echo><![CDATA[Point your web browser at:
-http://localhost/src/test/test.html
-    To test Bigshot
-http://localhost/src/test/vrpano.html
-    To test Bigshot VR Panorama 
-    (WebGL-capable web browser required)]]></echo>
+    http://localhost/]]></echo>
         <java classname="minihttpd.MinimalHttpd"
             classpath="${temp}/classes/" fork="yes">
             <arg value="."/>
+            <arg value="-1"/>
+            <arg value="/src/test/index.html"/>
         </java>
     </target>
 	

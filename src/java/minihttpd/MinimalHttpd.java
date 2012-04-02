@@ -105,9 +105,16 @@ public class MinimalHttpd {
         ServerSocket serverSocket = new ServerSocket (80);
         System.out.println ("Server started on port 80. Root: " + root.getPath ());
         
-        final int throttle = args.length > 1 ? Integer.parseInt (args[1]) : Integer.MAX_VALUE;
+        int _throttle = args.length > 1 ? Integer.parseInt (args[1]) : Integer.MAX_VALUE;
+        if (_throttle < 0) {
+            _throttle = Integer.MAX_VALUE;
+        }
+        final int throttle = _throttle;
         System.out.println ("Throttled to " + throttle + " B/s");
         
+        final String indexFile = args.length > 2 ? args[2] : "/index.html";
+        System.out.println ("Index file is " + indexFile);
+                
         while (true) {
             final Socket sock = serverSocket.accept ();
             new Thread () {
@@ -120,7 +127,12 @@ public class MinimalHttpd {
                         
                         String[] path = request.split (" ");
                         if (path[1].equals ("/")) {
-                            path[1] = "/index.html";
+                            OutputStream os = sock.getOutputStream ();
+                            os.write ("HTTP/1.0 301 Moved Permanently\r\n".getBytes ());
+                            os.write (("Location: " + indexFile + "\r\n").getBytes ());
+                            os.write ("\r\n".getBytes ());
+                            os.flush ();
+                            return;
                         }
                         String file = path[1];
                         
