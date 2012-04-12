@@ -238,5 +238,5 @@ bigshot.ImageTileCache.prototype = {
     getImageFilename : function (tileX, tileY, zoomLevel) {
         var f = this.parameters.fileSystem.getImageFilename (tileX, tileY, zoomLevel);
         return f;
-    },
+    }
 };
