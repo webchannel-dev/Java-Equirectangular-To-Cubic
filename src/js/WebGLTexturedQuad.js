@@ -41,8 +41,7 @@ bigshot.WebGLTexturedQuad.prototype = {
      *
      * @param {bigshot.WebGL} webGl the WebGL wrapper instance to use for rendering.
      */
-    render : function (webGl) {
-        var vertexPositionBuffer = webGl.gl.createBuffer();
+    render : function (webGl, vertexPositionBuffer, textureCoordBuffer, vertexIndexBuffer) {
         webGl.gl.bindBuffer(webGl.gl.ARRAY_BUFFER, vertexPositionBuffer);
         var vertices = [
             this.p.x, this.p.y,  this.p.z,
@@ -51,26 +50,6 @@ bigshot.WebGLTexturedQuad.prototype = {
             this.p.x + this.v.x, this.p.y + this.v.y,  this.p.z + this.v.z
         ];
         webGl.gl.bufferData(webGl.gl.ARRAY_BUFFER, new Float32Array (vertices), webGl.gl.STATIC_DRAW);
-        
-        
-        var textureCoordBuffer = webGl.gl.createBuffer();
-        webGl.gl.bindBuffer(webGl.gl.ARRAY_BUFFER, textureCoordBuffer);
-        var textureCoords = [
-            // Front face
-            0.0,  0.0,
-            1.0,  0.0,
-            1.0,  1.0,
-            0.0,  1.0
-        ];
-        webGl.gl.bufferData(webGl.gl.ARRAY_BUFFER, new Float32Array (textureCoords), webGl.gl.STATIC_DRAW);
-        
-        var vertexIndexBuffer = webGl.gl.createBuffer();
-        webGl.gl.bindBuffer(webGl.gl.ELEMENT_ARRAY_BUFFER, vertexIndexBuffer);            
-        var vertexIndexes = [
-            0, 2, 1,
-            0, 3, 2
-        ];
-        webGl.gl.bufferData(webGl.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array (vertexIndexes), webGl.gl.STATIC_DRAW);
         
         webGl.gl.bindBuffer(webGl.gl.ARRAY_BUFFER, textureCoordBuffer);
         webGl.gl.vertexAttribPointer(webGl.shaderProgram.textureCoordAttribute, 2, webGl.gl.FLOAT, false, 0, 0);
@@ -85,9 +64,5 @@ bigshot.WebGLTexturedQuad.prototype = {
         webGl.gl.bindBuffer(webGl.gl.ELEMENT_ARRAY_BUFFER, vertexIndexBuffer);
         webGl.setMatrixUniforms();
         webGl.gl.drawElements(webGl.gl.TRIANGLES, 6, webGl.gl.UNSIGNED_SHORT, 0);
-        
-        webGl.gl.deleteBuffer (vertexPositionBuffer);
-        webGl.gl.deleteBuffer (vertexIndexBuffer);
-        webGl.gl.deleteBuffer (textureCoordBuffer);
     }
 }
