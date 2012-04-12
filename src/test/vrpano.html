@@ -1,9 +1,16 @@
+<!DOCTYPE html>
 <html>
     <head>
+        <meta name="viewport" content="initial-scale=1.0, width=device-width, height=device-height, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
         <title>
             Test of Bigshot VRPanorama
         </title>
         <style>
+            body {
+                margin: 0px;
+                padding: 0px;
+            }
+            
             h2 {
                 font-family: Arial;
                 font-size: 14pt;
@@ -49,13 +56,25 @@
                 text-align:right;
                 display: inline-block;
             }
+            
+            div.controls {
+                padding: 4px;
+            }
         </style>
+        <script>
+            if (self["console"] == null) {
+                self.console = {
+                    log : function () {}
+                };
+            }
+        </script>
         <script src="../js/webgl/webgl-debug.js"></script>
         <script src="../js/webgl/sylvester.js"></script>
         <script src="../js/webgl/glUtils.js"></script>
         <script src="../js/bigshot.js?preprocessor=true">/* */</script>
-        <script>
+        <script>            
             var bvr = null;
+            var lodMonitor = null;
             
             function vrpano () {
                 var hotspot = document.getElementById ("hotspot");
@@ -84,21 +103,21 @@
                             s.innerHTML = bvr.getPitch ().toFixed (3);
                         }
                     });
-				var lodMonitor = new bigshot.AdaptiveLODMonitor (
-                        new bigshot.AdaptiveLODMonitorParameters ({
-                                vrPanorama : bvr,
-                                targetFps : 30,
-                                tolerance : 0.3,
-                                rate : 0.1,
-                                minMag : 1.5,
-                                maxMag : 16
-							}));
+                lodMonitor = new bigshot.AdaptiveLODMonitor (
+                    new bigshot.AdaptiveLODMonitorParameters ({
+                            vrPanorama : bvr,
+                            targetFps : 30,
+                            tolerance : 0.3,
+                            rate : 0.1,
+                            minMag : 1.5,
+                            maxMag : 16
+                        }));
                 bvr.addRenderListener (lodMonitor.getListener ());
                 
                 document.getElementById ("container").addEventListener ("click", function (e) {
                         var container = document.getElementById ("container");
                         var clicked = bvr.screenToPolar (e.clientX - container.offsetLeft, e.clientY - container.offsetTop);
-                    document.getElementById ("clicked").innerHTML = clicked.yaw + " " + clicked.pitch;
+                        document.getElementById ("clicked").innerHTML = clicked.yaw + " " + clicked.pitch;
                     });
                 
                 //bvr.autoRotateWhenIdle (3);
@@ -122,6 +141,8 @@
             
             function benchmark () {
                 var FRAMES = 100;
+                bvr.removeRenderListener (lodMonitor.getListener ());
+                bvr.setMaxTextureMagnification (1.0);
                 var start = new Date ().getTime ();
                 for (var i = 0; i < FRAMES; ++i) {
                     bvr.render ();
@@ -130,6 +151,7 @@
                 var delta = (end - start);
                 var fps = 1000 * FRAMES / delta;
                 var mspf = delta / FRAMES;
+                bvr.addRenderListener (lodMonitor.getListener ());
                 alert ("FPS:" + fps + "\n" + 
                     "ms/f:" + mspf);
             }
@@ -181,11 +203,8 @@
         </script>
     </head>
     <body onload="vrpano();">
-        <h2>
-            Bigshot VR
-        </h2>
-        <div style="background:black; height:480px; width:100%;" id="outerContainer">
-            <div style="background:black; height:480px;" id="container">
+        <div style="background:black; height:400px; width:100%;" id="outerContainer">
+            <div style="background:black; height:400px;" id="container">
                 <div style="width:0px; height:0px; position:absolute; z-index:1;">
                     <div class="hotspot" id="hotspot" style="text-align:center; width:1px;"
                         onclick="alert('Clicked on hotspot!');">
@@ -200,32 +219,34 @@
                     <div class="hotspot" id="hotspot2" style="border: none; text-align:center; width:32px; height:32px;"><img src="hotspot-image.png"/></div>
                 </div>
                 <div style="width:0px; left:50%; height:0px; position:absolute; z-index:1;">
-                    <div style="width:32px; height:32px; position: relative; top:240px; border-top:1px solid red; border-left:1px solid red;">&#160;</div>
+                    <div style="width:32px; height:32px; position: relative; top:200px; border-top:1px solid red; border-left:1px solid red;">&#160;</div>
                 </div>
             </div>
         </div>
-        <p>
-        <a href="#" onclick="redraw(); return false;"><button type="button">Redraw</button></a>
-        <a href="#" onclick="autorotate(); return false;"><button type="button">Autorotate</button></a>
-        <a href="#" onclick="fullScreen(); return false;"><button type="button">Fullscreen</button></a>
-        <a href="#" onclick="benchmark(); return false;"><button type="button">Benchmark</button></a>
-        <a href="#" onclick="bvr.setFov (bvr.getMinFovFromViewportAndImage ()); bvr.render (); return false;"><button type="button">computedMinZoom</button></a>
-        <a href="#" onclick="getViewportZoom (); return false;"><button type="button">getViewportZoom</button></a>
-        </p>
-        
-        <p>
-        Drag mode:
-        <input type="radio" name="panMode" value="drag" onchange="bvr.setDragMode (bigshot.VRPanorama.DRAG_PAN);"/> Pan
-        <input type="radio" name="panMode" value="grab" onchange="bvr.setDragMode (bigshot.VRPanorama.DRAG_GRAB);" checked="true"/> Grab
-        </p>
-        
-        <p>
-        Position:
-        Yaw: <span id="position-yaw" class="coordinate"></span> ; Pitch: <span id="position-pitch" class="coordinate"></span>
-        </p>
-        
-        <p>
-        Clicked <span id="clicked">none</span>
-        </p>
-    </body>
-</html>
+        <div class="controls">
+            <p>
+            <button class="control" onclick="redraw(); return false;" type="button">Redraw</button>
+            <button class="control" onclick="autorotate(); return false;" type="button">Autorotate</button>
+            <button class="control" onclick="fullScreen(); return false;" type="button">Fullscreen</button>
+            <button class="control" onclick="benchmark(); return false;" type="button">Benchmark</button>
+            <button class="control" onclick="bvr.setFov (bvr.getMinFovFromViewportAndImage ()); bvr.render (); return false;" type="button">computedMinZoom</button>
+            <button class="control" onclick="getViewportZoom (); return false;" type="button">getViewportZoom</button>
+            </p>
+            
+            <p>
+            Drag mode:
+            <input type="radio" name="panMode" value="drag" onchange="bvr.setDragMode (bigshot.VRPanorama.DRAG_PAN);"/> Pan
+            <input type="radio" name="panMode" value="grab" onchange="bvr.setDragMode (bigshot.VRPanorama.DRAG_GRAB);" checked="true"/> Grab
+            </p>
+            
+            <p>
+            Position:
+            Yaw: <span id="position-yaw" class="coordinate"></span> ; Pitch: <span id="position-pitch" class="coordinate"></span>
+            </p>
+            
+            <p>
+            Clicked <span id="clicked">none</span>
+            </p>
+            </p>
+        </body>
+    </html>
