@@ -158,8 +158,15 @@
             <arg value="${temp}/vr.bigshot"/>
             <arg value="--preset"/>
             <arg value="dzi-cubemap"/>
+            
+            <arg value="--tile-size"/>
+            <arg value="510"/>
+            <arg value="--face-size"/>
+            <arg value="2040"/>
+            
             <arg value="--format"/>
             <arg value="archive"/>
+
             <jvmarg value="-Xmx1524M"/>
         </java>
     </target>

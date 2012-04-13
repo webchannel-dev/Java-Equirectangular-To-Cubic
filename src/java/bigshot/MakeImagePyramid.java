@@ -167,7 +167,7 @@ public class MakeImagePyramid {
         private double quality;
         
         public void configure (Map<String,String> parameters) {
-            quality = getParameterAsDouble (parameters, "jpeg-quality", 0.95);
+            quality = getParameterAsDouble (parameters, "jpeg-quality", 0.7);
         }
         
         public String getSuffix () {

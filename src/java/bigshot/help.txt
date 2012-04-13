@@ -65,7 +65,7 @@ Options:
     --jpeg-quality quality
         Jpeg quality, between 0.0 and 1.0. Only has effect
         if --image-format is "jpg"
-        Default: 0.95
+        Default: 0.7
 
     --transform facemap
         Applies a transform to the input image. Possible values
