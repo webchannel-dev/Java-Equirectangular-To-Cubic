@@ -95,6 +95,8 @@ public class MinimalHttpd {
             return "text/xml";
         } else if (filename.endsWith (".swf")) {
             return "application/x-shockwave-flash";
+        } else if (filename.endsWith (".js")) {
+            return "application/javascript";
         } else {
             return null;
         }
@@ -206,11 +208,12 @@ public class MinimalHttpd {
                         } else {
                             os.write ("HTTP/1.0 404 Not found\r\n\r\n".getBytes ());
                         }
-                        os.flush ();                        
+                        os.flush ();
+                        os.close ();
                     } catch (Throwable t) {
                         t.printStackTrace ();
                     } finally {
-                        try {
+                        try {                            
                             sock.close ();
                         } catch (Exception e) {
                             e.printStackTrace ();
