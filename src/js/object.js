@@ -22,15 +22,15 @@ bigshot.object = {
     /**
      * Extends a base class with a derived class.
      *
-     * @param {Function} base the base-class
      * @param {Function} derived the derived-class
+     * @param {Function} base the base-class
      */
-    extend : function (base, derived) {
-        for (var k in derived.prototype) {
-            if (base.prototype[k]) {
-                base.prototype[k]._super = derived.prototype[k];
+    extend : function (derived, base) {
+        for (var k in base.prototype) {
+            if (derived.prototype[k]) {
+                derived.prototype[k]._super = base.prototype[k];
             } else {
-                base.prototype[k] = derived.prototype[k];
+                derived.prototype[k] = base.prototype[k];
             }
         }
     },
