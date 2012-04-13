@@ -86,6 +86,7 @@ if (!self["bigshot"]) {
     #include TransformStack.js
     #include WebGL.js
     #include VRRenderer.js
+    #include AbstractVRRenderer.js
     #include CSS3DVRRenderer.js
     #include CSS3DTexturedQuad.js
     #include CSS3DTexturedQuadScene.js

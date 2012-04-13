@@ -142,11 +142,14 @@
                 bvr.render ();
             }
             
-            function benchmark () {
+            function benchmark (profile) {
                 var FRAMES = 0;
                 bvr.removeRenderListener (lodMonitor.getListener ());
                 bvr.removeRenderListener (displayUpdater);
                 bvr.setMaxTextureMagnification (1.0);
+                if (profile && console.profile) {
+                    console.profile ();
+                }
                 var start = new Date ().getTime ();
                 while (true) {
                     for (var i = 0; i < 20; ++i) {
@@ -157,6 +160,9 @@
                     if (elapsed > 2000) {
                         break;
                     }
+                }
+                if (profile && console.profileEnd) {
+                    console.profileEnd ();
                 }
                 var end = new Date ().getTime ();
                 var delta = (end - start);
@@ -241,7 +247,8 @@
             <button class="control" onclick="redraw(); return false;" type="button">Redraw</button>
             <button class="control" onclick="autorotate(); return false;" type="button">Autorotate</button>
             <button class="control" onclick="fullScreen(); return false;" type="button">Fullscreen</button>
-            <button class="control" onclick="benchmark(); return false;" type="button">Benchmark</button>
+            <button class="control" onclick="benchmark(false); return false;" type="button">Benchmark</button>
+            <button class="control" onclick="benchmark(true); return false;" type="button">Profile</button>
             <button class="control" onclick="bvr.setFov (bvr.getMinFovFromViewportAndImage ()); bvr.render (); return false;" type="button">computedMinZoom</button>
             <button class="control" onclick="getViewportZoom (); return false;" type="button">getViewportZoom</button>
             </p>

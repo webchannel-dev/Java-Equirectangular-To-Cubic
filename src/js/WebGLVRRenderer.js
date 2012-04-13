@@ -58,18 +58,6 @@ bigshot.WebGLVRRenderer.prototype = {
         return this.webGl.gl.viewportHeight;
     },
     
-    transformToWorld : function (v) {
-        return this.webGl.transformToWorld (v);
-    },
-    
-    transformToScreen : function (vector) {
-        return this.webGl.transformToScreen (vector);
-    },
-    
-    transformWorldToScreen : function (world) {
-        return this.webGl.transformWorldToScreen (world);
-    },
-    
     beginRender : function (y, p, fov, tx, ty, tz, oy, op, or) {
         this.webGl.gl.viewport (0, 0, this.webGl.gl.viewportWidth, this.webGl.gl.viewportHeight);
         
@@ -83,6 +71,10 @@ bigshot.WebGLVRRenderer.prototype = {
         this.webGl.mvMatrix.rotate (oy, [0, 1, 0]);
         this.webGl.mvMatrix.rotate (y, [0, 1, 0]);
         this.webGl.mvMatrix.rotate (p, [1, 0, 0]);
+        
+        this.mvMatrix = this.webGl.mvMatrix;
+        this.pMatrix = this.webGl.pMatrix;
+        this.mvpMatrix = this.pMatrix.matrix ().multiply (this.mvMatrix.matrix ());
     },
     
     endRender : function () {
@@ -105,4 +97,5 @@ bigshot.WebGLVRRenderer.prototype = {
     }
 }
 
+bigshot.object.extend (bigshot.WebGLVRRenderer, bigshot.AbstractVRRenderer);
 bigshot.object.validate ("bigshot.WebGLVRRenderer", bigshot.VRRenderer);

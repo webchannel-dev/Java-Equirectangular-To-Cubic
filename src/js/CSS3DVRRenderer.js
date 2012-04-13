@@ -102,86 +102,6 @@ bigshot.CSS3DVRRenderer.prototype = {
         }
     },
     
-    /**
-     * Transforms a vector to world coordinates.
-     *
-     * @param {vector} vector the vector to transform
-     */
-    transformToWorld : function (vector) {
-        if (vector.length != 4) {
-            vector = vector.slice (0);
-            vector.push (1.0);
-        }
-        var sylvesterVector = Vector.createNoCopy (vector);
-        
-        var world = this.mvMatrix.matrix ().xvec (sylvesterVector);
-        
-        return world;
-    },
-    
-    transformWorldToScreen : function (world) {
-        if (world.elements[2] > 0) {
-            return null;
-        }
-        
-        var screen = this.pMatrix.matrix ().xvec (world);
-        if (Math.abs (screen.elements[3]) < Sylvester.precision) {
-            return null;
-        }
-        
-        var sel = screen.elements;
-        var sx = sel[0];
-        var sy = sel[1];
-        var sz = sel[3];
-        var vw = this.getViewportWidth ();
-        var vh = this.getViewportHeight ();
-        
-        var r = {
-            x: (vw / 2) * sx / sz + vw / 2, 
-            y: - (vh / 2) * sy / sz + vh / 2
-        };
-        return r;
-    },
-    
-    /**
-     * Transforms a vector to screen coordinates.
-     *
-     * @param {vector} vector the vector to transform
-     * @return the transformed vector, or null if the vector is nearer than the near-z plane.
-     */
-    transformToScreen : function (vector) {
-        if (vector.length != 4) {
-            vector = vector.slice (0);
-            vector.push (1.0);
-        }
-        
-        var sylvesterVector = Vector.createNoCopy (vector);
-        var screen = this.mvpMatrix.xvec (sylvesterVector);
-        
-        var sel = screen.elements;
-        if (sel[2] < 0) {
-            return null;
-        }
-        
-        var sz = sel[3];
-        
-        if (Math.abs (sz) < Sylvester.precision) {
-            return null;
-        }
-        
-        var sx = sel[0];
-        var sy = sel[1];
-        var vw = this.getViewportWidth ();
-        var vh = this.getViewportHeight ();
-        
-        var r = {
-            x: (vw / 2) * sx / sz + vw / 2, 
-            y: - (vh / 2) * sy / sz + vh / 2
-        };
-
-        return r;
-    },
-    
     beginRender : function (y, p, fov, tx, ty, tz, oy, op, or) {
         this.viewportSize = this.browser.getElementSize (this.container);
         
@@ -247,4 +167,5 @@ bigshot.CSS3DVRRenderer.prototype = {
     }    
 };
 
+bigshot.object.extend (bigshot.CSS3DVRRenderer, bigshot.AbstractVRRenderer);
 bigshot.object.validate ("bigshot.CSS3DVRRenderer", bigshot.VRRenderer);

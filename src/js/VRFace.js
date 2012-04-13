@@ -146,10 +146,11 @@ bigshot.VRFace.prototype = {
      * @private
      * @return VISIBLE_NONE, VISIBLE_SOME or VISIBLE_ALL
      */
-    intersectWithView : function (transformed) {
+    intersectWithView : function intersectWithView (transformed) {
         var numNull = 0;
         var tf = [];
-        for (var i = 0; i < transformed.length; ++i) {
+        var tfl = transformed.length;
+        for (var i = 0; i < tfl; ++i) {
             if (transformed[i] == null) {
                 numNull++;
             } else {
@@ -160,47 +161,39 @@ bigshot.VRFace.prototype = {
             return this.VISIBLE_NONE;
         }
         
-        transformed = tf;
+        var minX = tf[0].x;
+        var minY = tf[0].y;
         
-        var min = {
-            x : transformed[0].x,
-            y : transformed[0].y
-        };
-        var max = {
-            x : transformed[0].x,
-            y : transformed[0].y
-        };
+        var maxX = minX;
+        var maxY = minY;
         
-        var viewMin = {
-            x : 0,
-            y : 0
-        };
-        var viewMax = {
-            x : this.owner.renderer.getViewportWidth (),
-            y : this.owner.renderer.getViewportHeight ()
-        };
+        var viewMinX = 0;
+        var viewMinY = 0;
+        
+        var viewMaxX = this.viewportWidth;
+        var viewMaxY = this.viewportHeight;
         
         var pointsInViewport = 0;
-        var tl = transformed.length;
+        var tl = tf.length;
         for (var i = 1; i < tl; ++i) {
-            min.x = Math.min (min.x, transformed[i].x);
-            min.y = Math.min (min.y, transformed[i].y);
+            var tix = tf[i].x;
+            var tiy = tf[i].y;
             
-            max.x = Math.max (max.x, transformed[i].x);
-            max.y = Math.max (max.y, transformed[i].y);
+            minX = minX < tix ? minX : tix;
+            minY = minY < tiy ? minY : tiy;
+            
+            
+            maxX = maxX > tix ? maxX : tix;
+            maxY = maxY > tiy ? maxY : tiy;
         }
         
-        var imin = {
-            x : Math.max (min.x, viewMin.x),
-            y : Math.max (min.y, viewMin.y)
-        };
+        var iminX = minX > viewMinX ? minX : viewMinX;
+        var iminY = minY > viewMinY ? minY : viewMinY;
         
-        var imax = {
-            x : Math.min (max.x, viewMax.x),
-            y : Math.min (max.y, viewMax.y)
-        };
+        var imaxX = maxX < viewMaxX ? maxX : viewMaxX;
+        var imaxY = maxY < viewMaxY ? maxY : viewMaxY;
         
-        if (imin.x <= imax.x && imin.y <= imax.y) {
+        if (iminX <= imaxX && iminY <= imaxY) {
             return this.VISIBLE_SOME;
         }            
         
@@ -215,16 +208,14 @@ bigshot.VRFace.prototype = {
      *
      * @private
      */
-    screenDistance : function (p0, p1) {
+    screenDistance : function screenDistance (p0, p1) {
         if (p0 == null || p1 == null) {
-            // arbitrarily high number, because I don't really
-            // want to use Inf or NaN unless I must.
             return 0;
         }
         return Math.max (Math.abs (p0.x - p1.x), Math.abs (p0.y - p1.y));
     },
     
-    transformToScreen : function (v) {
+    transformToScreen : function transformToScreen (v) {
         return this.owner.renderer.transformToScreen ([v.x, v.y, v.z, 1.0]);
     },
     
@@ -241,7 +232,7 @@ bigshot.VRFace.prototype = {
      * @param {int} tx the tile column this face is in
      * @param {int} ty the tile row this face is in 
      */
-    generateSubdivisionFace : function (scene, topLeft, width, divisions, tx, ty, transformed) {
+    generateSubdivisionFace : function generateSubdivisionFace (scene, topLeft, width, divisions, tx, ty, transformed) {
         if (!transformed) {
             transformed = new Array (4);
             transformed[0] = this.transformToScreen (topLeft);
@@ -315,6 +306,8 @@ bigshot.VRFace.prototype = {
      */
     render : function (scene) {
         this.updated = false;
+        this.viewportWidth = this.owner.renderer.getViewportWidth ();
+        this.viewportHeight = this.owner.renderer.getViewportHeight ();        
         this.generateSubdivisionFace (scene, this.topLeft, this.width, 0, 0, 0);
     },
     

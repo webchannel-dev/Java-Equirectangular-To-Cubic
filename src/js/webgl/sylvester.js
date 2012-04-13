@@ -475,18 +475,23 @@ Matrix.prototype = {
     
     xvec : function xvec (vector) {
         var inEl = vector.elements;
-        var outEl = new Array (inEl.length);
-        var imax = this.elements.length;
+        return Vector.createNoCopy (this.xvecarray (inEl));
+    },
+    
+    xvecarray : function xvecarray (inEl) {
+        var jmax = inEl.length;
+        var outEl = new Array (jmax);
+        var thisEl = this.elements;
+        var imax = thisEl.length;
         for (var i = 0; i < imax; ++i) {
             var acc = 0;
-            var row = this.elements[i];
-            var jmax = row.length;
+            var row = thisEl[i];
             for (var j = 0; j < jmax; ++j) {
                 acc += row[j] * inEl[j];
             }
             outEl[i] = acc;
         }
-        return Vector.createNoCopy (outEl);
+        return outEl;
     },
 
   // Returns a submatrix taken from the matrix
