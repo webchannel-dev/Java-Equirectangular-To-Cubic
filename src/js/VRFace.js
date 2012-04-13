@@ -104,7 +104,7 @@ bigshot.VRFace.prototype = {
             z : p.z * m
         };
     },
-        
+    
     /**
      * Creates a textured quad.
      *
@@ -231,6 +231,10 @@ bigshot.VRFace.prototype = {
         return Math.max (Math.abs (p0.x - p1.x), Math.abs (p0.y - p1.y));
     },
     
+    transformToScreen : function (v) {
+        return this.owner.renderer.transformToScreen ([v.x, v.y, v.z, 1.0]);
+    },
+    
     /**
      * Optionally subdivides a quad into fourn new quads, depending on the
      * position and on-screen size of the quad.
@@ -244,17 +248,25 @@ bigshot.VRFace.prototype = {
      * @param {int} tx the tile column this face is in
      * @param {int} ty the tile row this face is in 
      */
-    generateSubdivisionFace : function (scene, topLeft, width, divisions, tx, ty) {
-        var bottomLeft = this.pt3dMultAdd (this.v, width, topLeft);
-        var topRight = this.pt3dMultAdd (this.u, width, topLeft);
-        var bottomRight = this.pt3dMultAdd (this.u, width, bottomLeft);
-        
-        var transformed = [
-            this.owner.renderer.transformToScreen ([topLeft.x, topLeft.y, topLeft.z, 1.0]),
-            this.owner.renderer.transformToScreen ([topRight.x, topRight.y, topRight.z, 1.0]),
-            this.owner.renderer.transformToScreen ([bottomRight.x, bottomRight.y, bottomRight.z, 1.0]),
-            this.owner.renderer.transformToScreen ([bottomLeft.x, bottomLeft.y, bottomLeft.z, 1.0])
-        ];
+    generateSubdivisionFace : function (scene, topLeft, width, divisions, tx, ty, transformed) {
+        if (!transformed) {
+            transformed = new Array (4);
+        }
+        if (transformed[0] == null) {
+            transformed[0] = this.transformToScreen (topLeft);
+        };
+        if (transformed[1] == null) {
+            var topRight = this.pt3dMultAdd (this.u, width, topLeft);
+            transformed[1] = this.transformToScreen (topRight);
+        };
+        if (transformed[2] == null) {
+            var bottomRight = this.pt3dMultAdd (this.v, width, this.pt3dMultAdd (this.u, width, topLeft));
+            transformed[2] = this.transformToScreen (bottomRight);
+        };
+        if (transformed[3] == null) {
+            var bottomLeft = this.pt3dMultAdd (this.v, width, topLeft);
+            transformed[3] = this.transformToScreen (bottomLeft);
+        };
         
         var numVisible = this.intersectWithView (transformed);
         
@@ -282,10 +294,17 @@ bigshot.VRFace.prototype = {
                 var center = this.pt3dMultAdd ({x: this.u.x + this.v.x, y: this.u.y + this.v.y, z: this.u.z + this.v.z }, width / 2, topLeft);
                 var midTop = this.pt3dMultAdd (this.u, width / 2, topLeft);
                 var midLeft = this.pt3dMultAdd (this.v, width / 2, topLeft);
-                this.generateSubdivisionFace (scene, topLeft, width / 2, divisions + 1, tx * 2, ty * 2);
-                this.generateSubdivisionFace (scene, midTop, width / 2, divisions + 1, tx * 2 + 1, ty * 2);
-                this.generateSubdivisionFace (scene, midLeft, width / 2, divisions + 1, tx * 2, ty * 2 + 1);
-                this.generateSubdivisionFace (scene, center, width / 2, divisions + 1, tx * 2 + 1, ty * 2 + 1);
+                
+                var tCenter = this.transformToScreen (center);
+                var tMidLeft = this.transformToScreen (midLeft);
+                var tMidTop = this.transformToScreen (midTop);
+                var tMidRight = this.transformToScreen (this.pt3dMultAdd (this.u, width, midLeft));
+                var tMidBottom = this.transformToScreen (this.pt3dMultAdd (this.v, width, midTop));
+                
+                this.generateSubdivisionFace (scene, topLeft, width / 2, divisions + 1, tx * 2, ty * 2, [transformed[0], tMidTop, tCenter, tMidLeft]);
+                this.generateSubdivisionFace (scene, midTop, width / 2, divisions + 1, tx * 2 + 1, ty * 2, [tMidTop, transformed[1], tMidRight, tCenter]);
+                this.generateSubdivisionFace (scene, midLeft, width / 2, divisions + 1, tx * 2, ty * 2 + 1, [tMidLeft, tCenter, tMidBottom, transformed[3]]);
+                this.generateSubdivisionFace (scene, center, width / 2, divisions + 1, tx * 2 + 1, ty * 2 + 1, [tCenter, tMidRight, transformed[2], tMidBottom]);
             } else {
                 this.generateFace (scene, topLeft, width, tx, ty, divisions);
             }
