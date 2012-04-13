@@ -75,6 +75,7 @@
         <script>            
             var bvr = null;
             var lodMonitor = null;
+            var displayUpdater = null;
             
             function vrpano () {
                 var hotspot = document.getElementById ("hotspot");
@@ -95,14 +96,16 @@
                             pitchOffset : 0,
                             yawOffset : 0
                         }));
-                bvr.addRenderListener (function (state, cause, data) {
+                
+                displayUpdater = function (state, cause, data) {
                         if (state == bigshot.VRPanorama.ONRENDER_BEGIN) {
                             var s = document.getElementById ("position-yaw");
                             s.innerHTML = bvr.getYaw ().toFixed (3);
                             s = document.getElementById ("position-pitch");
                             s.innerHTML = bvr.getPitch ().toFixed (3);
                         }
-                    });
+                };
+                bvr.addRenderListener (displayUpdater);
                 lodMonitor = new bigshot.AdaptiveLODMonitor (
                     new bigshot.AdaptiveLODMonitorParameters ({
                             vrPanorama : bvr,
@@ -140,19 +143,29 @@
             }
             
             function benchmark () {
-                var FRAMES = 100;
+                var FRAMES = 0;
                 bvr.removeRenderListener (lodMonitor.getListener ());
+                bvr.removeRenderListener (displayUpdater);
                 bvr.setMaxTextureMagnification (1.0);
                 var start = new Date ().getTime ();
-                for (var i = 0; i < FRAMES; ++i) {
-                    bvr.render ();
+                while (true) {
+                    for (var i = 0; i < 20; ++i) {
+                        bvr.render ();
+                        ++FRAMES;
+                    }
+                    var elapsed = new Date ().getTime () - start;
+                    if (elapsed > 2000) {
+                        break;
+                    }
                 }
                 var end = new Date ().getTime ();
                 var delta = (end - start);
                 var fps = 1000 * FRAMES / delta;
                 var mspf = delta / FRAMES;
+                bvr.addRenderListener (displayUpdater);
                 bvr.addRenderListener (lodMonitor.getListener ());
-                alert ("FPS:" + fps + "\n" + 
+                alert ("Frames:" + FRAMES + "\n" +
+                    "FPS:" + fps + "\n" + 
                     "ms/f:" + mspf);
             }
             

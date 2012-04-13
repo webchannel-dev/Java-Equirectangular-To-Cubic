@@ -794,7 +794,7 @@ bigshot.VRPanorama.prototype = {
         rl = rl.concat (this.renderListeners);
         for (var i = 0; i < rl.length; ++i) {
             if (rl[i] === listener) {
-                rl = rl.splice (i, 1);
+                rl.splice (i, 1);
                 break;
             }
         }
@@ -856,7 +856,7 @@ bigshot.VRPanorama.prototype = {
         rl.concat (this.renderables);
         for (var i = 0; i < rl.length; ++i) {
             if (rl[i] == listener) {
-                rl = rl.splice (i, 1);
+                rl.splice (i, 1);
                 break;
             }
         }

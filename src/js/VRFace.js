@@ -250,10 +250,10 @@ bigshot.VRFace.prototype = {
         var bottomRight = this.pt3dMultAdd (this.u, width, bottomLeft);
         
         var transformed = [
-            this.owner.renderer.transformToScreen ([topLeft.x, topLeft.y, topLeft.z]),
-            this.owner.renderer.transformToScreen ([topRight.x, topRight.y, topRight.z]),
-            this.owner.renderer.transformToScreen ([bottomRight.x, bottomRight.y, bottomRight.z]),
-            this.owner.renderer.transformToScreen ([bottomLeft.x, bottomLeft.y, bottomLeft.z])
+            this.owner.renderer.transformToScreen ([topLeft.x, topLeft.y, topLeft.z, 1.0]),
+            this.owner.renderer.transformToScreen ([topRight.x, topRight.y, topRight.z, 1.0]),
+            this.owner.renderer.transformToScreen ([bottomRight.x, bottomRight.y, bottomRight.z, 1.0]),
+            this.owner.renderer.transformToScreen ([bottomLeft.x, bottomLeft.y, bottomLeft.z, 1.0])
         ];
         
         var numVisible = this.intersectWithView (transformed);

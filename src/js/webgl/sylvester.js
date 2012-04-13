@@ -299,22 +299,28 @@ Vector.prototype = {
 };
   
 // Constructor function
-Vector.create = function(elements) {
+Vector.create = function create (elements) {
   var V = new Vector();
   return V.setElements(elements);
 };
 
+Vector.createNoCopy = function createNoCopy (elements) {
+  var V = new Vector();
+    V.elements = elements;
+  return V;
+};
+
 // i, j, k unit vectors
-Vector.i = Vector.create([1,0,0]);
-Vector.j = Vector.create([0,1,0]);
-Vector.k = Vector.create([0,0,1]);
+Vector.i = Vector.createNoCopy([1,0,0]);
+Vector.j = Vector.createNoCopy([0,1,0]);
+Vector.k = Vector.createNoCopy([0,0,1]);
 
 // Random vector of size n
 Vector.Random = function(n) {
   var elements = [];
   do { elements.push(Math.random());
   } while (--n);
-  return Vector.create(elements);
+  return Vector.createNoCopy(elements);
 };
 
 // Vector filled with zeros
@@ -322,7 +328,7 @@ Vector.Zero = function(n) {
   var elements = [];
   do { elements.push(0);
   } while (--n);
-  return Vector.create(elements);
+  return Vector.createNoCopy(elements);
 };
 
 
@@ -466,6 +472,22 @@ Matrix.prototype = {
   },
 
   x: function(matrix) { return this.multiply(matrix); },
+    
+    xvec : function xvec (vector) {
+        var inEl = vector.elements;
+        var outEl = new Array (inEl.length);
+        var imax = this.elements.length;
+        for (var i = 0; i < imax; ++i) {
+            var acc = 0;
+            var row = this.elements[i];
+            var jmax = row.length;
+            for (var j = 0; j < jmax; ++j) {
+                acc += row[j] * inEl[j];
+            }
+            outEl[i] = acc;
+        }
+        return Vector.createNoCopy (outEl);
+    },
 
   // Returns a submatrix taken from the matrix
   // Argument order is: start row, start col, nrows, ncols

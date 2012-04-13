@@ -55,7 +55,9 @@ bigshot.CSS3DVRRenderer = function (_container) {
     this.pMatrix = new bigshot.TransformStack ();
     
     this.onresize = function () {
-    };    
+    };
+    
+    this.viewportSize = null;
 };
 
 bigshot.CSS3DVRRenderer.prototype = {
@@ -78,10 +80,16 @@ bigshot.CSS3DVRRenderer.prototype = {
     },
     
     getViewportWidth : function () {
+        if (this.viewportSize) {
+            return this.viewportSize.w;
+        }
         return this.browser.getElementSize (this.container).w;
     },
     
     getViewportHeight : function () {
+        if (this.viewportSize) {
+            return this.viewportSize.h;
+        }
         return this.browser.getElementSize (this.container).h;
     },
     
@@ -100,24 +108,37 @@ bigshot.CSS3DVRRenderer.prototype = {
      * @param {vector} vector the vector to transform
      */
     transformToWorld : function (vector) {
-        var sylvesterVector = $V([vector[0], vector[1], vector[2], 1.0]);
+        if (vector.length != 4) {
+            vector = vector.slice (0);
+            vector.push (1.0);
+        }
+        var sylvesterVector = Vector.createNoCopy (vector);
         
-        var world = this.mvMatrix.matrix ().x (sylvesterVector);
+        var world = this.mvMatrix.matrix ().xvec (sylvesterVector);
+        
         return world;
     },
     
     transformWorldToScreen : function (world) {
-        if (world.e(3) > 0) {
+        if (world.elements[2] > 0) {
             return null;
         }
         
-        var screen = this.pMatrix.matrix ().x (world);
-        if (Math.abs (screen.e(4)) < Sylvester.precision) {
+        var screen = this.pMatrix.matrix ().xvec (world);
+        if (Math.abs (screen.elements[3]) < Sylvester.precision) {
             return null;
         }
+        
+        var sel = screen.elements;
+        var sx = sel[0];
+        var sy = sel[1];
+        var sz = sel[3];
+        var vw = this.getViewportWidth ();
+        var vh = this.getViewportHeight ();
+        
         var r = {
-            x: (this.getViewportWidth () / 2) * screen.e(1) / screen.e(4) + this.getViewportWidth () / 2, 
-            y: - (this.getViewportHeight () / 2) * screen.e(2) / screen.e(4) + this.getViewportHeight () / 2
+            x: (vw / 2) * sx / sz + vw / 2, 
+            y: - (vh / 2) * sy / sz + vh / 2
         };
         return r;
     },
@@ -134,6 +155,8 @@ bigshot.CSS3DVRRenderer.prototype = {
     },
     
     beginRender : function (y, p, fov, tx, ty, tz, oy, op, or) {
+        this.viewportSize = this.browser.getElementSize (this.container);
+        
         this.yaw = y;
         this.pitch = p;
         this.fov = fov;
@@ -189,6 +212,8 @@ bigshot.CSS3DVRRenderer.prototype = {
                 this.world.removeChild (child);
             }
         }
+        
+        this.viewportSize = null;
     }    
 };
 

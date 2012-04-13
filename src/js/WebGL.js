@@ -243,23 +243,23 @@ bigshot.WebGL.prototype = {
      * @param {vector} vector the vector to transform
      */
     transformToWorld : function (vector) {
-        var sylvesterVector = $V([vector[0], vector[1], vector[2], 1.0]);
-        var world = this.mvMatrix.matrix ().x (sylvesterVector);
+        var sylvesterVector = Vector.createNoCopy ([vector[0], vector[1], vector[2], 1.0]);
+        var world = this.mvMatrix.matrix ().xvec (sylvesterVector);
         return world;
     },
     
     transformWorldToScreen : function (world) {
-        if (world.e(3) > 0) {
+        if (world.elements[2] > 0) {
             return null;
         }
         
-        var screen = this.pMatrix.matrix ().x (world);
-        if (Math.abs (screen.e(4)) < Sylvester.precision) {
+        var screen = this.pMatrix.matrix ().xvec (world);
+        if (Math.abs (screen.elements[3]) < Sylvester.precision) {
             return null;
         }
         var r = {
-            x: (this.gl.viewportWidth / 2) * screen.e(1) / screen.e(4) + this.gl.viewportWidth / 2, 
-            y: - (this.gl.viewportHeight / 2) * screen.e(2) / screen.e(4) + this.gl.viewportHeight / 2
+            x: (this.gl.viewportWidth / 2) * screen.elements[0] / screen.elements[3] + this.gl.viewportWidth / 2, 
+            y: - (this.gl.viewportHeight / 2) * screen.elements[1] / screen.elements[3] + this.gl.viewportHeight / 2
         };
         return r;
     },
