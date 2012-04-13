@@ -1281,7 +1281,7 @@ bigshot.VRPanorama.prototype = {
                     that.setFov (that.getFov () + df());
                 }
                 that.render ();
-                window.setTimeout (stepper, 1);
+                that.browser.requestAnimationFrame (stepper, that.renderer.getElement ());
             }
         };
         stepper ();
@@ -1475,10 +1475,10 @@ bigshot.VRPanorama.prototype = {
         if (!this.renderAsapPermitTaken) {
             this.renderAsapPermitTaken = true;
             var that = this;
-            setTimeout (function () {
+            this.browser.requestAnimationFrame (function () {
                     that.renderAsapPermitTaken = false;
                     that.render ();                    
-                }, 1);
+                }, this.renderer.getElement ());
         }
     },
     

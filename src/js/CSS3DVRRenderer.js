@@ -75,6 +75,10 @@ bigshot.CSS3DVRRenderer.prototype = {
         return new bigshot.CSS3DTexturedQuad (p, u, v, texture);
     },
     
+    getElement : function () {
+        return this.container;
+    },
+    
     supportsUpdate : function () {
         return false;
     },

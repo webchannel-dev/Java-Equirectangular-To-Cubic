@@ -21,6 +21,12 @@
  * and convenience.
  */
 bigshot.Browser = function () {
+    this.requestAnimationFrameFunction = 
+        window.requestAnimationFrame || 
+        window.mozRequestAnimationFrame ||  
+        window.webkitRequestAnimationFrame || 
+        window.msRequestAnimationFrame ||
+        function (callback, element) { return setTimeout (callback, 0); };
 }
 
 bigshot.Browser.prototype = {
@@ -196,6 +202,11 @@ bigshot.Browser.prototype = {
         } else {
             return 1.0;
         }
+    },
+    
+    requestAnimationFrame : function (callback, element) {
+        var raff = this.requestAnimationFrameFunction;
+        raff (callback, element);
     },
     
     /**

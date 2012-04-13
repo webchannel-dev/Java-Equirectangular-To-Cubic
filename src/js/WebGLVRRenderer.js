@@ -42,6 +42,10 @@ bigshot.WebGLVRRenderer.prototype = {
         return new bigshot.WebGLTexturedQuadScene (this.webGl);
     },
     
+    getElement : function () {
+        return this.canvas;
+    },
+    
     supportsUpdate : function () {
         return false;
     },

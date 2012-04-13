@@ -53,4 +53,5 @@ bigshot.VRRenderer = function () {
     this.endRender = function () {};
     this.onresize = function () {};
     this.resize = function (w, h) {};
+    this.getElement = function () {};
 }
