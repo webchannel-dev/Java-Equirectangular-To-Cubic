@@ -141,7 +141,7 @@ bigshot.VRFace.prototype = {
     /**
      * Intersects a quadrilateral with the view frustum.
      * The test is a simple rectangle intersection of the AABB of
-     * the transformed quad with the WebGL viewport.
+     * the transformed quad with the viewport.
      *
      * @private
      * @return VISIBLE_NONE, VISIBLE_SOME or VISIBLE_ALL
@@ -181,20 +181,13 @@ bigshot.VRFace.prototype = {
         };
         
         var pointsInViewport = 0;
-        for (var i = 0; i < transformed.length; ++i) {
+        var tl = transformed.length;
+        for (var i = 1; i < tl; ++i) {
             min.x = Math.min (min.x, transformed[i].x);
             min.y = Math.min (min.y, transformed[i].y);
             
             max.x = Math.max (max.x, transformed[i].x);
             max.y = Math.max (max.y, transformed[i].y);
-            
-            if (this.pointInRect (transformed[i], viewMin, viewMax)) {
-                pointsInViewport++;
-            }
-        }
-        
-        if (pointsInViewport == 4) {
-            return this.VISIBLE_ALL;
         }
         
         var imin = {
@@ -251,21 +244,15 @@ bigshot.VRFace.prototype = {
     generateSubdivisionFace : function (scene, topLeft, width, divisions, tx, ty, transformed) {
         if (!transformed) {
             transformed = new Array (4);
-        }
-        if (transformed[0] == null) {
             transformed[0] = this.transformToScreen (topLeft);
-        };
-        if (transformed[1] == null) {
             var topRight = this.pt3dMultAdd (this.u, width, topLeft);
             transformed[1] = this.transformToScreen (topRight);
-        };
-        if (transformed[2] == null) {
-            var bottomRight = this.pt3dMultAdd (this.v, width, this.pt3dMultAdd (this.u, width, topLeft));
-            transformed[2] = this.transformToScreen (bottomRight);
-        };
-        if (transformed[3] == null) {
+            
             var bottomLeft = this.pt3dMultAdd (this.v, width, topLeft);
             transformed[3] = this.transformToScreen (bottomLeft);
+            
+            var bottomRight = this.pt3dMultAdd (this.v, width, topRight);
+            transformed[2] = this.transformToScreen (bottomRight);            
         };
         
         var numVisible = this.intersectWithView (transformed);

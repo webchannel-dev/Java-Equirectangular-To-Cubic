@@ -150,8 +150,36 @@ bigshot.CSS3DVRRenderer.prototype = {
      * @return the transformed vector, or null if the vector is nearer than the near-z plane.
      */
     transformToScreen : function (vector) {
-        var world = this.transformToWorld (vector);
-        return this.transformWorldToScreen (world);
+        if (vector.length != 4) {
+            vector = vector.slice (0);
+            vector.push (1.0);
+        }
+        
+        var sylvesterVector = Vector.createNoCopy (vector);
+        var screen = this.mvpMatrix.xvec (sylvesterVector);
+        
+        var sel = screen.elements;
+        if (sel[2] < 0) {
+            return null;
+        }
+        
+        var sz = sel[3];
+        
+        if (Math.abs (sz) < Sylvester.precision) {
+            return null;
+        }
+        
+        var sx = sel[0];
+        var sy = sel[1];
+        var vw = this.getViewportWidth ();
+        var vh = this.getViewportHeight ();
+        
+        var r = {
+            x: (vw / 2) * sx / sz + vw / 2, 
+            y: - (vh / 2) * sy / sz + vh / 2
+        };
+
+        return r;
     },
     
     beginRender : function (y, p, fov, tx, ty, tz, oy, op, or) {
@@ -184,6 +212,8 @@ bigshot.CSS3DVRRenderer.prototype = {
         
         this.pMatrix.reset ();
         this.pMatrix.perspective (this.fov, this.getViewportWidth () / this.getViewportHeight (), 0.1, 100.0);
+        
+        this.mvpMatrix = this.pMatrix.matrix ().multiply (this.mvMatrix.matrix ());
         
         this.canvasOrigin.style.WebkitPerspective= perspectiveDistance + "px";
         
