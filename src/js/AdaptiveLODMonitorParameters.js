@@ -15,10 +15,17 @@
  */
 
 /**
+ * Creates a new parameter block.
+ *
  * @class Parameters for the adaptive LOD monitor.
  */
 bigshot.AdaptiveLODMonitorParameters = function (values) {
     
+    /**
+     * The VR panorama to adjust.
+     *
+     * @type bigshot.VRPanorama
+     */
     this.vrPanorama = null;
     
     /**
@@ -46,31 +53,51 @@ bigshot.AdaptiveLODMonitorParameters = function (values) {
      * The rate at which the level of detail is adjusted.
      * For detail increase, the detail is multiplied with (1.0 + rate),
      * for decrease divided.
+     *
+     * @default 0.1
+     * @type float
      */
     this.rate = 0.1;
     
     /**
      * Minimum texture magnification.
+     *
+     * @default 1.5
+     * @type float
      */
     this.minMag = 1.5;
     
     /**
      * Maximum texture magnification.
+     *
+     * @default 16
+     * @type float     
      */
     this.maxMag = 16;
     
     /**
      * Texture magnification for HQ render passes.
+     *
+     * @default 1.5
+     * @type float     
      */
     this.hqRenderMag = 1.5;
     
     /**
-     * Delay before executing a HQ render pass.
+     * Delay in milliseconds before executing 
+     * a HQ render pass.
+     *
+     * @default 2000
+     * @type int
      */
     this.hqRenderDelay = 2000;
     
     /**
-     * Interval for the HQ render pass timer.
+     * Interval in milliseconds for the 
+     * HQ render pass timer.
+     *
+     * @default 1000
+     * @type int
      */
     this.hqRenderInterval = 1000;
     
