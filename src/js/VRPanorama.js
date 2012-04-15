@@ -967,7 +967,7 @@ bigshot.VRPanorama.prototype = {
         var v = dt > 0 ? (ds / dt) : 0;
         if (v > 0.05 && dtb < 250 && dt > 20 && this.parameters.fling) {
             var scale = this.state.fov / this.renderer.getViewportHeight ();
-
+            
             var t0 = new Date ().getTime ();
             
             var flingScale = this.parameters.flingScale;
@@ -1510,26 +1510,28 @@ bigshot.VRPanorama.prototype = {
         }
         
         this.fullScreenHandler.open ();
-        this.fullScreenHandler.getRootElement ().appendChild (message);
-        
-        setTimeout (function () {
-                var opacity = 0.75;
-                var iter = function () {
-                    opacity -= 0.02;
-                    if (message.parentNode) {
-                        if (opacity <= 0) {
-                            message.style.display = "none";
-                            try {
-                                div.removeChild (message);
-                            } catch (x) {}
-                        } else {
-                            message.style.opacity = opacity;
-                            setTimeout (iter, 20);
+        if (this.fullScreenHandler.getRootElement ()) {
+            this.fullScreenHandler.getRootElement ().appendChild (message);
+            
+            setTimeout (function () {
+                    var opacity = 0.75;
+                    var iter = function () {
+                        opacity -= 0.02;
+                        if (message.parentNode) {
+                            if (opacity <= 0) {
+                                message.style.display = "none";
+                                try {
+                                    div.removeChild (message);
+                                } catch (x) {}
+                            } else {
+                                message.style.opacity = opacity;
+                                setTimeout (iter, 20);
+                            }
                         }
-                    }
-                };
-                setTimeout (iter, 20);
-            }, 3500);
+                    };
+                    setTimeout (iter, 20);
+                }, 3500);
+        }
         
         return function () {
             that.fullScreenHandler.close ();

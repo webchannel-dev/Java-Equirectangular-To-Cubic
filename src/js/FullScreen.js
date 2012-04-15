@@ -29,7 +29,21 @@ bigshot.FullScreen = function (container) {
     this.restoreSize = false;
     
     this.onCloseHandlers = new Array ();
-    this.onResizeHandlers = new Array ();    
+    this.onResizeHandlers = new Array ();
+    
+    var findFunc = function (el, list) {
+        for (var i = 0; i < list.length; ++i) {
+            if (el[list[i]]) {
+                return list[i];
+            }
+        }
+        return null;
+    };
+    
+    this.requestFullScreen = findFunc (container, ["requestFullScreen", "mozRequestFullScreen", "webkitRequestFullScreen"]);
+    this.cancelFullScreen = findFunc (document, ["cancelFullScreen", "mozCancelFullScreen", "webkitCancelFullScreen"]);
+    
+    this.restoreSize = this.requestFullScreen != null;
 }
 
 bigshot.FullScreen.prototype = {
@@ -62,6 +76,60 @@ bigshot.FullScreen.prototype = {
     open : function () {
         this.isFullScreen = true;
         
+        if (this.requestFullScreen) {
+            return this.openRequestFullScreen ();
+        } else {
+            return this.openCompat ();
+        }
+    },
+    
+    openRequestFullScreen : function () {
+        this.savedSize = {
+            width : this.container.style.width,
+            height : this.container.style.height
+        };
+        
+        this.container.style.width = "100%";
+        this.container.style.height = "100%";
+        
+        var that = this;
+        
+        if (this.requestFullScreen == "mozRequestFullScreen") {
+            var errFun = function () {
+                that.container.removeEventListener ("mozfullscreenerror", errFun);
+                that.isFullScreen = false;
+                that.exitFullScreenHandler ();
+                that.onClose ();
+            };
+            this.container.addEventListener ("mozfullscreenerror", errFun);
+        } else {
+            var changeFun = function () {
+                if (document.webkitCurrentFullScreenElement !== that.container) {
+                    that.container.removeEventListener ("webkitfullscreenchange", changeFun);
+                    that.exitFullScreenHandler ();
+                } else {
+                    that.onResize ();
+                }
+            };
+            this.container.addEventListener ("webkitfullscreenchange", changeFun);
+        }
+        
+        this.exitFullScreenHandler = function () {
+            if (that.isFullScreen) {
+                that.isFullScreen = false;
+                document[that.cancelFullScreen]();
+                if (that.restoreSize) {
+                    that.container.style.width = that.savedSize.width;
+                    that.container.style.height = that.savedSize.height;
+                }
+                that.onResize ();
+                that.onClose ();
+            }
+        };
+        this.container[this.requestFullScreen] ();
+    },
+    
+    openCompat : function () {
         this.savedParent = this.container.parentNode;
         this.savedSize = {
             width : this.container.style.width,
@@ -93,7 +161,7 @@ bigshot.FullScreen.prototype = {
         
         //this.container.style.width = window.innerWidth + "px";
         //this.container.style.height = window.innerHeight + "px";
-
+        
         document.body.appendChild (this.div);
         
         var that = this;
