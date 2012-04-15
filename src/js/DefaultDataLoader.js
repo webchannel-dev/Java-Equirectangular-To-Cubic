@@ -47,6 +47,10 @@ bigshot.DefaultDataLoader.prototype = {
                     setTimeout (function () {
                             tile.src = url;
                         }, tile.retries * 1000);
+                } else {
+                    if (onloaded) {
+                        onloaded (null);
+                    }
                 }
             }, false);
         tile.src = url;
