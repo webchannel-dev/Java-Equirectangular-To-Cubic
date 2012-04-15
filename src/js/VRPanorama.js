@@ -367,7 +367,8 @@ bigshot.VRPanorama = function (parameters) {
     };
     
     this.browser.registerListener (this.container, "mousedown", function (e) {
-            that.resetIdle ();
+            that.smoothRotate ();
+            that.resetIdle ();            
             that.dragMouseDown (e);
             return consumeEvent (e);
         }, false);
@@ -412,6 +413,7 @@ bigshot.VRPanorama = function (parameters) {
     this.lastTouchStartAt = -1;
     
     this.browser.registerListener (parameters.container, "touchstart", function (e) {
+            that.smoothRotate ();
             that.lastTouchStartAt = new Date ().getTime ();
             that.resetIdle ();
             that.dragMouseDown (translateEvent (e));
@@ -419,8 +421,8 @@ bigshot.VRPanorama = function (parameters) {
         }, false);
     this.browser.registerListener (parameters.container, "touchend", function (e) {
             that.resetIdle ();
-            that.dragMouseUp (translateEvent (e));
-            if (that.lastTouchStartAt > new Date().getTime() - 350) {
+            var handled = that.dragMouseUp (translateEvent (e));
+            if (!handled && (that.lastTouchStartAt > new Date().getTime() - 350)) {
                 that.mouseDoubleClick (translateEvent (e));
             }
             that.lastTouchStartAt = -1;
@@ -938,13 +940,59 @@ bigshot.VRPanorama.prototype = {
     },
     
     dragMouseDown : function (e) {
-        this.dragStart = e;
+        this.dragStart = {
+            clientX : e.clientX,
+            clientY : e.clientY
+        };
+        this.dragLast = {
+            clientX : e.clientX,
+            clientY : e.clientY,
+            dx : 0,
+            dy : 0,
+            dt : 1000000,
+            time : new Date ().getTime ()
+        };
         this.dragDistance = 0;
     },
     
     dragMouseUp : function (e) {
         this.dragStart = null;
-        this.smoothRotate ();
+        var dx = this.dragLast.dx;
+        var dy = this.dragLast.dy;
+        var ds = Math.sqrt (dx * dx + dy * dy);
+        var dt = this.dragLast.dt;
+        var dtb = new Date ().getTime () - this.dragLast.time;
+        this.dragLast = null;
+        
+        var v = dt > 0 ? (ds / dt) : 0;
+        if (v > 0.05 && dtb < 250 && dt > 20 && this.parameters.fling) {
+            var scale = this.state.fov / this.renderer.getViewportHeight ();
+
+            var t0 = new Date ().getTime ();
+            
+            var flingScale = this.parameters.flingScale;
+            
+            dx /= dt;
+            dy /= dt;
+            
+            this.smoothRotate (function (dat) {
+                    var dt = new Date ().getTime () - t0;
+                    var fact = Math.pow (2, -dt * flingScale);
+                    var d = (dx * dat * scale) * fact;
+                    return fact > 0.01 ? d : null;
+                }, function (dat) {
+                    var dt = new Date ().getTime () - t0;
+                    var fact = Math.pow (2, -dt * flingScale);
+                    var d = (dy * dat * scale) * fact;
+                    return fact > 0.01 ? d : null;
+                }, function () {
+                    return null;
+                });
+            return true;
+        } else {
+            this.smoothRotate ();
+            return false;
+        }
     },
     
     dragMouseMove : function (e) {
@@ -959,6 +1007,17 @@ bigshot.VRPanorama.prototype = {
                 this.setPitch (this.getPitch () - dy * scale);
                 this.renderAsap ();
                 this.dragStart = e;
+                var dt = new Date ().getTime () - this.dragLast.time;
+                if (dt > 20) {
+                    this.dragLast = {
+                        dx : this.dragLast.clientX - e.clientX,
+                        dy : this.dragLast.clientY - e.clientY,
+                        dt : dt,
+                        clientX : e.clientX,
+                        clientY : e.clientY,
+                        time : new Date ().getTime ()
+                    };
+                }
             } else {
                 var scale = 0.1 * this.state.fov / this.renderer.getViewportHeight ();
                 var dx = e.clientX - this.dragStart.clientX;
@@ -1241,11 +1300,14 @@ bigshot.VRPanorama.prototype = {
         this.smoothRotate (
             function () {
                 var distance = that.circleDistance (yaw, that.getYaw ());
-                return -that.ease (0, distance, speed);
+                var d = -that.ease (0, distance, speed);
+                return Math.abs (d) > 0.01 ? d : null;
             }, function () {
-                return that.ease (that.getPitch (), pitch, speed);
+                var d = that.ease (that.getPitch (), pitch, speed);
+                return Math.abs (d) > 0.01 ? d : null;
             }, function () {
-                return that.ease (that.getFov (), fov, speed);
+                var d = that.ease (that.getFov (), fov, speed);
+                return Math.abs (d) > 0.01 ? d : null;
             }
         );
     },
@@ -1267,21 +1329,52 @@ bigshot.VRPanorama.prototype = {
         }
         
         var that = this;
+        var fs = {
+            dy : dy,
+            dp : dp,
+            df : df,
+            t : new Date ().getTime ()
+        };
         var stepper = function () {
             if (that.smoothrotatePermit == savedPermit) {
-                if (dy) {
-                    that.setYaw (that.getYaw () + dy());
+                var now = new Date ().getTime ();
+                var dat = now - fs.t;
+                fs.t = now;
+                
+                var anyFunc = false;
+                if (fs.dy) {
+                    var d = fs.dy(dat);
+                    if (d != null) {
+                        anyFunc = true;
+                        that.setYaw (that.getYaw () + d);
+                    } else {
+                        fs.dy = null;
+                    }
                 }
                 
-                if (dp) {
-                    that.setPitch (that.getPitch () + dp());
+                if (fs.dp) {
+                    var d = fs.dp(dat);
+                    if (d != null) {
+                        anyFunc = true;
+                        that.setPitch (that.getPitch () + d);
+                    } else {
+                        fs.dp = null;
+                    }
                 }
                 
-                if (df) {
-                    that.setFov (that.getFov () + df());
+                if (fs.df) {
+                    var d = fs.df(dat);
+                    if (d != null) {
+                        anyFunc = true;
+                        that.setFov (that.getFov () + d);
+                    } else {
+                        fs.df = null;
+                    }
                 }
                 that.render ();
-                that.browser.requestAnimationFrame (stepper, that.renderer.getElement ());
+                if (anyFunc) {
+                    that.browser.requestAnimationFrame (stepper, that.renderer.getElement ());
+                }
             }
         };
         stepper ();
@@ -1348,13 +1441,9 @@ bigshot.VRPanorama.prototype = {
             }
         }
         if (target != null) {
-            this.smoothRotate (
-                function () {
-                    return 0;
-                }, function () {
-                    return 0;
-                }, function () {
-                    return (target - that.getFov ()) / 1.5;
+            this.smoothRotate (null, null, function () {
+                    var df = (target - that.getFov ()) / 1.5;
+                    return Math.abs (df) > 0.01 ? df : null;
                 });        
         }
     },

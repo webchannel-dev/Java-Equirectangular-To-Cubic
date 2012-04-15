@@ -280,6 +280,25 @@ bigshot.VRPanoramaParameters = function (values) {
      */
     this.renderer = null;
     
+    /**
+     * Controls whether the panorama can be "flung" by quickly dragging and releasing.
+     * 
+     * @type boolean 
+     * @default true
+     */
+    this.fling = true;
+    
+    /**
+     * Controls the decay of the "flinging" animation. The fling animation decays
+     * as 2^(flingScale * t) where t is the time in milliseconds since the animation started.
+     * For the animation to decay to half-speed in X seconds,
+     * flingScale should then be set to 1 / (X*1000).
+     *
+     * @type float
+     * @default 0.004
+     */
+    this.flingScale = 0.004;
+    
     if (values) {
         for (var k in values) {
             this[k] = values[k];
