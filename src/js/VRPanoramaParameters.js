@@ -290,7 +290,7 @@ bigshot.VRPanoramaParameters = function (values) {
     
     /**
      * Controls the decay of the "flinging" animation. The fling animation decays
-     * as 2^(flingScale * t) where t is the time in milliseconds since the animation started.
+     * as 2^(-flingScale * t) where t is the time in milliseconds since the animation started.
      * For the animation to decay to half-speed in X seconds,
      * flingScale should then be set to 1 / (X*1000).
      *
