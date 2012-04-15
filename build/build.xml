@@ -19,7 +19,7 @@
     <property name="src" value="src/"/>
     <property name="doc" value="doc/"/>
     <property name="final" value="final/"/>
-    <property name="version" value="1.1"/>
+    <property name="version" value="1.2"/>
     <property name="package-dir" value="${final}/bigshot"/>
     <property name="site-dir" value="${basedir}/../site/"/>
     
@@ -172,11 +172,11 @@
     </target>
     
     <target name="build-site">
-        <mkdir dir="${site-dir}/1.1/doc/"/>
+        <mkdir dir="${site-dir}/${version}/doc/"/>
         <delete includeEmptyDirs="true">
-            <fileset dir="${site-dir}/1.1/doc/"/>
+            <fileset dir="${site-dir}/${version}/doc/"/>
         </delete>
-        <copy todir="${site-dir}/1.1/doc/">
+        <copy todir="${site-dir}/${version}/doc/">
             <fileset dir="${package-dir}/doc/"/>
         </copy>
     </target>
