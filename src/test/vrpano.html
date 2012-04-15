@@ -98,12 +98,12 @@
                         }));
                 
                 displayUpdater = function (state, cause, data) {
-                        if (state == bigshot.VRPanorama.ONRENDER_BEGIN) {
-                            var s = document.getElementById ("position-yaw");
-                            s.innerHTML = bvr.getYaw ().toFixed (3);
-                            s = document.getElementById ("position-pitch");
-                            s.innerHTML = bvr.getPitch ().toFixed (3);
-                        }
+                    if (state == bigshot.VRPanorama.ONRENDER_BEGIN) {
+                        var s = document.getElementById ("position-yaw");
+                        s.innerHTML = bvr.getYaw ().toFixed (3);
+                        s = document.getElementById ("position-pitch");
+                        s.innerHTML = bvr.getPitch ().toFixed (3);
+                    }
                 };
                 bvr.addRenderListener (displayUpdater);
                 lodMonitor = new bigshot.AdaptiveLODMonitor (
@@ -172,7 +172,7 @@
                 bvr.addRenderListener (lodMonitor.getListener ());
                 alert ("Frames:" + FRAMES + "\n" +
                     "FPS:" + fps + "\n" + 
-                    "ms/f:" + mspf);
+                        "ms/f:" + mspf);
             }
             
             function autorotate () {
