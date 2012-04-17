@@ -99,6 +99,7 @@
                 jsi = new bigshot.Image (
                     new bigshot.ImageParameters ({
                             basePath : "../../temp/image.bigshot",
+                            fileSystemType : "archive",
                             container : container,
                             touchUI : false
                         }));
@@ -157,8 +158,9 @@
                         <a href="#" onclick="zoomIn(); return false;">+</a> | 
                         <a href="#" onclick="smoothIn(); return false;">Zoom in on center</a> | 
                         <a href="#" onclick="toHotspot(); return false;">Pan to hotspot</a> |
-                        <a href="#" onclick="jsi.flyZoomToFit (); return false;">Zoom to Fit</a><span id="fullscreen"> |
-                            <a onclick="fullScreen (); return false;" href="#">Fullscreen</a></span>
+                        <a href="#" onclick="jsi.flyZoomToFit (); return false;">Zoom to Fit</a> |
+                            <a href="#" onclick="jsi.zoomToFill (); return false;">Zoom to Fill</a>
+                        <span id="fullscreen"> | <a onclick="fullScreen (); return false;" href="#">Fullscreen</a></span>
                         </p>
                     </div>
                 </div>
