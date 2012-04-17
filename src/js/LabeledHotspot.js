@@ -39,6 +39,7 @@ bigshot.LabeledHotspot = function (x, y, w, h, labelText) {
     
     this.getElement ().appendChild (this.label);
     this.label.innerHTML = labelText;
+    this.labelSize = this.browser.getElementSize (this.label);
 }
 
 bigshot.LabeledHotspot.prototype = {
@@ -53,11 +54,10 @@ bigshot.LabeledHotspot.prototype = {
     
     layout : function (x0, y0, zoomFactor) {
         this.layout._super.call (this, x0, y0, zoomFactor);
-        var labelSize = this.browser.getElementSize (this.label);
         var sw = this.w * zoomFactor;
         var sh = this.h * zoomFactor;
         this.label.style.top = (sh + 4) + "px";
-        this.label.style.left = ((sw - labelSize.w) / 2) + "px";
+        this.label.style.left = ((sw - this.labelSize.w) / 2) + "px";
     }
 };
 

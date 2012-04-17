@@ -31,6 +31,41 @@
  * as well.
  * @see bigshot.Image#dispose
  * @class A tiled, zoomable image viewer.
+ *
+ * <h3 id="creating-a-wrapping-image">Creating a Wrapping Image</h3>
+ *
+ * <p>If you have set the wrapX or wrapY parameters in the {@link bigshot.ImageParameters}, the 
+ * image must be an integer multiple of the tile size at the desired minimum zoom level, otherwise
+ * there will be a gap at the wrap point:
+ *
+ * <p>The way to figure out the proper input size is this:
+ *
+ * <ol>
+ * <li><p>Decide on a tile size and call this <i>tileSize</i>.</p></li>
+ * <li><p>Decide on a minimum integer zoom level, and call this <i>minZoom</i>.</p></li>
+ * <li><p>Compute <i>tileSize * 2<sup>-minZoom</sup></i>, call this <i>S</i>.</p></li>
+ * <li><p>The source image size along the wrapped axis must be evenly divisible by <i>S</i>.</p></li>
+ * </ol>
+ *
+ * <p>An example:</p>
+ *
+ * <ol>
+ * <li><p>I have an image that is 23148x3242 pixels.</p></li>
+ * <li><p>I chose 256x256 pixel tiles: <i>tileSize = 256</i>.</p></li>
+ * <li><p>When displaying the image, I want the user to be able to zoom out so that the 
+ * whole image is less than or equal to 600 pixels tall. Since the image is 3242 pixels 
+ * tall originally, I will need a <i>minZoom</i> of -3. A <i>minZoom</i> of -2 would only let me
+ * zoom out to 1/4 (2<sup>-2</sup>), or an image that is 810 pixels tall. A <i>minZoom</i> of -3, however lets me
+ * zoom out to 1/8 (2<sup>-3</sup>), or an image that is 405 pixels tall. Thus: <i>minZoom = -3</i></p></li>
+ * <li><p>Computing <i>S</i> gives: <i>S = 256 * 2<sup>3</sup> = 256 * 8 = 2048</i></p></li>
+ * <li><p>I want it to wrap along the X axis. Therefore I may have to adjust the width, 
+ * currently 23148 pixels.</p></li>
+ * <li><p>Rounding 23148 down to the nearest multiple of 2048 gives 22528. (23148 divided by 2048 is 11.3, and 11 times 2048 is 22528.)</p></li>
+ * <li><p>I will shrink my source image to be 22528 pixels wide before building the image pyramid,
+ * and I will set the <code>minZoom</code> parameter to -3 in the {@link bigshot.ImageParameters} when creating
+ * the image. (I will also set <code>wrapX</code> to <code>true</code>.)</p></li>
+ * </ol>
+ * 
  * @constructor
  */     
 bigshot.Image = function (parameters) {
@@ -46,7 +81,7 @@ bigshot.Image = function (parameters) {
     this.width = parameters.width;
     this.height = parameters.height;
     this.minZoom = parameters.minZoom;
-    this.maxZoom = 2.0;
+    this.maxZoom = parameters.maxZoom;
     this.tileSize = parameters.tileSize;
     this.overlap = 0;
     this.imageTileCache = null;
@@ -99,65 +134,82 @@ bigshot.Image = function (parameters) {
     );
     this.resize ();
     
-    this.browser.registerListener (parameters.container, "DOMMouseScroll", function (e) {
+    this.allListeners = {
+        "DOMMouseScroll" : function (e) {
             that.mouseWheel (e);
             return consumeEvent (e);
-        }, false);
-    this.browser.registerListener (parameters.container, "mousewheel", function (e) {
+        },
+        "mousewheel" : function (e) {
             that.mouseWheel (e);
             return consumeEvent (e);
-        }, false);
-    this.browser.registerListener (parameters.container, "dblclick", function (e) {
+        },
+        "dblclick" : function (e) {
             that.mouseDoubleClick (e);
             return consumeEvent (e);
-        }, false);
-    this.browser.registerListener (parameters.container, "mousedown", function (e) {
+        },
+        "mousedown" : function (e) {
             that.dragMouseDown (e);
             return consumeEvent (e);
-        }, false);
-    this.browser.registerListener (parameters.container, "gesturestart", function (e) {
+        },
+        "gesturestart" : function (e) {
             that.gestureStart (e);
             return consumeEvent (e);
-        }, false);
-    this.browser.registerListener (parameters.container, "gesturechange", function (e) {
+        },
+        "gesturechange" : function (e) {
             that.gestureChange (e);
             return consumeEvent (e);
-        }, false);
-    this.browser.registerListener (parameters.container, "gestureend", function (e) {
+        },
+        "gestureend" : function (e) {
             that.gestureEnd (e);
             return consumeEvent (e);
-        }, false);
-    this.browser.registerListener (parameters.container, "touchstart", function (e) {
+        },
+        "touchstart" : function (e) {
             that.dragMouseDown (translateEvent (e));
             return consumeEvent (e);
-        }, false);
-    this.browser.registerListener (parameters.container, "mouseup", function (e) {
+        },
+        "mouseup" : function (e) {
             that.dragMouseUp (e);
             return consumeEvent (e);
-        }, false);
-    this.browser.registerListener (parameters.container, "touchend", function (e) {
+        },
+        "touchend" : function (e) {
             that.dragMouseUp (translateEvent (e));
             return consumeEvent (e);
-        }, false);
-    this.browser.registerListener (parameters.container, 'mousemove', function (e) {
+        },
+        "mousemove" : function (e) {
             that.dragMouseMove (e);
             return consumeEvent (e);
-        }, false);
-    this.browser.registerListener (parameters.container, 'mouseout', function (e) {
+        },
+        "mouseout" : function (e) {
             //that.dragMouseUp (e);
             return consumeEvent (e);
-        }, false);
-    this.browser.registerListener (parameters.container, 'touchmove', function (e) {
+        },
+        "touchmove" : function (e) {
             that.dragMouseMove (translateEvent (e));
             return consumeEvent (e);
-        }, false);
+        }
+    };
+    
+    this.addEventListeners ();
     this.browser.registerListener (window, 'resize', that.onresizeHandler, false);
     this.zoomToFit ();
     return this;
 }    
-    
+
 bigshot.Image.prototype = {
     browser : new bigshot.Browser (),
+    
+    addEventListeners : function () {
+        for (var k in this.allListeners) {
+            this.browser.registerListener (this.container, k, this.allListeners[k], false);
+        }
+    },
+    
+    removeEventListeners : function () {
+        for (var k in this.allListeners) {
+            this.browser.unregisterListener (this.container, k, this.allListeners[k], false);
+        }
+    },
+    
     
     /**
      * Lays out all layers according to the current 
@@ -166,8 +218,43 @@ bigshot.Image.prototype = {
      * @public
      */
     layout : function () {
+        var viewportWidth = this.container.clientWidth;
+        var viewportHeight = this.container.clientHeight;
+        
         var zoomLevel = Math.min (0, Math.ceil (this.zoom));
         var zoomFactor = Math.pow (2, zoomLevel);
+        
+        var realZoomFactor = Math.pow (2, this.zoom);
+        /*
+        Constrain X and Y
+        */
+        var viewportWidthInImagePixels = viewportWidth / realZoomFactor;
+        var viewportHeightInImagePixels = viewportHeight / realZoomFactor;
+        
+        var constrain = function (viewportSizeInImagePixels, imageSizeInImagePixels, p) {
+            var min = viewportSizeInImagePixels / 2;
+            min = Math.min (imageSizeInImagePixels / 2, min);
+            if (p < min) {
+                p = min;
+            }
+            
+            var max = imageSizeInImagePixels - viewportSizeInImagePixels / 2;
+            max = Math.max (imageSizeInImagePixels / 2, max);
+            if (p > max) {
+                p = max;
+            }
+            return p;
+        };
+        
+        if (!this.parameters.wrapY) {
+            this.y = constrain (viewportHeightInImagePixels, this.height, this.y);
+        }
+        
+        if (!this.parameters.wrapX) {
+            this.x = constrain (viewportWidthInImagePixels, this.width, this.x);
+        }
+        
+        
         var tileWidthInRealPixels = this.tileSize / zoomFactor;
         
         var fractionalZoomFactor = Math.pow (2, this.zoom - zoomLevel);
@@ -178,8 +265,6 @@ bigshot.Image.prototype = {
         var centerInTilesX = this.x / tileWidthInRealPixels;
         var centerInTilesY = this.y / tileWidthInRealPixels;
         
-        var viewportWidth = this.container.clientWidth;
-        var viewportHeight = this.container.clientHeight;
         
         var topLeftInTilesX = centerInTilesX - (viewportWidth / 2) / tileDisplayWidth;
         var topLeftInTilesY = centerInTilesY - (viewportHeight / 2) / tileDisplayWidth;
@@ -451,7 +536,7 @@ bigshot.Image.prototype = {
      *
      * @param [x] the new x-coordinate
      * @param [y] the new y-coordinate
-     * @param [updateViewport] if the viewport should be updated, defaults to <code>true</code>
+     * @param [updateViewport=true] if the viewport should be updated
      * @private
      */
     setPosition : function (x, y, updateViewport) {
@@ -462,6 +547,7 @@ bigshot.Image.prototype = {
                 }
             }
             this.x = Math.max (0, Math.min (this.width, x));
+            
         }
         
         if (y != null) {
@@ -504,11 +590,30 @@ bigshot.Image.prototype = {
     },
     
     /**
+     * Returns the zoom level at which the image fills the whole
+     * viewport.
+     * @public
+     */
+    getZoomToFillValue : function () {
+        return Math.max (
+            this.fitZoom (this.parameters.width, this.container.clientWidth),
+            this.fitZoom (this.parameters.height, this.container.clientHeight));
+    },
+    
+    /**
      * Adjust the zoom level to fit the image in the viewport.
      * @public
      */
     zoomToFit : function () {
         this.moveTo (null, null, this.getZoomToFitValue ());
+    },
+    
+    /**
+     * Adjust the zoom level to fit the image in the viewport.
+     * @public
+     */
+    zoomToFill : function () {
+        this.moveTo (null, null, this.getZoomToFillValue ());
     },
     
     /**
@@ -864,7 +969,9 @@ bigshot.Image.prototype = {
      */
     exitFullScreen : function () {
         if (this.fullScreenHandler) {
+            this.removeEventListeners ();
             this.fullScreenHandler.close ();
+            this.addEventListeners ();
             this.fullScreenHandler = null;
             return;
         }
@@ -932,26 +1039,30 @@ bigshot.Image.prototype = {
                 });
         }
         
+        this.removeEventListeners ();
         this.fullScreenHandler.open ();
-        this.fullScreenHandler.getRootElement ().appendChild (message);
-        
-        setTimeout (function () {
-                var opacity = 0.75;
-                var iter = function () {
-                    opacity -= 0.02;
-                    if (message.parentNode) {
-                        if (opacity <= 0) {
-                            try {
-                                div.removeChild (message);
-                            } catch (x) {}
-                        } else {
-                            message.style.opacity = opacity;
-                            setTimeout (iter, 20);
+        this.addEventListeners ();
+        if (this.fullScreenHandler.getRootElement ()) {
+            this.fullScreenHandler.getRootElement ().appendChild (message);
+            
+            setTimeout (function () {
+                    var opacity = 0.75;
+                    var iter = function () {
+                        opacity -= 0.02;
+                        if (message.parentNode) {
+                            if (opacity <= 0) {
+                                try {
+                                    div.removeChild (message);
+                                } catch (x) {}
+                            } else {
+                                message.style.opacity = opacity;
+                                setTimeout (iter, 20);
+                            }
                         }
-                    }
-                };
-                setTimeout (iter, 20);
-            }, 3500);
+                    };
+                    setTimeout (iter, 20);
+                }, 3500);
+        }
         
         return function () {
             that.fullScreenHandler.close ();

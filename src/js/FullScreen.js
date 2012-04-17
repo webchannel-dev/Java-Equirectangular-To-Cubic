@@ -102,6 +102,16 @@ bigshot.FullScreen.prototype = {
                 that.onClose ();
             };
             this.container.addEventListener ("mozfullscreenerror", errFun);
+            
+            var changeFun = function () {
+                if (document.mozFullScreenElement !== that.container) {
+                    document.removeEventListener ("mozfullscreenchange", changeFun);
+                    that.exitFullScreenHandler ();
+                } else {
+                    that.onResize ();
+                }
+            };
+            document.addEventListener ("mozfullscreenchange", changeFun);
         } else {
             var changeFun = function () {
                 if (document.webkitCurrentFullScreenElement !== that.container) {
@@ -126,11 +136,12 @@ bigshot.FullScreen.prototype = {
                 that.onClose ();
             }
         };
-        this.container[this.requestFullScreen] ();
+        this.container[this.requestFullScreen]();
     },
     
     openCompat : function () {
         this.savedParent = this.container.parentNode;
+        
         this.savedSize = {
             width : this.container.style.width,
             height : this.container.style.height
@@ -155,7 +166,7 @@ bigshot.FullScreen.prototype = {
         
         this.div.style.width = window.innerWidth + "px";
         this.div.style.height = window.innerHeight + "px";
-        this.div.style.zIndex = "9998";
+        this.div.style.zIndex = 9998;
         
         this.div.appendChild (this.container);
         
@@ -190,6 +201,12 @@ bigshot.FullScreen.prototype = {
                 }, 1);
         };
         
+        var escHandler = function (e) {
+            if (e.keyCode == 27) {
+                that.exitFullScreenHandler ();
+            }
+        };
+        
         this.exitFullScreenHandler = function () {
             that.isFullScreen = false;
             that.browser.unregisterListener (document, "keydown", escHandler);
@@ -213,11 +230,6 @@ bigshot.FullScreen.prototype = {
                 }, 1);
         };
         
-        var escHandler = function (e) {
-            if (e.keyCode == 27) {
-                that.exitFullScreenHandler ();
-            }
-        };
         this.browser.registerListener (document, "keydown", escHandler, false);
         this.browser.registerListener (window, "resize", resizeHandler, false);
         this.browser.registerListener (document.body, "orientationchange", rotationHandler, false);

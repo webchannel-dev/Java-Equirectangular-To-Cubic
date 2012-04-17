@@ -94,12 +94,23 @@ bigshot.ImageParameters = function (values) {
      * The minimum zoom value. Zoom values are specified as a magnification; where
      * 2<sup>n</sup> is the magnification and n is the zoom value. So a zoom value of
      * 2 means a 4x magnification of the full image. -3 means showing an image that
-     * is a quarter (1/8 or 1/2<sup>3</sup>) of the full size.
+     * is a eighth (1/8 or 1/2<sup>3</sup>) of the full size.
      *
      * @type number
      * @default <i>Optional</i> set by MakeImagePyramid and loaded from descriptor
      */
     this.minZoom = 0.0;
+    
+    /**
+     * The maximum zoom value. Zoom values are specified as a magnification; where
+     * 2<sup>n</sup> is the magnification and n is the zoom value. So a zoom value of
+     * 2 means a 4x magnification of the full image. -3 means showing an image that
+     * is a eighth (1/8 or 1/2<sup>3</sup>) of the full size.
+     *
+     * @type number
+     * @default 0.0
+     */
+    this.maxZoom = 0.0;
     
     /**
      * Size of one tile in pixels.

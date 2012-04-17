@@ -366,60 +366,61 @@ bigshot.VRPanorama = function (parameters) {
         };
     };
     
-    this.browser.registerListener (this.container, "mousedown", function (e) {
+    this.lastTouchStartAt = -1;
+    
+    this.allListeners = {
+        "mousedown" : function (e) {
             that.smoothRotate ();
             that.resetIdle ();            
             that.dragMouseDown (e);
             return consumeEvent (e);
-        }, false);
-    this.browser.registerListener (this.container, "mouseup", function (e) {
+        },
+        "mouseup" : function (e) {
             that.resetIdle ();
             that.dragMouseUp (e);
             return consumeEvent (e);
-        }, false);
-    this.browser.registerListener (this.container, 'mousemove', function (e) {
+        },
+        "mousemove" : function (e) {
             that.resetIdle ();
             that.dragMouseMove (e);
             return consumeEvent (e);
-        }, false);
-    this.browser.registerListener (parameters.container, "gesturestart", function (e) {
+        },
+        "gesturestart" : function (e) {
             that.gestureStart (e);
             return consumeEvent (e);
-        }, false);
-    this.browser.registerListener (parameters.container, "gesturechange", function (e) {
+        },
+        "gesturechange" : function (e) {
             that.gestureChange (e);
             return consumeEvent (e);
-        }, false);
-    this.browser.registerListener (parameters.container, "gestureend", function (e) {
+        },
+        "gestureend" : function (e) {
             that.gestureEnd (e);
             return consumeEvent (e);
-        }, false);
-    
-    this.browser.registerListener (parameters.container, "DOMMouseScroll", function (e) {
+        },
+        
+        "DOMMouseScroll" : function (e) {
             that.resetIdle ();
             that.mouseWheel (e);
             return consumeEvent (e);
-        }, false);
-    this.browser.registerListener (parameters.container, "mousewheel", function (e) {
+        },
+        "mousewheel" : function (e) {
             that.resetIdle ();
             that.mouseWheel (e);
             return consumeEvent (e);
-        }, false);
-    this.browser.registerListener (parameters.container, "dblclick", function (e) {
+        },
+        "dblclick" : function (e) {
             that.mouseDoubleClick (e);
             return consumeEvent (e);
-        }, false);
-    
-    this.lastTouchStartAt = -1;
-    
-    this.browser.registerListener (parameters.container, "touchstart", function (e) {
+        },
+        
+        "touchstart" : function (e) {
             that.smoothRotate ();
             that.lastTouchStartAt = new Date ().getTime ();
             that.resetIdle ();
             that.dragMouseDown (translateEvent (e));
             return consumeEvent (e);
-        }, false);
-    this.browser.registerListener (parameters.container, "touchend", function (e) {
+        },
+        "touchend" : function (e) {
             that.resetIdle ();
             var handled = that.dragMouseUp (translateEvent (e));
             if (!handled && (that.lastTouchStartAt > new Date().getTime() - 350)) {
@@ -427,15 +428,17 @@ bigshot.VRPanorama = function (parameters) {
             }
             that.lastTouchStartAt = -1;
             return consumeEvent (e);
-        }, false);
-    this.browser.registerListener (parameters.container, 'touchmove', function (e) {
+        },
+        "touchmove" : function (e) {
             if (that.dragDistance > 24) {                
                 that.lastTouchStartAt = -1;
             }
             that.resetIdle ();
             that.dragMouseMove (translateEvent (e));
             return consumeEvent (e);
-        }, false);
+        }
+    };
+    this.addEventListeners ();
     
     /**
      * Stub function to call onresize on this instance.
@@ -937,6 +940,18 @@ bigshot.VRPanorama.prototype = {
      */
     setDragMode : function (mode) {
         this.dragMode = mode;
+    },
+    
+    addEventListeners : function () {
+        for (var k in this.allListeners) {
+            this.browser.registerListener (this.container, k, this.allListeners[k], false);
+        }
+    },
+    
+    removeEventListeners : function () {
+        for (var k in this.allListeners) {
+            this.browser.unregisterListener (this.container, k, this.allListeners[k], false);
+        }
     },
     
     dragMouseDown : function (e) {
@@ -1509,7 +1524,19 @@ bigshot.VRPanorama.prototype = {
                 });
         }
         
+        this.removeEventListeners ();
         this.fullScreenHandler.open ();
+        this.addEventListeners ();
+        // Safari compatibility - must update after entering fullscreen.
+        // 1s should be enough so we enter FS, but not enough for the
+        // user to wonder if something is wrong.
+        var r = function () {
+            that.render ();
+        };
+        setTimeout (r, 1000);
+        setTimeout (r, 2000);
+        setTimeout (r, 3000);
+        
         if (this.fullScreenHandler.getRootElement ()) {
             this.fullScreenHandler.getRootElement ().appendChild (message);
             
@@ -1534,7 +1561,9 @@ bigshot.VRPanorama.prototype = {
         }
         
         return function () {
+            that.removeEventListeners ();
             that.fullScreenHandler.close ();
+            that.addEventListeners ();
         };
     },
     
