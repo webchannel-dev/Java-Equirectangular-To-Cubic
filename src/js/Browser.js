@@ -167,7 +167,7 @@ bigshot.Browser.prototype = {
      * @return a size object with two integer members, w and h, for width and height respectively.
      */
     getElementSize : function (obj) {
-        var size = new Object();
+        var size = {};
         if (obj.clientWidth) {
             size.w = obj.clientWidth;
         }
