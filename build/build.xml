@@ -137,10 +137,8 @@
             dir="${basedir}">
             <arg value="test/sample.jpg"/>
             <arg value="${temp}/image.bigshot"/>
-            <!--
-            <arg value="- -format"/>
+            <arg value="--format"/>
             <arg value="archive"/>
-            -->
             <jvmarg value="-Xmx768M"/>
         </java>
     </target>
