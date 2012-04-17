@@ -210,7 +210,6 @@ bigshot.Image.prototype = {
         }
     },
     
-    
     /**
      * Lays out all layers according to the current 
      * x, y and zoom values.
@@ -254,7 +253,6 @@ bigshot.Image.prototype = {
             this.x = constrain (viewportWidthInImagePixels, this.width, this.x);
         }
         
-        
         var tileWidthInRealPixels = this.tileSize / zoomFactor;
         
         var fractionalZoomFactor = Math.pow (2, this.zoom - zoomLevel);
@@ -264,7 +262,6 @@ bigshot.Image.prototype = {
         var heightInTiles = this.height / tileWidthInRealPixels;
         var centerInTilesX = this.x / tileWidthInRealPixels;
         var centerInTilesY = this.y / tileWidthInRealPixels;
-        
         
         var topLeftInTilesX = centerInTilesX - (viewportWidth / 2) / tileDisplayWidth;
         var topLeftInTilesY = centerInTilesY - (viewportHeight / 2) / tileDisplayWidth;
@@ -339,7 +336,7 @@ bigshot.Image.prototype = {
      *
      * @private
      * @param {number} zoom the zoom value.
-     * @param {boolean} layout trigger a viewport update after setting. Defaults to <code>true</code>.
+     * @param {boolean} layout trigger a viewport update after setting. Defaults to <code>false</code>.
      */
     setZoom : function (zoom, updateViewport) {
         this.zoom = Math.min (this.maxZoom, Math.max (zoom, this.minZoom));
@@ -349,6 +346,9 @@ bigshot.Image.prototype = {
         var maxTileY = Math.ceil (zoomFactor * this.height / this.tileSize);
         for (var i = 0; i < this.layers.length; ++i) {
             this.layers[i].setMaxTiles (maxTileX, maxTileY);
+        }
+        if (updateViewport) {
+            this.layout ();
         }
     },
     
@@ -442,6 +442,14 @@ bigshot.Image.prototype = {
             x : event.clientX,
             y : event.clientY
         };
+        this.dragLast = {
+            clientX : event.clientX,
+            clientY : event.clientY,
+            dx : 0,
+            dy : 0,
+            dt : 1000000,
+            time : new Date ().getTime ()
+        };
         this.dragged = false;
     },
     
@@ -463,11 +471,25 @@ bigshot.Image.prototype = {
             var zoomFactor = Math.pow (2, this.zoom);
             var realX = delta.x / zoomFactor;
             var realY = delta.y / zoomFactor;
-            this.moveTo (this.x - realX, this.y - realY);
+            
             this.dragStart = {
                 x : event.clientX,
                 y : event.clientY
             };
+            
+            var dt = new Date ().getTime () - this.dragLast.time;
+            if (dt > 20) {
+                this.dragLast = {
+                    dx : this.dragLast.clientX - event.clientX,
+                    dy : this.dragLast.clientY - event.clientY,
+                    dt : dt,
+                    clientX : event.clientX,
+                    clientY : event.clientY,
+                    time : new Date ().getTime ()
+                };
+            }
+            
+            this.moveTo (this.x - realX, this.y - realY);
         }
     },
     
@@ -480,6 +502,24 @@ bigshot.Image.prototype = {
             this.dragStart = null;
             if (!this.dragged && this.parameters.touchUI) {
                 this.mouseClick (event);
+            } else {
+                var scale = Math.pow (2, this.zoom);
+                var dx = this.dragLast.dx / scale;
+                var dy = this.dragLast.dy / scale;
+                var ds = Math.sqrt (dx * dx + dy * dy);
+                var dt = this.dragLast.dt;
+                var dtb = new Date ().getTime () - this.dragLast.time;
+                this.dragLast = null;
+                
+                var v = dt > 0 ? (ds / dt) : 0;
+                if (v > 0.05 && dtb < 250 && dt > 20 && this.parameters.fling) {
+                    var t0 = new Date ().getTime ();
+                    
+                    dx /= dt;
+                    dy /= dt;
+                    
+                    this.flyTo (this.x + dx * 250, this.y + dy * 250, this.zoom);
+                }   
             }
         }
     },

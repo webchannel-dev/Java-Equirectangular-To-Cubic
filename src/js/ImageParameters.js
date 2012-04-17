@@ -219,6 +219,14 @@ bigshot.ImageParameters = function (values) {
      */
     this.touchUI = false;
     
+    /**
+     * Lets you "fling" the image.
+     * 
+     * @type boolean
+     * @default true
+     */
+    this.fling = true;
+    
     if (values) {
         for (var k in values) {
             this[k] = values[k];

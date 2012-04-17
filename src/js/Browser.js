@@ -37,11 +37,14 @@ bigshot.Browser.prototype = {
     * @param {HTMLElement} element the element whose children are to be removed.
     */
     removeAllChildren : function (element) {
+        element.innerHTML = "";
+        /*
         if (element.children.length > 0) {
             for (var i = element.children.length - 1; i >= 0; --i) {
                 element.removeChild (element.children[i]);
             }
         }
+        */
     },
     
     /**

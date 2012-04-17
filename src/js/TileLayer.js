@@ -38,7 +38,7 @@ bigshot.TileLayer = function (image, parameters, w, h, itc) {
     this.resize (w, h);
     return this;
 }
- 
+
 bigshot.TileLayer.prototype = {
     getContainer : function () {
         return this.container;
@@ -47,7 +47,8 @@ bigshot.TileLayer.prototype = {
     resize : function (w, h) {
         this.container.style.width = this.parentContainer.clientWidth + "px";
         this.container.style.height = this.parentContainer.clientHeight + "px";
-        
+        this.pixelWidth = this.parentContainer.clientWidth;
+        this.pixelHeight = this.parentContainer.clientHeight;
         this.w = w;
         this.h = h;
         this.rows = new Array ();
@@ -63,8 +64,9 @@ bigshot.TileLayer.prototype = {
                 
                 var tile = document.createElement ("div");
                 tile.style.position = "relative";
+                tile.style.border = "1px solid red";
                 tile.style.visibility = "hidden";
-                tile.style.border = "hidden";
+                tile.bsIsVisible = false;
                 row.push (tile);
                 this.container.appendChild (tileAnchor);
                 tileAnchor.appendChild (tile);
@@ -77,38 +79,53 @@ bigshot.TileLayer.prototype = {
         zoom = Math.min (0, Math.ceil (zoom));
         this.imageTileCache.resetUsed ();
         var y = y0;
+        
+        var visible = 0;
         for (var r = 0; r < this.h; ++r) {
             var x = x0;
             for (var c = 0; c < this.w; ++c) {
                 var tile = this.rows[r][c];
-                tile.style.left = x + "px";
-                tile.style.top = y + "px";
-                tile.style.visibility = "";
-                tile.style.width = size + "px";
-                tile.style.height = size + "px";
-                tile.style.opacity = opacity;
-                this.browser.removeAllChildren (tile);
-                var tx = c + tx0;
-                var ty = r + ty0;
-                if (this.parameters.wrapX) {
-                    if (tx < 0 || tx >= this.imageTileCache.maxTileX) {
-                        tx = (tx + this.imageTileCache.maxTileX) % this.imageTileCache.maxTileX;
+                if (x + size < 0 || x > this.pixelWidth || y + size < 0 || y > this.pixelHeight) {
+                    if (tile.bsIsVisible) {
+                        tile.bsIsVisible = false;
+                        tile.style.visibility = "hidden";
                     }
-                }
-                
-                if (this.parameters.wrapY) {
-                    if (ty < 0 || ty >= this.imageTileCache.maxTileY) {
-                        ty = (ty + this.imageTileCache.maxTileY) % this.imageTileCache.maxTileY;
+                } else {
+                    visible++;
+                    tile.style.left = x + "px";
+                    tile.style.top = y + "px";
+                    tile.style.width = size + "px";
+                    tile.style.height = size + "px";
+                    tile.style.opacity = opacity;
+                    if (!tile.bsIsVisible) {
+                        tile.bsIsVisible = true;
+                        tile.style.visibility = "visible";
                     }
+                    var tx = c + tx0;
+                    var ty = r + ty0;
+                    if (this.parameters.wrapX) {
+                        if (tx < 0 || tx >= this.imageTileCache.maxTileX) {
+                            tx = (tx + this.imageTileCache.maxTileX) % this.imageTileCache.maxTileX;
+                        }
+                    }
+                    
+                    if (this.parameters.wrapY) {
+                        if (ty < 0 || ty >= this.imageTileCache.maxTileY) {
+                            ty = (ty + this.imageTileCache.maxTileY) % this.imageTileCache.maxTileY;
+                        }
+                    }
+                    
+                    this.browser.removeAllChildren (tile);
+                    var image = this.imageTileCache.getImage (tx, ty, zoom);
+                    image.style.width = size + "px";
+                    image.style.height = size + "px";
+                    tile.appendChild (image);
                 }
-                var image = this.imageTileCache.getImage (tx, ty, zoom);
-                image.style.width = size + "px";
-                image.style.height = size + "px";
-                tile.appendChild (image);
                 x += stride;
             }
             y += stride;
         }
+        console.log ("layout " + this.w + "x" + this.h + " = " + (this.h * this.w) + " tiles = " + visible);
     },
     
     setMaxTiles : function (mtx, mty) {
