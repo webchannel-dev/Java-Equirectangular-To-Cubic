@@ -227,6 +227,15 @@ bigshot.ImageParameters = function (values) {
      */
     this.fling = true;
     
+    /**
+     * The maximum amount that a tile will be stretched until we try to show
+     * the next more detailed level.
+     *
+     * @type float
+     * @default 1.0
+     */
+    this.maxTextureMagnification = 1.0;
+    
     if (values) {
         for (var k in values) {
             this[k] = values[k];

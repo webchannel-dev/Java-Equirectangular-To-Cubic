@@ -211,6 +211,14 @@ bigshot.Image.prototype = {
     },
     
     /**
+     * @private
+     */
+    getTextureStretch : function () {
+        var ts = Math.log (this.parameters.maxTextureMagnification / this.browser.getDevicePixelScale ()) / Math.LN2;
+        return ts;
+    },
+    
+    /**
      * Lays out all layers according to the current 
      * x, y and zoom values.
      *
@@ -220,7 +228,7 @@ bigshot.Image.prototype = {
         var viewportWidth = this.container.clientWidth;
         var viewportHeight = this.container.clientHeight;
         
-        var zoomLevel = Math.min (0, Math.ceil (this.zoom));
+        var zoomLevel = Math.min (0, Math.ceil (this.zoom - this.getTextureStretch ()));
         var zoomFactor = Math.pow (2, zoomLevel);
         
         var realZoomFactor = Math.pow (2, this.zoom);
@@ -273,7 +281,7 @@ bigshot.Image.prototype = {
         
         for (var i = 0; i < this.layers.length; ++i) {
             this.layers[i].layout (
-                this.zoom, 
+                this.zoom - this.getTextureStretch (), 
                 -topLeftTileXoffset - tileDisplayWidth, -topLeftTileYoffset - tileDisplayWidth, 
                 topLeftTileX - 1, topLeftTileY - 1, 
                 Math.ceil (tileDisplayWidth), Math.ceil (tileDisplayWidth), 
@@ -340,7 +348,7 @@ bigshot.Image.prototype = {
      */
     setZoom : function (zoom, updateViewport) {
         this.zoom = Math.min (this.maxZoom, Math.max (zoom, this.minZoom));
-        var zoomLevel = Math.ceil (this.zoom);
+        var zoomLevel = Math.ceil (this.zoom - this.getTextureStretch ());
         var zoomFactor = Math.pow (2, zoomLevel);
         var maxTileX = Math.ceil (zoomFactor * this.width / this.tileSize);
         var maxTileY = Math.ceil (zoomFactor * this.height / this.tileSize);

@@ -64,7 +64,7 @@ bigshot.TileLayer.prototype = {
                 
                 var tile = document.createElement ("div");
                 tile.style.position = "relative";
-                tile.style.border = "1px solid red";
+                tile.style.border = "hidden";
                 tile.style.visibility = "hidden";
                 tile.bsIsVisible = false;
                 row.push (tile);
@@ -125,7 +125,6 @@ bigshot.TileLayer.prototype = {
             }
             y += stride;
         }
-        console.log ("layout " + this.w + "x" + this.h + " = " + (this.h * this.w) + " tiles = " + visible);
     },
     
     setMaxTiles : function (mtx, mty) {
