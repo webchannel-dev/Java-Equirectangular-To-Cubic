@@ -130,7 +130,7 @@ public class MinimalHttpd {
                         String[] path = request.split (" ");
                         if (path[1].equals ("/")) {
                             OutputStream os = sock.getOutputStream ();
-                            os.write ("HTTP/1.0 301 Moved Permanently\r\n".getBytes ());
+                            os.write ("HTTP/1.0 302 Moved Temporarily\r\n".getBytes ());
                             os.write (("Location: " + indexFile + "\r\n").getBytes ());
                             os.write ("\r\n".getBytes ());
                             os.flush ();
