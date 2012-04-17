@@ -18,40 +18,73 @@
  * @class Abstract base for 3d rendering system.
  */
 bigshot.VRRenderer = function () {
+}
+
+bigshot.VRRenderer.prototype = {
     /**
      * Creates a new bigshot.TileCache, appropriate for the rendering system.
      */
-    this.createTileCache = function (onloaded, onCacheInit, parameters) {};
+    createTileCache : function (onloaded, onCacheInit, parameters) {},
     
     /**
      * Creates a bigshot.TexturedQuadScene.
      */
-    this.createTexturedQuadScene = function () {};
+    createTexturedQuadScene : function () {},
     
     /**
      * Creates a bigshot.TexturedQuad.
      */
-    this.createTexturedQuad = function (p, u, v, texture) {};
+    createTexturedQuad : function (p, u, v, texture) {},
     
     /**
      * Returns the viewport width, in pixels.
      *
      * @type int
      */
-    this.getViewportWidth = function () {};
+    getViewportWidth : function () {},
     
     /**
      * Returns the viewport height, in pixels.
      *
      * @type int
      */
-    this.getViewportHeight = function () {};
-    this.transformToWorld = function (v) {};
-    this.transformWorldToScreen = function (worldVector) {};
-    this.transformToScreen = function (vector) {};
-    this.beginRender = function (y, p, fov, tx, ty, tz, oy, op, or) {};
-    this.endRender = function () {};
-    this.onresize = function () {};
-    this.resize = function (w, h) {};
-    this.getElement = function () {};
+    getViewportHeight : function () {},
+    
+    /**
+     * Transforms a vector to world coordinates.
+     */
+    transformToWorld : function (v) {},
+    
+    /**
+     * Transforms a worl vector to screen coordinates.
+     */
+    transformWorldToScreen : function (worldVector) {},
+    
+    /**
+     * Transforms a 3D vector to screen coordinates.
+     *
+     * @param {number[4],number[3]} vector the vector to transform. 
+     * If it is already in homogenous coordinates (4-element array) 
+     * the transformation is faster. Otherwise it will be converted.
+     */
+    transformToScreen : function (vector) {},
+    
+    /**
+     * Called to begin a render.
+     */
+    beginRender : function (y, p, fov, tx, ty, tz, oy, op, or) {},
+    
+    /**
+     * Called to end a render.
+     */
+    endRender : function () {},
+    
+    onresize : function () {},
+    resize : function (w, h) {},
+    
+    /**
+     * Gets the container element for the renderer. This is used
+     * when calling the requestAnimationFrame API.
+     */
+    getElement : function () {}
 }
