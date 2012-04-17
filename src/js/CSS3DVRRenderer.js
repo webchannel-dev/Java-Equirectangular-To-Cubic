@@ -97,6 +97,9 @@ bigshot.CSS3DVRRenderer.prototype = {
         return this.browser.getElementSize (this.container).h;
     },
     
+    onresize : function () {
+    },
+    
     resize : function (w, h) {
         if (this.container.style.width != "") {
             this.container.style.width = w + "px";
