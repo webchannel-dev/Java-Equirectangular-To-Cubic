@@ -66,7 +66,9 @@ bigshot.TileLayer.prototype = {
                 tile.style.position = "relative";
                 tile.style.border = "hidden";
                 tile.style.visibility = "hidden";
-                tile.bsIsVisible = false;
+                tile.bigshotData = {
+                    visible : false
+                };
                 row.push (tile);
                 this.container.appendChild (tileAnchor);
                 tileAnchor.appendChild (tile);
@@ -77,6 +79,7 @@ bigshot.TileLayer.prototype = {
     
     layout : function (zoom, x0, y0, tx0, ty0, size, stride, opacity) {
         zoom = Math.min (0, Math.ceil (zoom));
+
         this.imageTileCache.resetUsed ();
         var y = y0;
         
@@ -85,9 +88,10 @@ bigshot.TileLayer.prototype = {
             var x = x0;
             for (var c = 0; c < this.w; ++c) {
                 var tile = this.rows[r][c];
+                var bigshotData = tile.bigshotData;
                 if (x + size < 0 || x > this.pixelWidth || y + size < 0 || y > this.pixelHeight) {
-                    if (tile.bsIsVisible) {
-                        tile.bsIsVisible = false;
+                    if (bigshotData.visible) {
+                        bigshotData.visible = false;
                         tile.style.visibility = "hidden";
                     }
                 } else {
@@ -97,8 +101,8 @@ bigshot.TileLayer.prototype = {
                     tile.style.width = size + "px";
                     tile.style.height = size + "px";
                     tile.style.opacity = opacity;
-                    if (!tile.bsIsVisible) {
-                        tile.bsIsVisible = true;
+                    if (!bigshotData.visible) {
+                        bigshotData.visible = true;
                         tile.style.visibility = "visible";
                     }
                     var tx = c + tx0;
@@ -115,11 +119,36 @@ bigshot.TileLayer.prototype = {
                         }
                     }
                     
-                    this.browser.removeAllChildren (tile);
-                    var image = this.imageTileCache.getImage (tx, ty, zoom);
-                    image.style.width = size + "px";
-                    image.style.height = size + "px";
-                    tile.appendChild (image);
+                    var imageKey = tx + "_" + ty + "_" + zoom;
+                    var isOutside = tx < 0 || tx >= this.imageTileCache.maxTileX || ty < 0 || ty >= this.imageTileCache.maxTileY;
+                    if (isOutside) {
+                        if (!bigshotData.isOutside) {
+                            var image = this.imageTileCache.getImage (tx, ty, zoom);
+                            
+                            this.browser.removeAllChildren (tile);
+                            tile.appendChild (image);
+                            bigshotData.image = image;
+                        }
+                        bigshotData.isOutside = true;
+                        bigshotData.imageKey = "EMPTY";
+                        bigshotData.image.style.width = size + "px";
+                        bigshotData.image.style.height = size + "px";                            
+                    } else {
+                        var image = this.imageTileCache.getImage (tx, ty, zoom);
+                        
+                        bigshotData.isOutside = false;
+                        
+                        if (bigshotData.imageKey !== imageKey || bigshotData.isPartial) {
+                            this.browser.removeAllChildren (tile);
+                            tile.appendChild (image);
+                            bigshotData.image = image;
+                            bigshotData.imageKey = imageKey;     
+                            bigshotData.isPartial = image.isPartial;
+                        }
+                        bigshotData.image.style.width = size + "px";
+                        bigshotData.image.style.height = size + "px";
+                        
+                    }                    
                 }
                 x += stride;
             }

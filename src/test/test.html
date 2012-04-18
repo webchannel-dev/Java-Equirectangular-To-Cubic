@@ -102,7 +102,8 @@
                             fileSystemType : "archive",
                             container : container,
                             maxTextureMagnification : 1.5,
-                            touchUI : false
+                            touchUI : false,
+                            wrapX : true
                         }));
                 
                 var hotspotLayer = new bigshot.HotspotLayer (jsi);
@@ -113,6 +114,7 @@
                 hotspotLayer.addHotspot (hotspot);
                 jsi.addLayer (hotspotLayer);
                 
+                jsi.setZoom (-4);
                 jsi.onresize ();
                 
                 var browser = new bigshot.Browser ();

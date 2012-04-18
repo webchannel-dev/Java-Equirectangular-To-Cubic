@@ -218,18 +218,9 @@ bigshot.Image.prototype = {
         return ts;
     },
     
-    /**
-     * Lays out all layers according to the current 
-     * x, y and zoom values.
-     *
-     * @public
-     */
-    layout : function () {
+    clampXY : function (x, y) {
         var viewportWidth = this.container.clientWidth;
         var viewportHeight = this.container.clientHeight;
-        
-        var zoomLevel = Math.min (0, Math.ceil (this.zoom - this.getTextureStretch ()));
-        var zoomFactor = Math.pow (2, zoomLevel);
         
         var realZoomFactor = Math.pow (2, this.zoom);
         /*
@@ -253,12 +244,35 @@ bigshot.Image.prototype = {
             return p;
         };
         
+        return {
+            x : constrain (viewportWidthInImagePixels, this.width, x),
+            y : constrain (viewportHeightInImagePixels, this.height, y)
+        };
+    },
+    
+    /**
+     * Lays out all layers according to the current 
+     * x, y and zoom values.
+     *
+     * @public
+     */
+    layout : function () {
+        var viewportWidth = this.container.clientWidth;
+        var viewportHeight = this.container.clientHeight;
+        
+        var zoomWithStretch = Math.min (this.maxZoom, Math.max (this.zoom - this.getTextureStretch (), this.minZoom));
+        
+        var zoomLevel = Math.min (0, Math.ceil (zoomWithStretch));
+        var zoomFactor = Math.pow (2, zoomLevel);
+        
+        var clamped = this.clampXY (this.x, this.y);
+        
         if (!this.parameters.wrapY) {
-            this.y = constrain (viewportHeightInImagePixels, this.height, this.y);
+            this.y = clamped.y;
         }
         
         if (!this.parameters.wrapX) {
-            this.x = constrain (viewportWidthInImagePixels, this.width, this.x);
+            this.x = clamped.x;
         }
         
         var tileWidthInRealPixels = this.tileSize / zoomFactor;
@@ -281,7 +295,7 @@ bigshot.Image.prototype = {
         
         for (var i = 0; i < this.layers.length; ++i) {
             this.layers[i].layout (
-                this.zoom - this.getTextureStretch (), 
+                zoomWithStretch, 
                 -topLeftTileXoffset - tileDisplayWidth, -topLeftTileYoffset - tileDisplayWidth, 
                 topLeftTileX - 1, topLeftTileY - 1, 
                 Math.ceil (tileDisplayWidth), Math.ceil (tileDisplayWidth), 
@@ -817,35 +831,56 @@ bigshot.Image.prototype = {
         y = y != null ? y : this.y;
         zoom = zoom != null ? zoom : this.zoom;
         
-        var targetX = Math.max (0, Math.min (this.width, x));
-        var targetY = Math.max (0, Math.min (this.height, y));
+        var startX = this.x;
+        var startY = this.y;
+        var startZoom = this.zoom;
         
+        var clamped = this.clampXY (x, y);
+        var targetX = this.parameters.wrapX ? x : clamped.x;
+        var targetY = this.parameters.wrapY ? y : clamped.y;
         var targetZoom = Math.min (this.maxZoom, Math.max (zoom, this.minZoom));
         
         this.flying++;
         var flyingAtStart = this.flying;
         
-        var approach = function (current, target, step) {
-            return current + (target - current) * step;
+        var t0 = new Date ().getTime ();
+        
+        var approach = function (start, target, dt, step, linear) {
+            var delta = (target - start);
+            
+            var diff = - delta * Math.pow (2, -dt * step);
+            
+            var lin = dt * linear;
+            if (delta < 0) {
+                diff = Math.max (0, diff - lin);
+            } else {
+                diff = Math.min (0, diff + lin);
+            }
+            
+            return target + diff;
         };
+        
         
         var iter = function () {
             if (that.flying == flyingAtStart) {
-                var nx = approach (that.x, targetX, 0.5);
-                var ny = approach (that.y, targetY, 0.5);
-                var nz = approach (that.zoom, targetZoom, 0.5);
+                var dt = (new Date ().getTime () - t0) / 1000;
+                
+                var nx = approach (startX, targetX, dt, 4, 1.0);
+                var ny = approach (startY, targetY, dt, 4, 1.0);
+                var nz = approach (startZoom, targetZoom, dt, 10, 0.2);
                 var done = true;
-                if (Math.abs (that.x - targetX) < 1.0) {
+                
+                if (Math.abs (nx - targetX) < 1.0) {
                     nx = targetX;
                 } else {
                     done = false;
                 }
-                if (Math.abs (that.y - targetY) < 1.0) {
+                if (Math.abs (ny - targetY) < 1.0) {
                     ny = targetY;
                 } else {
                     done = false;
                 }
-                if (Math.abs (that.zoom - targetZoom) < 0.02) {
+                if (Math.abs (nz - targetZoom) < 0.02) {
                     nz = targetZoom;
                 } else {
                     done = false;
@@ -854,11 +889,11 @@ bigshot.Image.prototype = {
                 that.setZoom (nz, false);
                 that.layout ();
                 if (!done) {
-                    setTimeout (iter, 20);
+                    that.browser.requestAnimationFrame (iter, that.container);
                 }
             };
         }
-        setTimeout (iter, 20);
+        this.browser.requestAnimationFrame (iter, this.container);
     },
     
     /**

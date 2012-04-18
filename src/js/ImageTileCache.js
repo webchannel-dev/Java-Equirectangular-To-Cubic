@@ -108,32 +108,44 @@ bigshot.ImageTileCache.prototype = {
         
         var sx = Math.floor (x0 * scale);
         var sy = Math.floor (y0 * scale);
+        var dw = this.partialImageSize;
+        var dh = this.partialImageSize;
+        
         w *= scale;
         if (sx + w >= sourceImage.width) {
+            var w0 = w;
             w = sourceImage.width - sx - 1;
+            dw *= w / w0;
         }
         
         h *= scale;
         if (sy + h >= sourceImage.height) {
+            var h0 = h;
             h = sourceImage.height - sy - 1;
+            dh *= h / h0;
         }
         
-        ctx.drawImage (sourceImage, sx, sy, w, h, -0.1, -0.1, this.partialImageSize + 0.2, this.partialImageSize + 0.2);
+        try {
+            ctx.drawImage (sourceImage, sx, sy, w, h, -0.1, -0.1, dw + 0.2, dh + 0.2);
+        } catch (e) {
+            // DOM INDEX error on iPad.
+            return null;
+        }
         
         return canvas;
     },
     
     getPartialImageFromDownsampled : function (tileX, tileY, zoomLevel, x0, y0, w, h) {
+        // Give up if the poster image has higher resolution.
+        if (zoomLevel < this.POSTER_ZOOM_LEVEL || zoomLevel < this.parameters.minZoom) {
+            return null;
+        }
+        
         var key = this.getImageKey (tileX, tileY, zoomLevel);
         var sourceImage = this.cachedImages[key];
         
         if (sourceImage == null) {
             this.requestImage (tileX, tileY, zoomLevel);
-            
-            // Give up if the poster image has higher resolution.
-            if (zoomLevel < this.POSTER_ZOOM_LEVEL) {
-                return null;
-            }
         }
         
         if (sourceImage) {
@@ -177,19 +189,25 @@ bigshot.ImageTileCache.prototype = {
         if (this.cachedImages[key]) {
             if (this.usedImages[key]) {
                 var tile = this.parameters.dataLoader.loadImage (this.getImageFilename (tileX, tileY, zoomLevel));
+                tile.isPartial = false;
                 return tile;
             } else {
                 this.usedImages[key] = true;
-                return this.cachedImages[key];
+                var img = this.cachedImages[key];
+                return img;
             }
         } else {
+            this.requestImage (tileX, tileY, zoomLevel);
             var img = this.getPartialImage (tileX, tileY, zoomLevel);
             if (img != null) {
+                img.isPartial = true;
                 this.cachedImages[key] = img;
             } else {
                 img = this.getEmptyImage ();
+                if (img != null) {
+                    img.isPartial = true;
+                }
             }
-            
             return img;
         }
     },
@@ -199,8 +217,10 @@ bigshot.ImageTileCache.prototype = {
         if (!this.requestedImages[key]) {
             this.imageRequests++;
             var that = this;
+            this.requestedImages[key] = true;
             this.parameters.dataLoader.loadImage (this.getImageFilename (tileX, tileY, zoomLevel), function (tile) {
                     that.cachedImages[key] = tile;
+                    tile.isPartial = false;
                     delete that.requestedImages[key];
                     that.imageRequests--;
                     var now = new Date();
@@ -209,8 +229,7 @@ bigshot.ImageTileCache.prototype = {
                         that.lastOnLoadFiredAt = now.getTime ();
                         that.onLoaded ();
                     }
-                });
-            this.requestedImages[key] = true;
+                });            
         }            
     },
     
