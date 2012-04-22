@@ -95,6 +95,8 @@ public class MinimalHttpd {
             return "text/xml";
         } else if (filename.endsWith (".swf")) {
             return "application/x-shockwave-flash";
+        } else if (filename.endsWith (".mp3")) {
+            return "audio/mpeg";
         } else if (filename.endsWith (".js")) {
             return "application/javascript";
         } else {
@@ -144,13 +146,15 @@ public class MinimalHttpd {
                         String entry = getParameter (parameters, "entry", null);
                         boolean includeProcessor = getParameter (parameters, "preprocessor", "false").equals ("true");
                         int startRange = getParameter (parameters, "start", 0);
-                        int lengthRange = getParameter (parameters, "length", Integer.MAX_VALUE);
                         
                         if (filename.startsWith ("/")) {
                             filename = filename.substring (1);
                         }
                         
                         File f = new File (root, filename);
+                        
+                        int lengthRange = getParameter (parameters, "length", (int) f.length ());
+                        
                         if (entry != null) {
                             type = mimeType (entry);                            
                             int[] extents = getExtents (f, entry);
@@ -182,6 +186,7 @@ public class MinimalHttpd {
                                 if (type != null) {                                
                                     os.write (("Content-Type: " + type + "\r\n").getBytes ());
                                 }
+                                os.write (("Content-Length: " + lengthRange + "\r\n").getBytes ());
                                 
                                 os.write ("\r\n".getBytes ());
                                 byte[] buffer = new byte[32768];
