@@ -271,5 +271,23 @@ bigshot.Browser.prototype = {
         alert("XMLHttpRequest not supported");
         
         return null;
+    },
+    
+    makeOpacityTransition : function (element, onComplete) {
+        if (element.style.WebkitTransitionProperty != undefined) {
+            element.style.opacity = 1.0;
+            element.style.WebkitTransitionProperty = "opacity";
+            element.style.WebkitTransitionTimingFunction = "linear";
+            element.style.WebkitTransitionDuration = "1s";
+            setTimeout (function () {
+                element.addEventListener ("webkitTransitionEnd", function () {
+                    onComplete ();
+                });
+                element.style.opacity = 0.0;
+            }, 0);
+        } else {
+            element.style.opacity = 0.0;
+            onComplete ();
+        }
     }
 };

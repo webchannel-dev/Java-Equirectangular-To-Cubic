@@ -35,11 +35,11 @@ bigshot.ImageTileCache = function (onLoaded, onCacheInit, parameters) {
      */
     this.fullImage = null;
     parameters.dataLoader.loadImage (parameters.fileSystem.getPosterFilename (), function (tile) {
-            that.fullImage = tile;
-            if (onCacheInit) {
-                onCacheInit ();
-            }
-        });
+        that.fullImage = tile;
+        if (onCacheInit) {
+            onCacheInit ();
+        }
+    });
     
     /**
      * Maximum number of tiles in the cache.
@@ -219,18 +219,25 @@ bigshot.ImageTileCache.prototype = {
             var that = this;
             this.requestedImages[key] = true;
             this.parameters.dataLoader.loadImage (this.getImageFilename (tileX, tileY, zoomLevel), function (tile) {
-                    that.cachedImages[key] = tile;
-                    tile.isPartial = false;
-                    delete that.requestedImages[key];
-                    that.imageRequests--;
-                    var now = new Date();
-                    if (that.imageRequests == 0 || now.getTime () > (that.lastOnLoadFiredAt + 50)) {
-                        that.purgeCache ();
-                        that.lastOnLoadFiredAt = now.getTime ();
-                        that.onLoaded ();
-                    }
-                });            
+                delete that.requestedImages[key];
+                that.imageRequests--;
+                tile.isPartial = false;
+                that.cachedImages[key] = tile;
+                that.fireOnLoad ();
+            });            
         }            
+    },
+    
+    /**
+     * Fires the onload event, if it hasn't been fired for at least 50 ms
+     */
+    fireOnLoad : function () {
+        var now = new Date();
+        if (this.imageRequests == 0 || now.getTime () > (this.lastOnLoadFiredAt + 50)) {
+            this.purgeCache ();
+            this.lastOnLoadFiredAt = now.getTime ();
+            this.onLoaded ();
+        }
     },
     
     /**
