@@ -73,8 +73,12 @@ if (!self["bigshot"]) {
     #include LRUMap.js
     #include ImageTileCache.js
     #include ImageParameters.js
+    #include ImageBase.js
     #include Image.js
+    #include HTMLElementLayer.js
+    #include SimpleImage.js
     #include FileSystem.js
+    #include SimpleFileSystem.js
     #include FolderFileSystem.js
     #include DeepZoomImageFileSystem.js
     #include ArchiveFileSystem.js

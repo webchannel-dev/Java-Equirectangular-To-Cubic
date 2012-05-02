@@ -76,6 +76,8 @@ bigshot.setupFileSystem = function (parameters) {
             parameters.fileSystem = new bigshot.ArchiveFileSystem (parameters);
         } else if (parameters.fileSystemType == "dzi") {
             parameters.fileSystem = new bigshot.DeepZoomImageFileSystem (parameters);
+        } else if (parameters.fileSystemType == "simple") {
+            parameters.fileSystem = new bigshot.SimpleFileSystem (parameters);
         } else {
             parameters.fileSystem = new bigshot.FolderFileSystem (parameters);
         }

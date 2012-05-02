@@ -1,0 +1,181 @@
+<!--
+- Copyright 2010 - 2012 Leo Sutic <leo.sutic@gmail.com>
+-  
+- Licensed under the Apache License, Version 2.0 (the "License"); 
+- you may not use this file except in compliance with the License. 
+- You may obtain a copy of the License at 
+- 
+-     http://www.apache.org/licenses/LICENSE-2.0 
+-     
+- Unless required by applicable law or agreed to in writing, software 
+- distributed under the License is distributed on an "AS IS" BASIS, 
+- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
+- See the License for the specific language governing permissions and 
+- limitations under the License. 
+-->
+<html>
+    <head>
+        <title>
+            Bigshot Simple Test Page
+        </title>
+        <style>
+            body {
+                font-family: Arial;
+                font-size: 9pt;
+            }
+            
+            div.bigshotContainer {
+                border:1px solid black; 
+                background: red; 
+            }
+            
+            div.hotspot {
+                background: red;
+            }
+            
+            div.bigshotContainer div.hotspot, div.bigshotContainer div.bigshotControls {
+                visibility:hidden;
+            }
+            
+            div.bigshotControls {
+                position:relative; 
+                left:-50%; 
+                top: 540px; 
+                padding: 16px; 
+                z-index:2; 
+                background: #606060;
+                border: 2px solid #404040;
+                -moz-border-radius: 15px;
+                -webkit-border-radius: 15px;
+                border-radius: 15px;
+                color: white;
+            }
+            
+            div.bigshotControls p {
+                margin: 0px;
+            }
+            
+            div.bigshotControls a {
+                color: white;
+            }
+            
+            div.bigshotContainer:hover div.hotspot {
+                border : 1px solid #e0e0e0;
+                cursor : pointer;
+                opacity : 0.5;
+                background: blue;
+                visibility: visible;
+            }
+            
+            div.bigshotContainer:hover div.bigshotControls {
+                visibility: visible;
+            }
+            
+            div.hotspot div.label {
+                visibility: hidden;
+                color: white;
+                background: black;
+                padding: 4px;
+                font-weight: bold;
+                position: relative;
+            }
+            
+            div.bigshotContainer:hover div.hotspot:hover {
+                border : 1px solid white;
+                opacity : 1.0;
+            }
+            
+            div.hotspot:hover div.label {
+                visibility: visible;
+            }
+        </style>
+        <script src="../js/bigshot.js?preprocessor=true">/* */</script>
+        <script>
+            var jsi = null;
+            
+            function myonload () {
+                var container = document.getElementById ("container");
+                
+                jsi = new bigshot.SimpleImage (
+                    new bigshot.ImageParameters ({
+                            basePath : "../../test/simple-sample.jpg",
+                            container : container,
+                            touchUI : false,
+                            minZoom : -4,
+                            width : 681,
+                            height : 1024,
+                            maxZoom : 4
+                        }));
+                
+                jsi.setZoom (0);
+                jsi.onresize ();
+                
+                var browser = new bigshot.Browser ();
+                browser.stopMouseEventBubbling (document.getElementById ("bigshotControls"));
+            }
+            
+            function zoomOut () {
+                jsi.moveTo (null, null, jsi.getZoom () - 0.5);
+            }
+            
+            function zoomIn () {
+                jsi.moveTo (null, null, jsi.getZoom () + 0.5);
+            }
+            
+            function smoothIn () {
+                jsi.flyTo (7352 / 2, 5419 / 2, 0.0);
+            }
+            
+            function toHotspot () {
+                jsi.flyTo (200, 150, jsi.rectVisibleAtZoomLevel (200,100));
+            }
+            
+            function fullScreen () {
+                var span = document.getElementById ("fullscreen");
+                var container = document.getElementById ("container");
+                span.style.visibility = "hidden";
+                jsi.fullScreen (function () {
+                        span.style.visibility = "inherit";
+                    });
+            }
+            
+            function flashUI () {
+                jsi.showTouchUI ();
+            }
+        </script>
+    </head>
+    <body onload="myonload();">
+        <div>
+            <div style="position: relative; background:black; overflow:hidden; height:600px;" id="container" class="bigshotContainer">
+                <div style="position:absolute; left:50%;">
+                    <div id="bigshotControls" class="bigshotControls">
+                        <p>
+                        <a href="#" onclick="zoomOut(); return false;">-</a> | 
+                        <a href="#" onclick="zoomIn(); return false;">+</a> | 
+                        <a href="#" onclick="smoothIn(); return false;">Zoom in on center</a> | 
+                        <a href="#" onclick="toHotspot(); return false;">Pan to hotspot</a> |
+                        <a href="#" onclick="jsi.flyZoomToFit (); return false;">Zoom to Fit</a> |
+                            <a href="#" onclick="jsi.zoomToFill (); return false;">Zoom to Fill</a>
+                        <span id="fullscreen"> | <a onclick="fullScreen (); return false;" href="#">Fullscreen</a></span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="mobileui">
+            <table width="100%">
+                <tr>
+                    <td width="30%">
+                        <button style="width:100%; font-size: 20pt;" type="button" onclick="zoomIn(); return false">In</button>
+                    </td>
+                    <td width="30%">
+                        <button style="width:100%; font-size: 20pt;" type="button" onclick="zoomOut(); return false">Out</button>
+                    </td>
+                    <td width="30%">
+                        <button style="width:100%; font-size: 20pt;" type="button" onclick="fullScreen(); return false">Fullscreen</button>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </body>
+</html>

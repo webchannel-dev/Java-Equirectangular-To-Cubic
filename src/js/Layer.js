@@ -55,7 +55,7 @@ bigshot.Layer.prototype = {
      * @param {number} y0 the y-coordinate of the top-left corner of the top-left tile
      * @param {number} tx0 column number (starting at zero) of the top-left tile
      * @param {number} ty0 row number (starting at zero) of the top-left tile
-     * @param {number} size tileSize
+     * @param {number} size the tileSize (width of each image tile in pixels) of the image
      * @param {number} stride offset (vertical and horizontal) from the top-left corner
      *                 of a tile to the next tile's top-left corner.
      * @param {number} opacity the opacity of the layer.
