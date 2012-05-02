@@ -31,23 +31,30 @@ import javax.imageio.stream.ImageInputStream;
 import javax.imageio.ImageReader;
 
 public class Image {
+    
+    private final static int COMPONENT_SIZE = 10;
+    private final static int COMPONENT_MASK = ((1 << COMPONENT_SIZE) - 1);
+    private final static int BLUE = 0;
+    private final static int GREEN = COMPONENT_SIZE;
+    private final static int RED = COMPONENT_SIZE * 2;
+    
     private int width;
     private int height;
-    private long[] data;
+    private int[] data;
     
     public Image (int width, int height) {
         this.width = width;
         this.height = height;
-        this.data = new long[width * height];
+        this.data = new int[width * height];
     }
     
-    public Image (int width, int height, long[] data) {
+    public Image (int width, int height, int[] data) {
         this.width = width;
         this.height = height;
         this.data = data;
     }
     
-    public long value (int x, int y) {
+    public int value (int x, int y) {
         x %= width;
         if (x < 0) {
             x += width;
@@ -62,14 +69,14 @@ public class Image {
     }
     
     public int componentValue (int x, int y, int shift) {
-        return (int) ((value (x, y) >> shift) & 0xffff);
+        return (int) ((value (x, y) >> shift) & COMPONENT_MASK);
     }
     
     protected double lerp (double a, double b, double x) {
         return (1 - x) * a + (x) * b;
     }
     
-    protected long sample (double x, double y, int shift) {
+    protected int sample (double x, double y, int shift) {
         int x0 = (int) x;
         int y0 = (int) y;
         double xf = x - x0;
@@ -80,21 +87,21 @@ public class Image {
             lerp (componentValue (x0, y0 + 1, shift), componentValue (x0 + 1, y0 + 1, shift), xf),
             yf);
         
-        return (long) out;
+        return (int) out;
     }
     
-    public long sample (double x, double y) {
-        long r = sample (x, y, 32);
-        long g = sample (x, y, 16);
-        long b = sample (x, y, 0);
-        return (r << 32) | (g << 16) | b;
+    public int sample (double x, double y) {
+        int r = sample (x, y, RED);
+        int g = sample (x, y, GREEN);
+        int b = sample (x, y, BLUE);
+        return (r << RED) | (g << GREEN) | (b << BLUE);
     }
     
-    public void value (int x, int y, long v) {
+    public void value (int x, int y, int v) {
         data[y * width + x] = v;
     }
     
-    public void add (int x, int y, long v) {
+    public void add (int x, int y, int v) {
         data[y * width + x] += v;
     }
     
@@ -117,32 +124,32 @@ public class Image {
         }
     }
     
-    public void multiply (int y0, int y1, long num, long denom) {
+    public void multiply (int y0, int y1, int num, int denom) {
         int i = y0 * width;
         for (int y = y0; y < y1; ++y) {
             for (int x = 0; x < width; ++x) {
-                long r = sample (x, y, 32) * num / denom;
-                long g = sample (x, y, 16) * num / denom;
-                long b = sample (x, y, 0) * num / denom;
-                data[i] = (r << 32) | (g << 16) | b;
+                int r = sample (x, y, RED) * num / denom;
+                int g = sample (x, y, GREEN) * num / denom;
+                int b = sample (x, y, BLUE) * num / denom;
+                data[i] = (r << RED) | (g << GREEN) | (b << BLUE);
                 ++i;
             }
         }
     }
     
-    private final static int pack (long in) {
+    private final static int pack (int in) {
         return (int) ((
-            (((in >> 32) & 0xff) << 16) |
-            (((in >> 16) & 0xff) <<  8) |
-            (((in      ) & 0xff)      )
+            (((in >> RED  ) & 0xff) << 16) |
+            (((in >> GREEN) & 0xff) <<  8) |
+            (((in >> BLUE ) & 0xff)      )
             ) & 0xffffff);
     }
     
-    private final static long unpack (long in) {
-        return (long) (
-            (((in >> 16) & 0xff) << 32) |
-            (((in >>  8) & 0xff) << 16) |
-            (((in      ) & 0xff)      )
+    private final static int unpack (int in) {
+        return (int) (
+            (((in >> 16) & 0xff) << RED  ) |
+            (((in >>  8) & 0xff) << GREEN) |
+            (((in      ) & 0xff) << BLUE )
             );
     }
     
@@ -172,7 +179,7 @@ public class Image {
         int width = input.getWidth ();
         int height = input.getHeight ();
         
-        long[] data = new long[width * height];
+        int[] data = new int[width * height];
         final int[] line = new int[width];
         for (int y = 0; y < height; ++y) {
             input.getRGB (0, y, width, 1, line, 0, width);

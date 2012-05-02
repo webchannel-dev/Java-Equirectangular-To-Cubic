@@ -212,10 +212,7 @@ public class EquirectangularToCubic {
     }    
     
     public static File[] transformToFaces (File imageName, File outputBase, final int outputSize, double oy, double op, double or) throws Exception {
-        System.out.println ("Transforming to " + outputSize + "x" + outputSize + " cube map faces.");
-        
         final Image in = Image.read (imageName);
-        
         final File[] files = new File[]{
             new File (outputBase, "face_f.png"),
             new File (outputBase, "face_r.png"),
@@ -232,7 +229,6 @@ public class EquirectangularToCubic {
             .vfov (90)
             .offset (oy, op, or)
             .size (outputSize, outputSize);
-        
         xform.view (  0,   0, 0).transform ().write (files[0]);
         xform.view ( 90,   0, 0).transform ().write (files[1]);
         xform.view (180,   0, 0).transform ().write (files[2]);
@@ -242,7 +238,7 @@ public class EquirectangularToCubic {
         
         long end = System.currentTimeMillis ();
         long delta = end - start;
-        System.out.println ("Transform took: " + delta + " ms");
+        //System.out.println ("Transform took: " + delta + " ms");
         
         return files;
     }

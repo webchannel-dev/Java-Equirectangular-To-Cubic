@@ -165,7 +165,7 @@
             <arg value="--format"/>
             <arg value="archive"/>
 
-            <jvmarg value="-Xmx2048M"/>
+            <jvmarg value="-Xmx1024M"/>
         </java>
     </target>
     
