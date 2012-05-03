@@ -17,7 +17,7 @@
 /**
  * Creates a new image layer.
  * 
- * @param {bigshot.Image} image the image that this layer is part of
+ * @param {bigshot.ImageBase} image the image that this layer is part of
  * @param {bigshot.ImageParameters} parameters the associated image parameters
  * @param {number} w the current width in css pixels of the viewport
  * @param {number} h the current height in css pixels of the viewport

@@ -84,7 +84,8 @@ bigshot.ImageParameters = function (values) {
     this.height = 0;
     
     /**
-     * For {@link bigshot.Image}, the <code>div</code> to use as a container for the image.
+     * For {@link bigshot.Image} and {@link bigshot.SimpleImage}, the <code>div</code> 
+     * to use as a container for the image.
      *
      * @type HTMLDivElement
      */
@@ -211,7 +212,7 @@ bigshot.ImageParameters = function (values) {
      * var browser = new bigshot.Browser ();
      * browser.stopMouseEventBubbling (document.getElementById ("myBigshotControlDiv"));
      *
-     * @see bigshot.Image#showTouchUI
+     * @see bigshot.ImageBase#showTouchUI
      *
      * @type boolean
      * @default true

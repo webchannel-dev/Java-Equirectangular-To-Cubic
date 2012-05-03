@@ -724,7 +724,7 @@ bigshot.ImageBase.prototype = {
     
     /**
      * Triggers a right-sizing of all layers.
-     * Called on window resize via the {@link bigshot.Image#onresizeHandler} stub.
+     * Called on window resize via the {@link bigshot.ImageBase#onresizeHandler} stub.
      * @public
      */
     onresize : function () {

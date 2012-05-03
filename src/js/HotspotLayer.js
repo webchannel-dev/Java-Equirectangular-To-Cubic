@@ -16,7 +16,7 @@
 
 /**
  * Creates a new hotspot layer. The layer must be added to the image using
- * {@link bigshot.Image#addLayer}.
+ * {@link bigshot.ImageBase#addLayer}.
  *
  * @class A hotspot layer.
  * @example
@@ -34,7 +34,7 @@
  *
  * image.addLayer (hotspotLayer);
  * 
- * @param {bigshot.Image} image the image this hotspot layer will be part of
+ * @param {bigshot.ImageBase} image the image this hotspot layer will be part of
  * @augments bigshot.Layer
  * @constructor
  */

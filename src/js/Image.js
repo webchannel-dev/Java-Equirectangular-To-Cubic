@@ -16,7 +16,7 @@
 
 
 /**
- * Creates a new tiled image viewer. (Note: See {@link bigshot.Image#dispose} for important information.)
+ * Creates a new tiled image viewer. (Note: See {@link bigshot.ImageBase#dispose} for important information.)
  *
  * @example
  * var bsi = new bigshot.Image (
