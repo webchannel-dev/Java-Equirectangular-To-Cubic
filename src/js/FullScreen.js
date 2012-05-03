@@ -15,8 +15,14 @@
  */
 
 /**
- * @class A utility class for making a document element "full screen", or as close to that
- * as browser security allows.
+ * Creates a new full-screen handler for an element.
+ * 
+ * @class A utility class for making an element "full screen", or as close to that
+ * as browser security allows. If the browser supports the <code>requestFullScreen</code>
+ * API - as standard or as <code>moz</code>- or <code>webkit</code>- extensions,
+ * this will be used.
+ *
+ * @param {HTMLElement} container the element that is to be made full screen
  */
 bigshot.FullScreen = function (container) {
     this.container = container;
@@ -53,26 +59,49 @@ bigshot.FullScreen.prototype = {
         return this.div;
     },
     
+    /**
+     * Adds a function that will run when exiting full screen mode.
+     *
+     * @param {function()} onClose the function to call
+     */
     addOnClose : function (onClose) {
         this.onCloseHandlers.push (onClose);
     },
     
+    /**
+     * Notifies all <code>onClose</code> handlers.
+     *
+     * @private
+     */
     onClose : function () {
         for (var i = 0; i < this.onCloseHandlers.length; ++i) {
             this.onCloseHandlers[i] ();
         }
     },
     
+    /**
+     * Adds a function that will run when the element is resized.
+     *
+     * @param {function()} onResize the function to call
+     */
     addOnResize : function (onResize) {
         this.onResizeHandlers.push (onResize);
     },
     
+    /**
+     * Notifies all resize handlers.
+     *
+     * @private
+     */
     onResize : function () {
         for (var i = 0; i < this.onResizeHandlers.length; ++i) {
             this.onResizeHandlers[i] ();
         }
     },
     
+    /**
+     * Begins full screen mode.
+     */
     open : function () {
         this.isFullScreen = true;
         
@@ -83,6 +112,12 @@ bigshot.FullScreen.prototype = {
         }
     },
     
+    /**
+     * Makes the element really full screen using the <code>requestFullScreen</code>
+     * API.
+     *
+     * @private
+     */
     openRequestFullScreen : function () {
         this.savedSize = {
             width : this.container.style.width,
@@ -95,6 +130,9 @@ bigshot.FullScreen.prototype = {
         var that = this;
         
         if (this.requestFullScreen == "mozRequestFullScreen") {
+            /**
+             * @private
+             */
             var errFun = function () {
                 that.container.removeEventListener ("mozfullscreenerror", errFun);
                 that.isFullScreen = false;
@@ -103,6 +141,9 @@ bigshot.FullScreen.prototype = {
             };
             this.container.addEventListener ("mozfullscreenerror", errFun);
             
+            /**
+             * @private
+             */
             var changeFun = function () {
                 if (document.mozFullScreenElement !== that.container) {
                     document.removeEventListener ("mozfullscreenchange", changeFun);
@@ -113,6 +154,9 @@ bigshot.FullScreen.prototype = {
             };
             document.addEventListener ("mozfullscreenchange", changeFun);
         } else {
+            /**
+             * @private
+             */
             var changeFun = function () {
                 if (document.webkitCurrentFullScreenElement !== that.container) {
                     that.container.removeEventListener ("webkitfullscreenchange", changeFun);
@@ -139,6 +183,11 @@ bigshot.FullScreen.prototype = {
         this.container[this.requestFullScreen]();
     },
     
+    /**
+     * Makes the element "full screen" in older browsers by covering the browser's client area.
+     * 
+     * @private
+     */
     openCompat : function () {
         this.savedParent = this.container.parentNode;
         
@@ -239,6 +288,9 @@ bigshot.FullScreen.prototype = {
         return this.exitFullScreenHandler;
     },
     
+    /**
+     * Ends full screen mode.
+     */
     close : function () {
         this.exitFullScreenHandler ();
     }

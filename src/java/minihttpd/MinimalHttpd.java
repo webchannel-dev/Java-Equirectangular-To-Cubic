@@ -25,6 +25,9 @@ import java.io.OutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.RandomAccessFile;
 
+/**
+ * Minimal implementation of a HTTP server. Used to test Bigshot.
+ */
 public class MinimalHttpd {
     
     private static String readLine (InputStream is) throws Exception {

@@ -27,6 +27,8 @@ if (!self["bigshot"]) {
      * <li>{@link bigshot.Image}: The main class for making zoomable images. See the class docs
      *     for a tutorial.
      * <li>{@link bigshot.ImageParameters}: Parameters for zoomable images.
+     * <li>{@link bigshot.SimpleImage}: A class for making simple zoomable images that don't
+     * require the generation of an image pyramid.. See the class docs for a tutorial.
      * </ul>
      *
      * For hotspots, see:
@@ -58,6 +60,10 @@ if (!self["bigshot"]) {
      */
     bigshot = {};
     
+    /*
+     * This is supposed to be processed using a minimalhttpd.IncludeProcessor
+     * during development. The files must be listed in dependency order.
+     */
     #include object.js
     #include Browser.js
     #include FullScreen.js

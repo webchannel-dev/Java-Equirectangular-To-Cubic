@@ -46,7 +46,22 @@
         </javac>
     </target>
     
-    <target name="docs">
+    <target name="docs" depends="java-docs,js-docs">
+        
+    </target>
+    
+    <target name="java-docs">
+        <mkdir dir="${package-dir}/doc/java"/>
+        <javadoc
+            access="public"
+            Overview="${doc}/javadoc-files/overview.html"
+            Windowtitle="Bigshot ${version}"
+            Doctitle="Bigshot ${version}"
+            sourcepath="${src}/java/"
+            destdir="${package-dir}/doc/java"/>
+    </target>
+    
+    <target name="js-docs">
         <mkdir dir="${package-dir}/doc/js"/>
         <property name="jsdoc-path" value="${ant.home}/../jsdoc-toolkit"/>
         <java fork="yes" jar="${jsdoc-path}/jsrun.jar"
@@ -199,7 +214,7 @@
         -->
         <java fork="yes" jar="${package-dir}/bigshot.jar"
             dir="${basedir}">
-            <arg value="${basedir}/test/pano_final.png"/>
+            <arg value="${basedir}/test/vr-sample.jpg"/>
             <arg value="${temp}/hires.png"/>
 			
             <arg value="--transform"/>
@@ -228,12 +243,12 @@
             <arg value="3500"/>
 			
 			<arg value="--oversampling"/>
-            <arg value="4"/>
+            <arg value="2"/>
 			
 			<arg value="--jitter"/>
             <arg value="0.2"/>
 			
-            <jvmarg value="-Xmx2024M"/>
+            <jvmarg value="-Xmx1224M"/>
         </java>
     </target>
     

@@ -29,7 +29,7 @@
  * @param {bigshot.ImageParameters} parameters the image parameters. Required fields are: <code>basePath</code> and <code>container</code>.
  * If you intend to use the archive filesystem, you need to set the <code>fileSystemType</code> to <code>"archive"</code>
  * as well.
- * @see bigshot.Image#dispose
+ * @see bigshot.ImageBase#dispose
  * @class A tiled, zoomable image viewer.
  *
  * <h3 id="creating-a-wrapping-image">Creating a Wrapping Image</h3>
@@ -66,7 +66,7 @@
  * the image. (I will also set <code>wrapX</code> to <code>true</code>.)</p></li>
  * </ol>
  * 
- * @constructor
+ * @augments bigshot.ImageBase
  */     
 bigshot.Image = function (parameters) {
     bigshot.setupFileSystem (parameters);

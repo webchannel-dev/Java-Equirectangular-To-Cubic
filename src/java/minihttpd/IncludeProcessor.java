@@ -3,6 +3,10 @@ package minihttpd;
 import java.io.*;
 import java.util.*;
 
+/**
+ * Processes source code with embedded <code>#include</code> and <code>#ifdef</code>/<code>#endif</code>
+ * directives. Used to load <code>bigshot.js</code> when developing.
+ */
 public class IncludeProcessor {
     
     private Map<String,String> defines = new HashMap<String,String> ();

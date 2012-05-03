@@ -6,7 +6,8 @@ Usage:
         Shows help - this page. 
  
     java -jar bigshot.jar _infile_ _out_ [options]
-        Builds a tiled image pyramid. 
+        Builds a tiled image pyramid, VR cube map or rectiliear 
+        image. 
 
     java -Xmx<memory>M -jar bigshot.jar _infile_ _out_ [options]
         Builds a tiled image pyramid and allocates more memory
@@ -75,6 +76,10 @@ Options:
             Assumes that the input image is an equirectangular
             map. Produces a cube map of six image pyramids.
 
+        face
+            Assumes that the input image is an equirectangular
+            map. Produces a single rectilinear image.
+
         Default: none, no transform is applied
 
     --face-size pixels
@@ -119,6 +124,50 @@ Options:
         at full resolution at level 11, half resolution at
         level 10, and so on.
 
+    --yaw
+        The yaw angle, in degrees, of the viewer when using 
+        the "face" transform.
+        Default: 0
+
+    --pitch
+        The pitch angle, in degrees, of the viewer when using 
+        the "face" transform.
+        Default: 0
+
+    --roll
+        The roll angle, in degrees, of the viewer when using 
+        the "face" transform.
+        Default: 0
+
+    --yaw-offset
+        The initial yaw offset to apply when using the "face"
+        or "facemap" transforms.
+        Default: 0
+
+    --pitch-offset
+        The initial pitch offset to apply when using the "face"
+        or "facemap" transforms.
+        Default: 0
+
+    --roll-offset
+        The initial roll offset to apply when using the "face"
+        or "facemap" transforms.
+        Default: 0
+
+    --oversampling
+        The resolution, along each axis, of the oversampling 
+        grid when using the "face" transform.
+        Default: 1
+
+    --jitter
+        The random sampling jitter to use when using 
+        the "face" transform.
+
+    --output-width
+        The output image width when using the "face" transform.
+
+    --output-height
+        The output image width when using the "face" transform.
 
 Example:
 

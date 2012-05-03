@@ -17,11 +17,11 @@
 /**
  * Creates a new instance of a filesystem adapter for the SimpleImage class.
  * 
- * @class Filesystem adapter for the SimpleImage class.
+ * @class Filesystem adapter for bigshot.SimpleImage. This class is not
+ * supposed to be used outside of the {@link bigshot.SimpleImage} class.
  * @param {bigshot.ImageParameters} parameters the associated image parameters
  * @augments bigshot.FileSystem
  * @see bigshot.SimpleImage
- * @constructor
  */     
 bigshot.SimpleFileSystem = function (parameters) {
     this.parameters = parameters;

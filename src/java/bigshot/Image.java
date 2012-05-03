@@ -30,16 +30,49 @@ import javax.imageio.ImageIO;
 import javax.imageio.stream.ImageInputStream;
 import javax.imageio.ImageReader;
 
+/**
+ * A 30-bit (10 per channel) RGB image.
+ */
 public class Image {
     
+    /**
+     * Number of bits allocated to each channel.
+     */
     private final static int COMPONENT_SIZE = 10;
+    
+    /**
+     * Bitmask to extract the rightmost component from a 32-bit int.
+     */
     private final static int COMPONENT_MASK = ((1 << COMPONENT_SIZE) - 1);
+    
+    /**
+     * Bitshift for the blue channel.
+     */
     private final static int BLUE = 0;
+    
+    /**
+     * Bitshift for the green channel.
+     */
     private final static int GREEN = COMPONENT_SIZE;
+    
+    /**
+     * Bitshift for the red channel.
+     */
     private final static int RED = COMPONENT_SIZE * 2;
     
+    /**
+     * Width of image, in pixels.
+     */
     private int width;
+    
+    /**
+     * Height of image, in pixels.
+     */
     private int height;
+    
+    /**
+     * Image data.
+     */
     private int[] data;
     
     public Image (int width, int height) {
@@ -52,6 +85,17 @@ public class Image {
         this.width = width;
         this.height = height;
         this.data = data;
+    }
+    
+    public void componentValue (int x, int y, int[] result) {
+        int v = value(x, y);
+        result[0] = (v >> RED) & COMPONENT_MASK;
+        result[1] = (v >> GREEN) & COMPONENT_MASK;
+        result[2] = (v >> BLUE) & COMPONENT_MASK;
+    }
+    
+    public void componentValue (int x, int y, int r, int g, int b) {
+        data[y * width + x] = (r << RED) | (g << GREEN) | (b << BLUE);
     }
     
     public int value (int x, int y) {
@@ -90,6 +134,12 @@ public class Image {
         return (int) out;
     }
     
+    public void sampleComponents (double x, double y, int[] result) {
+        result[0] = sample (x, y, RED);
+        result[1] = sample (x, y, GREEN);
+        result[2] = sample (x, y, BLUE);
+    }
+    
     public int sample (double x, double y) {
         int r = sample (x, y, RED);
         int g = sample (x, y, GREEN);
@@ -99,10 +149,6 @@ public class Image {
     
     public void value (int x, int y, int v) {
         data[y * width + x] = v;
-    }
-    
-    public void add (int x, int y, int v) {
-        data[y * width + x] += v;
     }
     
     public int width () {

@@ -13,29 +13,12 @@
  * See the License for the specific language governing permissions and 
  * limitations under the License. 
  */
-    
-/**
- * @class Abstract base.
- */
-bigshot.DataLoader = function () {
-}
 
-bigshot.DataLoader.prototype = {
-    /**
-     * Loads an image.
-     *
-     * @param {String} url the url to load
-     * @param {function(success,img)} onloaded called on complete 
-     */
-    loadImage : function (url, onloaded) {},
-    
-    /**
-     * Loads the xml.
-     *
-     * @param {String} url the url to load
-     * @param {boolean} async use async request
-     * @param {function(success,xml)} [onloaded] called on complete for async requests
-     * @return the xml for synchronous calls
-     */
-    loadXml : function (url, async, onloaded) {}
-}
+/**
+ * A minimal HTTP server used for testing and
+ * development. The classes in this package are only for
+ * Bigshot development - they are not part of any public API.
+ */
+package minihttpd;
+
+

@@ -15,16 +15,21 @@
  */
 
 /**
- * Creates a new hotspot layer. The layer must be added to the image using
- * {@link bigshot.Image#addLayer}.
+ * Creates a new HTML element layer. The layer must be added to the image using
+ * {@link bigshot.ImageBase#addLayer}.
  *
- * @class A hotspot layer.
+ * @class A layer consisting of a single HTML element that is moved and scaled to cover
+ * the layer.
  * @example
  * var image = new bigshot.Image (...);
- * 
- * @param {bigshot.Image} image the image this hotspot layer will be part of
+ * image.addLayer (
+ *     new bigshot.HTMLElementLayer (this, this.imgElement, this.parameters.width, this.parameters.height)
+ * );
+ * @param {bigshot.ImageBase} image the image this hotspot layer will be part of
+ * @param {HTMLElement} element the element to present in this layer
+ * @param {int} width the width, in image pixels (display size at zoom level 0), of the HTML element
+ * @param {int} height the height, in image pixels (display size at zoom level 0), of the HTML element
  * @augments bigshot.Layer
- * @constructor
  */
 bigshot.HTMLElementLayer = function (image, element, width, height) {
     this.hotspots = new Array ();

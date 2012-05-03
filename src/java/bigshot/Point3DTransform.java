@@ -15,15 +15,26 @@
  */
 package bigshot;
 
+/**
+ * A 3x3 matrix transform.
+ */
 public class Point3DTransform {
     private final double[][] matrix = new double[3][3];
     
+    /**
+     * Creates a new transform and initializes it to the identity
+     * transform.
+     */
     public Point3DTransform () {
         matrix[0][0] = 1.0;
         matrix[1][1] = 1.0;
         matrix[2][2] = 1.0;
     }
     
+    /**
+     * Multiplies this transform from the left with another transform.
+     * (<code>this = xform * this</code>).
+     */
     public void prepend (double[][] xform) {
         double[][] result = new double[3][3];
         for (int i = 0; i < 3; ++i) {
@@ -41,6 +52,11 @@ public class Point3DTransform {
         }
     }
     
+    /**
+     * Prepends a rotation around the X axis.
+     *
+     * @param angle the angle in radians
+     */
     public void rotateX (double angle) {
         prepend (new double[][]{
                 new double[]{ 1, 0, 0 },
@@ -49,6 +65,11 @@ public class Point3DTransform {
             });
     }
     
+    /**
+     * Prepends a rotation around the Y axis.
+     *
+     * @param angle the angle in radians
+     */
     public void rotateY (double angle) {
         prepend (new double[][]{
                 new double[]{ Math.cos (angle), 0, Math.sin (angle) },
@@ -57,6 +78,11 @@ public class Point3DTransform {
             });
     }
     
+    /**
+     * Prepends a rotation around the Z axis.
+     *
+     * @param angle the angle in radians
+     */
     public void rotateZ (double angle) {
         prepend (new double[][]{
                 new double[]{ Math.cos (angle), -Math.sin (angle), 0 },
@@ -65,6 +91,12 @@ public class Point3DTransform {
             });
     }
     
+    /**
+     * In-place transforms a 3d point.
+     *
+     * @param input the point to transform. This point will be mutated - no new Point3D object is created.
+     * @return the input point after it has been transformed
+     */
     public Point3D transform (Point3D input) {
         double nx = input.x * matrix[0][0] + input.y * matrix[0][1] + input.z * matrix[0][2];
         double ny = input.x * matrix[1][0] + input.y * matrix[1][1] + input.z * matrix[1][2];

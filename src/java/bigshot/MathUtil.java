@@ -41,16 +41,45 @@ import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Math utility functions.
+ */
 public class MathUtil {
     
+    /**
+     * Private ctor.
+     */
+    private MathUtil () {
+    }
+    
+    /**
+     * Converts degrees to radians.
+     *
+     * @param deg the angle in degrees
+     * @return the angle in radians
+     */
     public static double toRad (double deg) {
         return deg * Math.PI / 180;
     }
     
+    /**
+     * Converts radians to degrees.
+     *
+     * @param rad the angle in radians
+     * @return the angle in degrees
+     */
     public static double toDeg (double rad) {
         return rad * 180 / Math.PI;
     }
         
+    /**
+     * Clamps the value between two endpoints.
+     *
+     * @param a the lowest value that will be returned
+     * @param b the highest value that will be returned
+     * @param x the value to clamp
+     * @return a, if x &lt;= a; b, if x &gt;= b; x otherwise
+     */
     public static int clamp (int a, int x, int b) {
         if (x < a) {
             return a;

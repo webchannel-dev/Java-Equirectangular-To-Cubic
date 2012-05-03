@@ -27,16 +27,19 @@
  *         container : document.getElementById ("bigshot_div")
  *     }));
  *
- * @param {bigshot.ImageParameters} parameters the image parameters. Required fields are: <code>basePath</code> and <code>container</code>.
- * If you intend to use the archive filesystem, you need to set the <code>fileSystemType</code> to <code>"archive"</code>
- * as well.
- * @param {HTMLImageElement} imgElement an img element to use
- * @see bigshot.Image#dispose
+ * @param {bigshot.ImageParameters} parameters the image parameters. Required fields are: <code>basePath</code> and <code>container</code>. 
+ * If the <code>imgElement</code> parameter is not given, then <code>width</code> and <code>height</code> are also required. The
+ * following parameters are not supported and should be left as defaults: <code>fileSystem</code>, <code>fileSystemType</code>, <code>maxTextureMagnification</code>, 
+ * <code>wrapX</code>, <code>wrapY</code> and <code>tileSize</code>. 
+ * 
+ * @param {HTMLImageElement} [imgElement] an img element to use. The element should have <code>style.position = "absolute"</code>.
+ * @see bigshot.ImageBase#dispose
  * @class A zoomable image viewer.
- * @constructor
+ * @augments bigshot.ImageBase
  */     
 bigshot.SimpleImage = function (parameters, imgElement) {
     parameters.merge ({
+            fileSystem : null,
             fileSystemType : "simple",
             maxTextureMagnification : 1.0,
             wrapX : false,

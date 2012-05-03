@@ -41,6 +41,9 @@ import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * A 3D point
+ */
 public class Point3D {
     public double x;
     public double y;

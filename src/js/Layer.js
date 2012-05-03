@@ -51,14 +51,15 @@ bigshot.Layer.prototype = {
      * Lays out the layer.
      *
      * @param {number} zoom the zoom level
-     * @param {number} x0 the x-coordinate of the top-left corner of the top-left tile
-     * @param {number} y0 the y-coordinate of the top-left corner of the top-left tile
+     * @param {number} x0 the x-coordinate of the top-left corner of the top-left tile in css pixels
+     * @param {number} y0 the y-coordinate of the top-left corner of the top-left tile in css pixels
      * @param {number} tx0 column number (starting at zero) of the top-left tile
      * @param {number} ty0 row number (starting at zero) of the top-left tile
-     * @param {number} size the tileSize (width of each image tile in pixels) of the image
+     * @param {number} size the {@link bigshot.ImageParameters#tileSize} - width of each 
+     *                 image tile in pixels - of the image
      * @param {number} stride offset (vertical and horizontal) from the top-left corner
      *                 of a tile to the next tile's top-left corner.
-     * @param {number} opacity the opacity of the layer.
+     * @param {number} opacity the opacity of the layer as a CSS opacity value.
      */
     layout : function (zoom, x0, y0, tx0, ty0, size, stride, opacity) {}
 };

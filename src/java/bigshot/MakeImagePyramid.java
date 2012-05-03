@@ -35,6 +35,10 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+/**
+ * Command-line tool to creates the tiled image pyramids that are used by Bigshot.
+ * Run without parameters or with <code>--help</code> to see parameters.
+ */
 public class MakeImagePyramid {
     
     private static interface DescriptorOutput {
@@ -121,11 +125,11 @@ public class MakeImagePyramid {
         
         public void output (File folders) throws Exception {
             /*
-            <?xml version=\"1.0\" encoding=\"utf-8\"?>
-            <Image TileSize=\"375\" Overlap=\"1\" Format=\"jpg\" ServerFormat=\"Default\" xmnls=\"http://schemas.microsoft.com/deepzoom/2009\">
-            <Size Width=\"1500\" Height=\"1500\" />
-            </Image>
-            */
+             * <?xml version=\"1.0\" encoding=\"utf-8\"?>
+             * <Image TileSize=\"375\" Overlap=\"1\" Format=\"jpg\" ServerFormat=\"Default\" xmnls=\"http://schemas.microsoft.com/deepzoom/2009\">
+             * <Size Width=\"1500\" Height=\"1500\" />
+             * </Image>
+             */
             StringBuilder descriptor = new StringBuilder (
                 "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" +
                 "<Image TileSize=\"" + tileSize + "\" Overlap=\"" + overlap + "\" Format=\"" + suffix + "\" ServerFormat=\"Default\" xmnls=\"http://schemas.microsoft.com/deepzoom/2009\">\n" +
@@ -474,7 +478,7 @@ public class MakeImagePyramid {
         }
     }
     
-    public static class PackageEntry {
+    private static class PackageEntry {
         public String key;
         public File file;
         public long start;

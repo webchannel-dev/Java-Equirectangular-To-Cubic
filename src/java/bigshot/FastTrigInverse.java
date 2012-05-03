@@ -17,16 +17,38 @@ package bigshot;
 
 import java.util.Arrays;
 
+/**
+ * Fast inverse trigonometric functions based on lookup tables and
+ * linear interpolation between lookup table values.
+ */
 public class FastTrigInverse {
     
+    /**
+     * The lookup table.
+     */
     protected final double[] lookup;
+    
+    /**
+     * The interval between two input values in the lookup table.
+     */
     protected final double step;
     
+    /**
+     * Creates a new function object.
+     *
+     * @param resolution the resolution of the lookup table
+     */
     public FastTrigInverse (int resolution) {
         lookup = new double[resolution + 1];
         step = Math.PI / resolution;
     }
     
+    /**
+     * Apply the function.
+     *
+     * @param v the value
+     * @return the value of the inverse trigonometric function
+     */
     public double f (double v) {
         int index = Arrays.binarySearch (lookup, v);
         if (index >= 0) {
@@ -46,8 +68,16 @@ public class FastTrigInverse {
         }
     }
     
+    /**
+     * Fast inverse-cosine.
+     */
     public static class FastAcos extends FastTrigInverse {
         
+        /**
+         * Creates a new fast arccos object.
+         *
+         * @param resolution the resolution of the lookup table
+         */
         public FastAcos (int resolution) {
             super (resolution);
             for (int i = 0; i < resolution; ++i) {
@@ -57,13 +87,27 @@ public class FastTrigInverse {
             lookup[resolution] = 1;
         }
         
+        /**
+         * Computes an approximation to arccos(v)
+         *
+         * @param v the value
+         * @return arccos(v)
+         */
         public double f (double v) {
             return super.f (-v);
         }
     }
     
+    /**
+     * Fast inverse-cosine.
+     */
     public static class FastAtan extends FastTrigInverse {
         
+        /**
+         * Creates a new fast arccos object.
+         *
+         * @param resolution the resolution of the lookup table
+         */
         public FastAtan (int resolution) {
             super (resolution);
             for (int i = 1; i < resolution; ++i) {
@@ -74,6 +118,12 @@ public class FastTrigInverse {
             lookup[resolution] = Math.tan (-step / 2 + Math.PI / 2);
         }
         
+        /**
+         * Computes an approximation to arctan(v)
+         *
+         * @param v the value
+         * @return arctan(v)
+         */
         public double f (double v) {
             return super.f (v) - (Math.PI / 2);
         }

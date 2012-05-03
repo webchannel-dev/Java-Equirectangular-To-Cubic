@@ -13,29 +13,12 @@
  * See the License for the specific language governing permissions and 
  * limitations under the License. 
  */
-    
-/**
- * @class Abstract base.
- */
-bigshot.DataLoader = function () {
-}
 
-bigshot.DataLoader.prototype = {
-    /**
-     * Loads an image.
-     *
-     * @param {String} url the url to load
-     * @param {function(success,img)} onloaded called on complete 
-     */
-    loadImage : function (url, onloaded) {},
-    
-    /**
-     * Loads the xml.
-     *
-     * @param {String} url the url to load
-     * @param {boolean} async use async request
-     * @param {function(success,xml)} [onloaded] called on complete for async requests
-     * @return the xml for synchronous calls
-     */
-    loadXml : function (url, async, onloaded) {}
-}
+/**
+ * Contains classes for image transformation, as well as image pyramid and VR cube generation.
+ *
+ * @see bigshot.EquirectangularToCubic
+ */
+package bigshot;
+
+
