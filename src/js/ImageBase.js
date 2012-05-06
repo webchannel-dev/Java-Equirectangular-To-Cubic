@@ -76,7 +76,7 @@ bigshot.ImageBase = function (parameters) {
     };
     
     this.setupLayers ();
-
+    
     this.resize ();
     
     this.allListeners = {
@@ -365,6 +365,15 @@ bigshot.ImageBase.prototype = {
     },
     
     /**
+     * Adjusts a coordinate so that the center of zoom
+     * remains constant during zooming operations.
+     */
+    adjustCoordinateForZoom : function (current, centerOfZoom, oldZoom, newZoom) {
+        var zoomRatio = Math.pow (2, oldZoom) / Math.pow (2, newZoom);
+        return centerOfZoom + (current - centerOfZoom) * zoomRatio;
+    },
+    
+    /**
      * Begins a potential drag event.
      *
      * @private
@@ -377,7 +386,7 @@ bigshot.ImageBase.prototype = {
     },
     
     /**
-     * Begins a potential drag event.
+     * Ends a gesture.
      *
      * @private
      */
@@ -386,7 +395,8 @@ bigshot.ImageBase.prototype = {
     },
     
     /**
-     * Begins a potential drag event.
+     * Adjusts the zoom level based on the scale property of the
+     * gesture.
      *
      * @private
      */
@@ -668,14 +678,41 @@ bigshot.ImageBase.prototype = {
     },
     
     /**
+     * Converts client-relative screen coordinates to image coordinates.
+     *
+     * @param {number} clientX the client x-coordinate
+     * @param {number} clientY the client y-coordinate
+     *
+     * @returns {number} an x-y object with the image coordinates
+     */
+    clientToImage : function (clientX, clientY) {
+        var zoomFactor = Math.pow (2, this.zoom);
+        return {
+            x : (clientX - this.container.clientWidth / 2) / zoomFactor + this.x,
+            y : (clientY - this.container.clientHeight / 2) / zoomFactor + this.y
+        };
+    },
+    
+    /**
      * Handles mouse wheel actions.
      * @private
      */
-    mouseWheelHandler : function (delta) {
+    mouseWheelHandler : function (delta, event) {
+        var zoomDelta = false;
         if (delta > 0) {
-            this.flyTo (this.x, this.y, this.getZoom () + 0.5);
+            zoomDelta = 0.5;
         } else if (delta < 0) {
-            this.flyTo (this.x, this.y, this.getZoom () - 0.5);
+            zoomDelta = -0.5;
+        }
+        
+        if (zoomDelta) {
+            var centerOfZoom = this.clientToImage (event.clientX, event.clientY);
+            var newZoom = Math.min (this.maxZoom, Math.max (this.getZoom () + zoomDelta, this.minZoom));
+
+            var nx = this.adjustCoordinateForZoom (this.x, centerOfZoom.x, this.getZoom (), newZoom);
+            var ny = this.adjustCoordinateForZoom (this.y, centerOfZoom.y, this.getZoom (), newZoom);
+            
+            this.flyTo (nx, ny, newZoom, true);
         }
     },
     
@@ -708,7 +745,7 @@ bigshot.ImageBase.prototype = {
          * and negative, if wheel was scrolled down.
          */
         if (delta) {
-            this.mouseWheelHandler (delta);
+            this.mouseWheelHandler (delta, event);
         }
         
         /*
@@ -764,16 +801,18 @@ bigshot.ImageBase.prototype = {
      * Smoothly flies to the specified position.
      *
      * @public
-     * @param {number} [x] the new x-coordinate
-     * @param {number} [y] the new y-coordinate
-     * @param {number} [zoom] the new zoom level
+     * @param {number} [x=current x] the new x-coordinate
+     * @param {number} [y=current y] the new y-coordinate
+     * @param {number} [zoom=current zoom] the new zoom level
+     * @param {boolean} [uniformApproach=false] if true, uses the same interpolation curve for x, y and zoom.
      */
-    flyTo : function (x, y, zoom) {
+    flyTo : function (x, y, zoom, uniformApproach) {
         var that = this;
         
         x = x != null ? x : this.x;
         y = y != null ? y : this.y;
         zoom = zoom != null ? zoom : this.zoom;
+        uniformApproach = uniformApproach != null ? uniformApproach : false;
         
         var startX = this.x;
         var startY = this.y;
@@ -809,8 +848,8 @@ bigshot.ImageBase.prototype = {
             if (that.flying == flyingAtStart) {
                 var dt = (new Date ().getTime () - t0) / 1000;
                 
-                var nx = approach (startX, targetX, dt, 4, 1.0);
-                var ny = approach (startY, targetY, dt, 4, 1.0);
+                var nx = approach (startX, targetX, dt, uniformApproach ? 10 : 4, uniformApproach ? 0.2 : 1.0);
+                var ny = approach (startY, targetY, dt, uniformApproach ? 10 : 4, uniformApproach ? 0.2 : 1.0);
                 var nz = approach (startZoom, targetZoom, dt, 10, 0.2);
                 var done = true;
                 
