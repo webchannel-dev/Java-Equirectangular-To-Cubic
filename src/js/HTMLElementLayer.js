@@ -55,7 +55,7 @@ bigshot.HTMLElementLayer.prototype = {
     },
     
     layout : function (zoom, x0, y0, tx0, ty0, size, stride, opacity) {
-        var zoomFactor = Math.pow (2, zoom);
+        var zoomFactor = Math.pow (2, zoom) / this.browser.getDevicePixelScale ();
         x0 -= stride * tx0;
         y0 -= stride * ty0;
         

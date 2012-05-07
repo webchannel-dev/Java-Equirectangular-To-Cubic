@@ -153,10 +153,10 @@ bigshot.Browser.prototype = {
     },
     
     /**
-        * Stops bubbling for all mouse events on the element.
-        *
-        * @param {HTMLElement} element the element
-        */
+     * Stops bubbling for all mouse events on the element.
+     *
+     * @param {HTMLElement} element the element
+     */
     stopMouseEventBubbling : function (element) {
         this.registerListener (element, "mousedown", this.stopEventBubblingHandler (), false);
         this.registerListener (element, "mouseup", this.stopEventBubblingHandler (), false);

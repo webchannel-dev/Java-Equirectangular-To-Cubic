@@ -70,7 +70,8 @@ bigshot.ImageBase = function (parameters) {
         } else {
             return {
                 clientX : event.changedTouches[0].clientX,
-                clientY : event.changedTouches[0].clientY
+                clientY : event.changedTouches[0].clientY,
+                changedTouches : event.changedTouches
             };
         };
     };
@@ -298,14 +299,21 @@ bigshot.ImageBase.prototype = {
     },
     
     /**
+     * Clamps the zoom value to be between minZoom and maxZoom.
+     */
+    clampZoom : function (zoom) {
+        return Math.min (this.maxZoom, Math.max (zoom, this.minZoom));
+    },
+    
+    /**
      * Sets the current zoom value.
      *
      * @private
      * @param {number} zoom the zoom value.
-     * @param {boolean} layout trigger a viewport update after setting. Defaults to <code>false</code>.
+     * @param {boolean} [layout] trigger a viewport update after setting. Defaults to <code>false</code>.
      */
     setZoom : function (zoom, updateViewport) {
-        this.zoom = Math.min (this.maxZoom, Math.max (zoom, this.minZoom));
+        this.zoom = this.clampZoom (zoom);
         var zoomLevel = Math.ceil (this.zoom - this.getTextureStretch ());
         var zoomFactor = Math.pow (2, zoomLevel);
         var maxTileX = Math.ceil (zoomFactor * this.width / this.tileSize);
@@ -402,9 +410,19 @@ bigshot.ImageBase.prototype = {
      */
     gestureChange : function (event) {
         if (this.currentGesture) {
-            var newZoom = this.currentGesture.startZoom + Math.log (event.scale) / Math.log (2);
-            this.setZoom (newZoom);
-            this.layout ();
+            var newZoom = this.clampZoom (this.currentGesture.startZoom + Math.log (event.scale) / Math.log (2));
+            var oldZoom = this.getZoom ();
+            if (this.currentGesture.clientX !== undefined && this.currentGesture.clientY !== undefined) {
+                var centerOfZoom = this.clientToImage (this.currentGesture.clientX, this.currentGesture.clientY);
+                
+                var nx = this.adjustCoordinateForZoom (this.x, centerOfZoom.x, oldZoom, newZoom);
+                var ny = this.adjustCoordinateForZoom (this.y, centerOfZoom.y, oldZoom, newZoom);
+                
+                this.moveTo (nx, ny, newZoom);
+            } else {
+                this.setZoom (newZoom);
+                this.layout ();
+            }
         }
     },
     
@@ -436,6 +454,17 @@ bigshot.ImageBase.prototype = {
      * @private
      */
     dragMouseMove : function (event) {
+        if (this.currentGesture != null && event.changedTouches != null && event.changedTouches.length > 0) {
+            var cx = 0;
+            var cy = 0;
+            for (var i = 0; i < event.changedTouches.length; ++i) {
+                cx += event.changedTouches[i].clientX;
+                cy += event.changedTouches[i].clientY;
+            }
+            this.currentGesture.clientX = cx / event.changedTouches.length;
+            this.currentGesture.clientY = cy / event.changedTouches.length;
+        }        
+        
         if (this.currentGesture == null && this.dragStart != null) {
             var delta = {
                 x : event.clientX - this.dragStart.x,
@@ -533,10 +562,9 @@ bigshot.ImageBase.prototype = {
      * @param [x] the new x-coordinate
      * @param [y] the new y-coordinate
      * @param [zoom] the new zoom level
-     * @param [updateViewport] if the viewport should be updated, defaults to <code>true</code>
      * @public
      */
-    moveTo : function (x, y, zoom) {
+    moveTo : function (x, y, zoom, updateViewport) {
         this.stopFlying ();
         if (x != null || y != null) {
             this.setPosition (x, y, false);
@@ -708,7 +736,7 @@ bigshot.ImageBase.prototype = {
         if (zoomDelta) {
             var centerOfZoom = this.clientToImage (event.clientX, event.clientY);
             var newZoom = Math.min (this.maxZoom, Math.max (this.getZoom () + zoomDelta, this.minZoom));
-
+            
             var nx = this.adjustCoordinateForZoom (this.x, centerOfZoom.x, this.getZoom (), newZoom);
             var ny = this.adjustCoordinateForZoom (this.y, centerOfZoom.y, this.getZoom (), newZoom);
             
@@ -853,12 +881,14 @@ bigshot.ImageBase.prototype = {
                 var nz = approach (startZoom, targetZoom, dt, 10, 0.2);
                 var done = true;
                 
-                if (Math.abs (nx - targetX) < 1.0) {
+                var zoomFactor = Math.min (Math.pow (2, that.getZoom ()), 1);
+                
+                if (Math.abs (nx - targetX) < (0.5 * zoomFactor)) {
                     nx = targetX;
                 } else {
                     done = false;
                 }
-                if (Math.abs (ny - targetY) < 1.0) {
+                if (Math.abs (ny - targetY) < (0.5 * zoomFactor)) {
                     ny = targetY;
                 } else {
                     done = false;
