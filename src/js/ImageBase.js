@@ -189,10 +189,16 @@ bigshot.ImageBase.prototype = {
             return p;
         };
         
-        return {
-            x : constrain (viewportWidthInImagePixels, this.width, x),
-            y : constrain (viewportHeightInImagePixels, this.height, y)
-        };
+        var o = {};
+        if (x != null) {
+            o.x = constrain (viewportWidthInImagePixels, this.width, x);
+        }
+        
+        if (y != null) {
+            o.y = constrain (viewportHeightInImagePixels, this.height, y);
+        }
+        
+        return o;
     },
     
     /**
@@ -566,6 +572,7 @@ bigshot.ImageBase.prototype = {
      */
     moveTo : function (x, y, zoom, updateViewport) {
         this.stopFlying ();
+        
         if (x != null || y != null) {
             this.setPosition (x, y, false);
         }
@@ -584,14 +591,17 @@ bigshot.ImageBase.prototype = {
      * @private
      */
     setPosition : function (x, y, updateViewport) {
+        var clamped = this.clampXY (x, y);
+            
         if (x != null) {
             if (this.parameters.wrapX) {
                 if (x < 0 || x >= this.width) {
                     x = (x + this.width) % this.width;
                 }
+            } else {
+                x = clamped.x;
             }
             this.x = Math.max (0, Math.min (this.width, x));
-            
         }
         
         if (y != null) {
@@ -599,6 +609,8 @@ bigshot.ImageBase.prototype = {
                 if (y < 0 || y >= this.height) {
                     y = (y + this.height) % this.height;
                 }
+            } else {
+                y = clamped.y;
             }
             this.y = Math.max (0, Math.min (this.height, y));
         }
