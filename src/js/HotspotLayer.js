@@ -39,6 +39,7 @@
  * @constructor
  */
 bigshot.HotspotLayer = function (image) {
+    this.image = image;
     this.hotspots = new Array ();
     this.browser = new bigshot.Browser ();
     this.container = image.createLayerContainer ();
@@ -58,7 +59,7 @@ bigshot.HotspotLayer.prototype = {
     },
     
     layout : function (zoom, x0, y0, tx0, ty0, size, stride, opacity) {
-        var zoomFactor = Math.pow (2, zoom);
+        var zoomFactor = Math.pow (2, this.image.getZoom ());
         x0 -= stride * tx0;
         y0 -= stride * ty0;
         for (var i = 0; i < this.hotspots.length; ++i) {
