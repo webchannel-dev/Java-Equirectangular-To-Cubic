@@ -50,7 +50,7 @@ bigshot.Layer.prototype = {
     /**
      * Lays out the layer.
      *
-     * @param {number} zoom the zoom level
+     * @param {number} zoom the zoom level, adjusted for texture stretching
      * @param {number} x0 the x-coordinate of the top-left corner of the top-left tile in css pixels
      * @param {number} y0 the y-coordinate of the top-left corner of the top-left tile in css pixels
      * @param {number} tx0 column number (starting at zero) of the top-left tile
