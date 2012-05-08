@@ -406,6 +406,9 @@ bigshot.ImageBase.prototype = {
      */
     gestureEnd : function (event) {
         this.currentGesture = null;
+        if (this.dragStart) {
+            this.dragStart.hadGesture = true;
+        }
     },
     
     /**
@@ -509,9 +512,9 @@ bigshot.ImageBase.prototype = {
      * @private
      */
     dragMouseUp : function (event) {
-        if (this.dragStart != null) {
+        if (this.currentGesture == null && !this.dragStart.hadGesture && this.dragStart != null) {
             this.dragStart = null;
-            if (!this.dragged && this.parameters.touchUI) {
+            if (!this.dragged) {
                 this.mouseClick (event);
             } else {
                 var scale = Math.pow (2, this.zoom);
@@ -955,6 +958,8 @@ bigshot.ImageBase.prototype = {
      * @private
      */
     mouseClick : function (event) {
+        return;
+        
         if (!this.parameters.touchUI) {
             return;
         }
