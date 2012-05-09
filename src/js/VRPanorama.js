@@ -166,12 +166,15 @@
  *             container : document.getElementById ("bigshot_canvas")
  *         }));
  * @class A cube-map VR panorama.
+ * @extends bigshot.EventDispatcher
  *
  * @param {bigshot.VRPanoramaParameters} parameters the panorama parameters.
  *
  * @see bigshot.VRPanoramaParameters
  */
 bigshot.VRPanorama = function (parameters) {
+    bigshot.EventDispatcher.call (this);
+    
     var that = this;
     
     this.parameters = parameters;
@@ -644,6 +647,12 @@ bigshot.VRPanorama.prototype = {
         return res;
     },
     
+    /**
+     * Restricts the pitch value to be between the minPitch and maxPitch parameters.
+     * 
+     * @param {number} p the pitch value
+     * @returns the constrained pitch value.
+     */
     snapPitch : function (p) {
         p = Math.min (this.parameters.maxPitch, p);
         p = Math.max (this.parameters.minPitch, p);
@@ -761,6 +770,26 @@ bigshot.VRPanorama.prototype = {
         this.browser.unregisterListener (window, "resize", this.onresizeHandler, false);
         this.browser.unregisterListener (document.body, "orientationchange", this.onresizeHandler, false);
     },
+    
+    /**
+     * @param data.clientX
+     * @param data.clientY
+     * @returns the new data object
+     */
+    createVREventData : function (data) {
+        var elementPos = this.browser.getElementPosition (this.container);
+        data.localX = data.clientX - elementPos.x;
+        data.localY = data.clientY - elementPos.y;
+        
+        data.ray = this.screenToRay (data.localX, data.localY);
+        
+        var polar = this.screenToPolar (data.localX, data.localY);
+        data.yaw = polar.yaw;
+        data.pitch = polar.pitch;
+        
+        return new bigshot.VREvent (data);
+    },
+    
     
     /**
      * Sets up transformation matrices etc. Calls all render listeners with a state parameter
@@ -1050,7 +1079,15 @@ bigshot.VRPanorama.prototype = {
     },
     
     onMouseDoubleClick : function (e, x, y) {
-        this.smoothRotateToXY (x, y);
+        var eventData = this.createVREventData ({
+                type : "dblclick",
+                clientX : e.clientX,
+                clientY : e.clientY
+            });
+        this.fireEvent ("dblclick", eventData);
+        if (!eventData.defaultPrevented) {
+            this.smoothRotateToXY (x, y);
+        }
     },
     
     mouseDoubleClick : function (e) {
@@ -1613,5 +1650,14 @@ bigshot.VRPanorama.prototype = {
     autoResizeContainer : function (sizeContainer) {
         this.sizeContainer = sizeContainer;
     }
-    
 }
+
+/**
+ * Fired when the user double-clicks on the panorama.
+ *
+ * @name bigshot.VRPanorama#dblclick
+ * @event
+ * @param {bigshot.VREvent} event the event object
+ */
+
+bigshot.object.extend (bigshot.VRPanorama, bigshot.EventDispatcher);

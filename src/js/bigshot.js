@@ -66,6 +66,10 @@ if (!self["bigshot"]) {
      */
     #include object.js
     #include Browser.js
+    #include EventDispatcher.js
+    #include Event.js
+    #include ImageEvent.js
+    #include VREvent.js
     #include FullScreen.js
     #include DataLoader.js
     #include DefaultDataLoader.js

@@ -19,9 +19,12 @@
  * Sets up base image functionality.
  * 
  * @class Base class for image viewers.
- * @constructor
+ * @extends bigshot.EventDispatcher
  */     
 bigshot.ImageBase = function (parameters) {
+    // Base class init
+    bigshot.EventDispatcher.call (this);
+    
     this.parameters = parameters;
     this.flying = 0;
     this.container = parameters.container;
@@ -419,6 +422,10 @@ bigshot.ImageBase.prototype = {
      */
     gestureChange : function (event) {
         if (this.currentGesture) {
+            if (this.dragStart) {
+                this.dragStart.hadGesture = true;
+            }
+            
             var newZoom = this.clampZoom (this.currentGesture.startZoom + Math.log (event.scale) / Math.log (2));
             var oldZoom = this.getZoom ();
             if (this.currentGesture.clientX !== undefined && this.currentGesture.clientY !== undefined) {
@@ -544,15 +551,15 @@ bigshot.ImageBase.prototype = {
      * @private
      */
     mouseDoubleClick : function (event) {
-        var elementPos = this.browser.getElementPosition (this.container);
-        var clickPos = {
-            x : event.clientX - elementPos.x - this.container.clientWidth / 2,
-            y : event.clientY - elementPos.y - this.container.clientHeight / 2
-        };
-        var scale = Math.pow (2, this.zoom);
-        clickPos.x /= scale;
-        clickPos.y /= scale;
-        this.flyTo (this.x + clickPos.x, this.y + clickPos.y, this.zoom + 0.5);
+        var eventData = this.createImageEventData ({
+                type : "dblclick",
+                clientX : event.clientX,
+                clientY : event.clientY
+            });
+        this.fireEvent ("dblclick", eventData);
+        if (!eventData.defaultPrevented) {
+            this.flyTo (eventData.imageX, eventData.imageY, this.zoom + 0.5);
+        }
     },
     
     /**
@@ -571,6 +578,7 @@ bigshot.ImageBase.prototype = {
      * @param [x] the new x-coordinate
      * @param [y] the new y-coordinate
      * @param [zoom] the new zoom level
+     * @param [updateViewport=true] updates the viewport
      * @public
      */
     moveTo : function (x, y, zoom, updateViewport) {
@@ -582,7 +590,9 @@ bigshot.ImageBase.prototype = {
         if (zoom != null) {
             this.setZoom (zoom, false);
         }
-        this.layout ();
+        if (updateViewport == undefined || updateViewport == true) {
+            this.layout ();
+        }
     },
     
     /**
@@ -595,7 +605,7 @@ bigshot.ImageBase.prototype = {
      */
     setPosition : function (x, y, updateViewport) {
         var clamped = this.clampXY (x, y);
-            
+        
         if (x != null) {
             if (this.parameters.wrapX) {
                 if (x < 0 || x >= this.width) {
@@ -952,41 +962,71 @@ bigshot.ImageBase.prototype = {
     },
     
     /**
+     * @param data.clientX
+     * @param data.clientY
+     * @returns the new data object
+     */
+    createImageEventData : function (data) {
+        var elementPos = this.browser.getElementPosition (this.container);
+        data.localX = data.clientX - elementPos.x;
+        data.localY = data.clientY - elementPos.y;
+        
+        var clickPos = {
+            x : data.localX - this.container.clientWidth / 2,
+            y : data.localY - this.container.clientHeight / 2
+        };
+        var scale = Math.pow (2, this.zoom);
+        clickPos.x /= scale;
+        clickPos.y /= scale;
+        
+        data.imageX = this.x + clickPos.x;
+        data.imageY = this.y + clickPos.y;
+        
+        data.target = this;
+        data.currentTarget = this;
+        
+        return new bigshot.ImageEvent (data);
+    },
+    
+    /**
      * Handles mouse click events. If the touch UI is active,
      * we'll pan and/or zoom, as appropriate. If not, we just ignore
      * the event.
      * @private
      */
     mouseClick : function (event) {
-        return;
-        
-        if (!this.parameters.touchUI) {
-            return;
-        }
-        if (this.dragged) {
-            return;
-        }
-        var elementPos = this.browser.getElementPosition (this.container);
-        var clickPos = {
-            x : event.clientX - elementPos.x - this.container.clientWidth / 2,
-            y : event.clientY - elementPos.y - this.container.clientHeight / 2
-        };
-        
-        var zoomOutBorderSize = this.getTouchAreaBaseSize ();
-        var zoomInHotspotSize = this.getTouchAreaBaseSize ();
-        
-        if (Math.abs (clickPos.x) > (this.container.clientWidth / 2 - zoomOutBorderSize) || Math.abs (clickPos.y) > (this.container.clientHeight / 2 - zoomOutBorderSize)) {
-            this.flyTo (this.x, this.y, this.zoom - 0.5);
-        } else {
-            var newZoom = this.zoom;
-            if (Math.abs (clickPos.x) < zoomInHotspotSize && Math.abs (clickPos.y) < zoomInHotspotSize) {
-                newZoom += 0.5;
+        var eventData = this.createImageEventData ({
+                type : "click",
+                clientX : event.clientX,
+                clientY : event.clientY
+            });
+        this.fireEvent ("click", eventData);
+        /*
+        if (!eventData.defaultPrevented) {
+            if (!this.parameters.touchUI) {
+                return;
             }
-            var scale = Math.pow (2, this.zoom);
-            clickPos.x /= scale;
-            clickPos.y /= scale;
-            this.flyTo (this.x + clickPos.x, this.y + clickPos.y, newZoom);
+            if (this.dragged) {
+                return;
+            }
+            
+            var zoomOutBorderSize = this.getTouchAreaBaseSize ();
+            var zoomInHotspotSize = this.getTouchAreaBaseSize ();
+            
+            if (Math.abs (clickPos.x) > (this.container.clientWidth / 2 - zoomOutBorderSize) || Math.abs (clickPos.y) > (this.container.clientHeight / 2 - zoomOutBorderSize)) {
+                this.flyTo (this.x, this.y, this.zoom - 0.5);
+            } else {
+                var newZoom = this.zoom;
+                if (Math.abs (clickPos.x) < zoomInHotspotSize && Math.abs (clickPos.y) < zoomInHotspotSize) {
+                    newZoom += 0.5;
+                }
+                var scale = Math.pow (2, this.zoom);
+                clickPos.x /= scale;
+                clickPos.y /= scale;
+                this.flyTo (this.x + clickPos.x, this.y + clickPos.y, newZoom);
+            }
         }
+        */
     },
     
     /**
@@ -1194,3 +1234,21 @@ bigshot.ImageBase.prototype = {
         this.browser.unregisterListener (window, "resize", this.onresizeHandler, false);
     }
 };
+
+/**
+ * Fired when the user double-clicks on the image
+ *
+ * @name bigshot.ImageBase#dblclick
+ * @event
+ * @param {bigshot.ImageEvent} event the event object
+ */
+
+/**
+ * Fired when the user clicks on (but does not drag) the image
+ *
+ * @name bigshot.ImageBase#click
+ * @event
+ * @param {bigshot.ImageEvent} event the event object
+ */
+
+bigshot.object.extend (bigshot.ImageBase, bigshot.EventDispatcher);
