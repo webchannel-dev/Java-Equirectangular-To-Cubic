@@ -133,16 +133,16 @@ bigshot.Browser.prototype = {
     },
     
     /**
-    * Creates a callback function that simply stops the event from bubbling.
-    *
-    * @example
-    * var browser = new bigshot.Browser ();
-    * browser.registerListener (element, 
-    *     "mousedown", 
-    *     browser.stopEventBubblingHandler (), 
-    *     false);
-    * @type function(event)
-    * @return a new function that can be used to stop an event from bubbling
+     * Creates a callback function that simply stops the event from bubbling.
+     *
+     * @example
+     * var browser = new bigshot.Browser ();
+     * browser.registerListener (element, 
+     *     "mousedown", 
+     *     browser.stopEventBubblingHandler (), 
+     *     false);
+     * @type function(event)
+     * @return a new function that can be used to stop an event from bubbling
     */
     stopEventBubblingHandler : function () {
         var that = this;
@@ -198,6 +198,12 @@ bigshot.Browser.prototype = {
      * pixels each css pixel corresponds to. Used to render the proper level of detail
      * on mobile devices, especially when zoomed out and more detailed textures are
      * simply wasted.
+     *
+     * @returns The number of device pixels each css pixel corresponds to.
+     * For example, if the browser is zoomed out to 50% and a div with <code>width</code>
+     * set to <code>100px</code> occupies 50 physical pixels, the function will return 
+     * <code>0.5</code>.
+     * @type number
      */
     getDevicePixelScale : function () {
         if (this.browserIsViewporting ()) {
@@ -207,18 +213,27 @@ bigshot.Browser.prototype = {
         }
     },
     
+    /**
+     * Requests an animation frame, if the API is supported
+     * on the browser. If not, a <code>setTimeout</code> with 
+     * a timeout of zero is used.
+     *
+     * @param {function()} callback the animation frame render function
+     * @param {HTMLElement} element the element to use when requesting an
+     * animation frame
+     */
     requestAnimationFrame : function (callback, element) {
         var raff = this.requestAnimationFrameFunction;
         raff (callback, element);
     },
     
     /**
-        * Returns the position in pixels of the element relative
-        * to the top left corner of the document.
-        *
-        * @param {HTMLElement} obj the element
-        * @return a position object with two integer members, x and y.
-        */
+     * Returns the position in pixels of the element relative
+     * to the top left corner of the document.
+     *
+     * @param {HTMLElement} obj the element
+     * @return a position object with two integer members, x and y.
+     */
     getElementPosition : function (obj) {
         var position = new Object();
         position.x = 0;
@@ -250,7 +265,7 @@ bigshot.Browser.prototype = {
      * Creates an XMLHttpRequest object.
      *
      * @type XMLHttpRequest
-     * @return a XMLHttpRequest object.
+     * @returns a XMLHttpRequest object.
      */
     createXMLHttpRequest : function  () {
         try { 
@@ -273,6 +288,15 @@ bigshot.Browser.prototype = {
         return null;
     },
     
+    /**
+     * Creates an opacity transition from opaque to transparent.
+     * If CSS transitions aren't supported, the element is
+     * immediately made transparent without a transition.
+     * 
+     * @param {HTMLElement} element the element to fade out
+     * @param {function()} onComplete function to call when
+     * the transition is complete.
+     */
     makeOpacityTransition : function (element, onComplete) {
         if (element.style.WebkitTransitionProperty != undefined) {
             element.style.opacity = 1.0;

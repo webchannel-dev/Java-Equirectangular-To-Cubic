@@ -15,7 +15,8 @@
  */
 
 /**
- * @class Data loader using standard browser functions.
+ * @class Data loader using standard browser functions that maintains
+ * an in-memory cache of everything loaded.
  * @augments bigshot.DataLoader
  */
 bigshot.CachingDataLoader = function () {

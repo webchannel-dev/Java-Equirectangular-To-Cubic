@@ -27,8 +27,8 @@
  *         container : document.getElementById ("bigshot_div")
  *     }));
  *
- * @param {bigshot.ImageParameters} parameters the image parameters. Required fields are: <code>basePath</code> and <code>container</code>. 
- * If the <code>imgElement</code> parameter is not given, then <code>width</code> and <code>height</code> are also required. The
+ * @param {bigshot.ImageParameters} parameters the image parameters. Required fields are: <code>container</code>. 
+ * If the <code>imgElement</code> parameter is not given, then <code>basePath</code>, <code>width</code> and <code>height</code> are also required. The
  * following parameters are not supported and should be left as defaults: <code>fileSystem</code>, <code>fileSystemType</code>, <code>maxTextureMagnification</code>, 
  * <code>wrapX</code>, <code>wrapY</code> and <code>tileSize</code>. 
  * 

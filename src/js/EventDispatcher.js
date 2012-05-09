@@ -20,6 +20,10 @@
  * @class Base class for objects that dispatch events.
  */
 bigshot.EventDispatcher = function () {
+    /**
+     * The event listeners. Each key-value pair in the map is
+     * an event name and an <code>Array</code> of listeners.
+     */
     this.eventListeners = {};
 }
 
@@ -52,6 +56,9 @@ bigshot.EventDispatcher.prototype = {
             for (var i = 0; i < el.length; ++i) {
                 if (el[i] === listener) {
                     el.splice (i, 1);
+                    if (el.length == 0) {
+                        delete this.eventListeners[eventName];
+                    }
                     break;
                 }
             }

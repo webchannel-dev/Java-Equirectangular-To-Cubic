@@ -772,9 +772,16 @@ bigshot.VRPanorama.prototype = {
     },
     
     /**
-     * @param data.clientX
-     * @param data.clientY
-     * @returns the new data object
+     * Creates and initializes a {@link bigshot.VREvent} object.
+     * The {@link bigshot.VREvent#ray}, {@link bigshot.VREvent#yaw},
+     * {@link bigshot.VREvent#pitch}, {@link bigshot.Event#target} and
+     * {@link bigshot.Event#currentTarget} fields are set.
+     * 
+     * @param {Object} data the data object for the event
+     * @param {number} data.clientX the client x-coordinate of the event
+     * @param {number} data.clientY the client y-coordinate of the event
+     * @returns the new event object
+     * @type bigshot.VREvent
      */
     createVREventData : function (data) {
         var elementPos = this.browser.getElementPosition (this.container);
@@ -786,6 +793,8 @@ bigshot.VRPanorama.prototype = {
         var polar = this.screenToPolar (data.localX, data.localY);
         data.yaw = polar.yaw;
         data.pitch = polar.pitch;
+        data.target = this;
+        data.currentTarget = this;
         
         return new bigshot.VREvent (data);
     },
@@ -1132,6 +1141,7 @@ bigshot.VRPanorama.prototype = {
     /**
      * Sets the maximum texture magnification.
      *
+     * @param {number} v the maximum texture magnification
      * @see bigshot.VRPanoramaParameters#maxTextureMagnification
      */
     setMaxTextureMagnification : function (v) {
@@ -1141,6 +1151,7 @@ bigshot.VRPanorama.prototype = {
     /**
      * Gets the current maximum texture magnification.
      *
+     * @type number
      * @see bigshot.VRPanoramaParameters#maxTextureMagnification
      */
     getMaxTextureMagnification : function () {
@@ -1174,6 +1185,7 @@ bigshot.VRPanorama.prototype = {
     },
     
     /**
+     * Transforms screen coordinates to a world-coordinate ray.
      * @private
      */
     screenToRay : function (x, y) {
@@ -1369,9 +1381,12 @@ bigshot.VRPanorama.prototype = {
      * Smoothly rotates the camera. If all of the dp, dy and df functions are null, stops
      * any smooth rotation.
      *
-     * @param {function()} [dy] function giving the yaw increment for the next frame
-     * @param {function()} [dp] function giving the pitch increment for the next frame
-     * @param {function()} [df] function giving the field of view (degrees) increment for the next frame
+     * @param {function()} [dy] function giving the yaw increment for the next frame 
+     * or null if no further yaw movement is required
+     * @param {function()} [dp] function giving the pitch increment for the next frame 
+     * or null if no further pitch movement is required
+     * @param {function()} [df] function giving the field of view (degrees) increment 
+     * for the next frame or null if no further fov adjustment is required
      */
     smoothRotate : function (dy, dp, df) {
         ++this.smoothrotatePermit;
@@ -1625,8 +1640,9 @@ bigshot.VRPanorama.prototype = {
     },
     
     /**
-     * Posts a render() call via a timeout. Use when the render call must be
-     * done as soon as possible, but can't be done in the current call context.
+     * Posts a render() call via a timeout or the requestAnimationFrame API.
+     * Use when the render call must be done as soon as possible, but 
+     * can't be done in the current call context.
      */
     renderAsap : function () {
         if (!this.renderAsapPermitTaken) {

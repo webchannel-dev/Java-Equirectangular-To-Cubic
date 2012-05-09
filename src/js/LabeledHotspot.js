@@ -28,7 +28,6 @@
  * @param {number} h height of the hotspot, given in full image pixels
  * @param {String} labelText text of the label
  * @augments bigshot.Hotspot
- * @constructor
  */
 bigshot.LabeledHotspot = function (x, y, w, h, labelText) {
     bigshot.Hotspot.call (this, x, y, w, h);

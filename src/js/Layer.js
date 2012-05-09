@@ -18,7 +18,6 @@
  * Abstract interface description for a Layer.
  *
  * @class Abstract interface description for a layer.
- * @constructor
  */
 bigshot.Layer = function () {
 }

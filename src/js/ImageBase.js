@@ -18,6 +18,7 @@
 /**
  * Sets up base image functionality.
  * 
+ * @param {bigshot.ImageParameters} parameters the image parameters
  * @class Base class for image viewers.
  * @extends bigshot.EventDispatcher
  */     
@@ -144,14 +145,28 @@ bigshot.ImageBase = function (parameters) {
 }    
 
 bigshot.ImageBase.prototype = {
+    /**
+     * Browser helper and compatibility functions.
+     *
+     * @private
+     * @type bigshot.Browser
+     */
     browser : new bigshot.Browser (),
     
+    /**
+     * Adds all event listeners to the container object.
+     * @private
+     */
     addEventListeners : function () {
         for (var k in this.allListeners) {
             this.browser.registerListener (this.container, k, this.allListeners[k], false);
         }
     },
     
+    /**
+     * Removes all event listeners from the container object.
+     * @private
+     */
     removeEventListeners : function () {
         for (var k in this.allListeners) {
             this.browser.unregisterListener (this.container, k, this.allListeners[k], false);
@@ -159,6 +174,14 @@ bigshot.ImageBase.prototype = {
     },
     
     /**
+     * Sets up the initial layers of the image. Override in subclass.
+     */
+    setupLayers : function () {
+    },
+    
+    /**
+     * Returns the base 2 logarithm of the maximum texture stretching, allowing for device pixel scaling.
+     * @type number
      * @private
      */
     getTextureStretch : function () {
@@ -166,6 +189,13 @@ bigshot.ImageBase.prototype = {
         return ts;
     },
     
+    /**
+     * Constrains the x and y coordinates to allowed values
+     * @param {number} x the initial x coordinate
+     * @param {number} y the initial y coordinate
+     * @return {number} .x the constrained x coordinate
+     * @return {number} .y the constrained y coordinate
+     */
     clampXY : function (x, y) {
         var viewportWidth = this.container.clientWidth;
         var viewportHeight = this.container.clientHeight;
@@ -309,6 +339,9 @@ bigshot.ImageBase.prototype = {
     
     /**
      * Clamps the zoom value to be between minZoom and maxZoom.
+     *
+     * @param {number} zoom the zoom value
+     * @type number
      */
     clampZoom : function (zoom) {
         return Math.min (this.maxZoom, Math.max (zoom, this.minZoom));
@@ -383,7 +416,22 @@ bigshot.ImageBase.prototype = {
     
     /**
      * Adjusts a coordinate so that the center of zoom
-     * remains constant during zooming operations.
+     * remains constant during zooming operations. The
+     * method is intended to be called twice, once for x 
+     * and once for y. The <code>current</code> and 
+     * <code>centerOfZoom</code> values will be the current
+     * and the center for the x and y, respectively.
+     *
+     * @example
+     * this.x = this.adjustCoordinateForZoom (this.x, zoomCenterX, oldZoom, newZoom);
+     * this.y = this.adjustCoordinateForZoom (this.y, zoomCenterY, oldZoom, newZoom);
+     *
+     * @param {number} current the current value of the coordinate
+     * @param {number} centerOfZoom the center of zoom along the coordinate axis
+     * @param {number} oldZoom the old zoom value
+     * @param {number} oldZoom the new zoom value 
+     * @type number
+     * @returns the new value for the coordinate
      */
     adjustCoordinateForZoom : function (current, centerOfZoom, oldZoom, newZoom) {
         var zoomRatio = Math.pow (2, oldZoom) / Math.pow (2, newZoom);
@@ -405,6 +453,7 @@ bigshot.ImageBase.prototype = {
     /**
      * Ends a gesture.
      *
+     * @param {Event} event the <code>gestureend</code> event
      * @private
      */
     gestureEnd : function (event) {
@@ -641,6 +690,7 @@ bigshot.ImageBase.prototype = {
      * occupy the given number of screen pixels.
      * @param {number} imageDimension the image dimension in full-image pixels
      * @param {number} containerDimension the container dimension in screen pixels
+     * @type number
      */
     fitZoom : function (imageDimension, containerDimension) {
         var scale = containerDimension / imageDimension;
@@ -651,6 +701,7 @@ bigshot.ImageBase.prototype = {
      * Returns the maximum zoom level at which the full image
      * is visible in the viewport.
      * @public
+     * @type number
      */
     getZoomToFitValue : function () {
         return Math.min (
@@ -662,6 +713,7 @@ bigshot.ImageBase.prototype = {
      * Returns the zoom level at which the image fills the whole
      * viewport.
      * @public
+     * @type number
      */
     getZoomToFillValue : function () {
         return Math.max (
@@ -736,7 +788,9 @@ bigshot.ImageBase.prototype = {
      * @param {number} clientX the client x-coordinate
      * @param {number} clientY the client y-coordinate
      *
-     * @returns {number} an x-y object with the image coordinates
+     * @returns {number} .x the image x-coordinate
+     * @returns {number} .y the image y-coordinate
+     * @type Object
      */
     clientToImage : function (clientX, clientY) {
         var zoomFactor = Math.pow (2, this.zoom);
@@ -941,6 +995,8 @@ bigshot.ImageBase.prototype = {
      * @public
      * @param {number} w the width of the rectangle, given in full-image pixels
      * @param {number} h the height of the rectangle, given in full-image pixels
+     * @type number
+     * @returns the zoom level that will precisely fit the given rectangle
      */        
     rectVisibleAtZoomLevel : function (w, h) {
         return Math.min (
@@ -953,6 +1009,7 @@ bigshot.ImageBase.prototype = {
      * The zoom out border will be getTouchAreaBaseSize() pixels wide,
      * and the center zoom in hotspot will be 2*getTouchAreaBaseSize() pixels wide
      * and tall.
+     * @deprecated
      * @type number
      * @public
      */
@@ -962,25 +1019,28 @@ bigshot.ImageBase.prototype = {
     },
     
     /**
-     * @param data.clientX
-     * @param data.clientY
-     * @returns the new data object
+     * Creates a new {@link bigshot.ImageEvent} using the supplied data object,
+     * transforming the client x- and y-coordinates to local and image coordinates.
+     * The returned event object will have the {@link bigshot.ImageEvent#localX}, 
+     * {@link bigshot.ImageEvent#localY}, {@link bigshot.ImageEvent#imageX}, 
+     * {@link bigshot.ImageEvent#imageY}, {@link bigshot.Event#target} and 
+     * {@link bigshot.Event#currentTarget} fields set.
+     *
+     * @param {Object} data data object with initial values for the event object
+     * @param {number} data.clientX the clientX of the event
+     * @param {number} data.clientY the clientY of the event
+     * @returns the new event object
+     * @type bigshot.ImageEvent
      */
     createImageEventData : function (data) {
         var elementPos = this.browser.getElementPosition (this.container);
         data.localX = data.clientX - elementPos.x;
         data.localY = data.clientY - elementPos.y;
         
-        var clickPos = {
-            x : data.localX - this.container.clientWidth / 2,
-            y : data.localY - this.container.clientHeight / 2
-        };
         var scale = Math.pow (2, this.zoom);
-        clickPos.x /= scale;
-        clickPos.y /= scale;
         
-        data.imageX = this.x + clickPos.x;
-        data.imageY = this.y + clickPos.y;
+        data.imageX = (data.localX - this.container.clientWidth / 2) / scale + this.x;
+        data.imageY = (data.localY - this.container.clientHeight / 2) / scale + this.y;
         
         data.target = this;
         data.currentTarget = this;
@@ -1232,6 +1292,7 @@ bigshot.ImageBase.prototype = {
      */
     dispose : function () {
         this.browser.unregisterListener (window, "resize", this.onresizeHandler, false);
+        this.removeEventListeners ();
     }
 };
 
