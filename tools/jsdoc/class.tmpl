@@ -49,11 +49,8 @@
 			</h1>
 
 <!-- ============================== class summary ========================== -->			
-			<p class="description">
-				<if test="data.version"><br />Version
-					{+ data.version +}.<br />
-				</if>
-				<if test="data.augments.length"><br />Extends
+			
+				<if test="data.augments.length"><p class="extendsList">Extends
 					{+
 						data.augments
 						.sort()
@@ -61,14 +58,18 @@
 							function($) { return new Link().toSymbol($); }
 						)
 						.join(", ")
-					+}.<br />
+					+}.</p>
 				</if>
-			
+            <p class="description">
 				{+resolveLinks(data.classDesc)+}
 				
 				<if test="!data.isBuiltin()">{# isn't defined in any file #}
 					<br /><i>Defined in: </i> {+new Link().toSrc(data.srcFile)+}.
 				</if>
+
+                <if test="data.version"><br />Version
+                    <br />{+ data.version +}.
+                </if>
 			</p>
 
 <!-- ============================== constructor summary ==================== -->			
@@ -543,7 +544,7 @@
 					Event Detail
 				</div>
 				<for each="member" in="ownEvents">
-					<a name="event:{+Link.symbolNameToLinkName(member)+}"> </a>
+					<a name="{+Link.symbolNameToLinkName(member)+}"> </a>
 					<div class="fixedFont">{!
 						if (member.isPrivate) output += "&lt;private&gt; ";
 						if (member.isInner) output += "&lt;inner&gt; ";
