@@ -67,7 +67,7 @@ bigshot.HTMLElementLayer.prototype = {
     },
     
     setMaxTiles : function (mtx, mty) {
-    },
+    }
 }
 
 bigshot.object.validate ("bigshot.HTMLElementLayer", bigshot.Layer);
