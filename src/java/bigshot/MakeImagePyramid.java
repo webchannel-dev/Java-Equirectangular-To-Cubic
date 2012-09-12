@@ -249,6 +249,12 @@ public class MakeImagePyramid {
         return (i & (i - 1)) == 0;
     }
     
+    protected static void putIfEmpty (Map<String,String> parameters, String key, String value) {
+        if (!parameters.containsKey (key)) {
+            parameters.put (key, value);
+        }
+    }
+    
     protected static void presetDziCubemap (Map<String,String> parameters) throws Exception {
         int overlap = getParameterAsInt (parameters, "overlap", 2);
         int tileSize = getParameterAsInt (parameters, "tile-size", 256 - overlap);
@@ -261,16 +267,16 @@ public class MakeImagePyramid {
             System.err.println ("WARNING: face-size is not an even multiple of tile-size:" + faceSize + " % " + tileSize + " != 0");
         }
         
-        parameters.put ("overlap", String.valueOf (overlap));
-        parameters.put ("tile-size", String.valueOf (tileSize));
-        parameters.put ("face-size", String.valueOf (faceSize));
-        parameters.put ("transform", "facemap");
+        putIfEmpty (parameters, "overlap", String.valueOf (overlap));
+        putIfEmpty (parameters, "tile-size", String.valueOf (tileSize));
+        putIfEmpty (parameters, "face-size", String.valueOf (faceSize));
+        putIfEmpty (parameters, "transform", "facemap");
         
         int levels = (int) Math.ceil (Math.log (faceSize + overlap) / Math.log (2));
-        parameters.put ("levels", String.valueOf (levels + 1));
-        parameters.put ("descriptor-format", "dzi");
-        parameters.put ("folder-layout", "dzi");
-        parameters.put ("level-numbering", "invert");
+        putIfEmpty (parameters, "levels", String.valueOf (levels + 1));
+        putIfEmpty (parameters, "descriptor-format", "dzi");
+        putIfEmpty (parameters, "folder-layout", "dzi");
+        putIfEmpty (parameters, "level-numbering", "invert");
     }
     
     public static void main (String[] args) throws Exception {
@@ -302,20 +308,39 @@ public class MakeImagePyramid {
             presetDziCubemap (parameters);
         }
         
-        boolean makeVr = "facemap".equals (parameters.get ("transform"));
-        
-        if (makeVr) {
+        if ("facemap".equals (parameters.get ("transform")) || "cylinder-facemap".equals (parameters.get ("transform"))) {
             boolean archive = "archive".equals (parameters.get ("format"));
             
             File facesOut = File.createTempFile ("makeimagepyramid", "bigshot");
             facesOut.delete ();
             facesOut.mkdirs ();
             try {
-                File[] faces = EquirectangularToCubic.transformToFaces (
-                    input, facesOut, 
+                File[] faces = null;
+                AbstractCubicTransform xform = null;
+                if ("cylinder-facemap".equals (parameters.get ("transform"))) {
+                    xform = new CylindricalToCubic ()
+                        .input (input);
+                } else {
+                    xform = new EquirectangularToCubic ()
+                        .input (input);
+                }
+                if (parameters.containsKey ("transform-pto")) {
+                    xform.fromHuginPto (new File (parameters.get ("transform-pto")));
+                }
+                if (parameters.containsKey ("input-vfov")) {
+                    xform.inputVfov (getParameterAsDouble (parameters, "input-vfov", 90));
+                }
+                if (parameters.containsKey ("input-horizon")) {
+                    xform.inputHorizon (getParameterAsInt (parameters, "input-horizon", 0));
+                }
+                
+                faces = EquirectangularToCubic.transformToFaces (
+                    xform, 
+                    facesOut, 
                     getParameterAsInt (parameters, "face-size", 2048) + getParameterAsInt (parameters, "overlap", 0),
                     getParameterAsDouble (parameters, "front-at", 0.0), 0.0, 0.0
                     );
+                
                 parameters.remove ("format");
                 parameters.remove ("folder-layout");
                 

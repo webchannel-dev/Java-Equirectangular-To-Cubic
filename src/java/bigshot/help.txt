@@ -68,12 +68,16 @@ Options:
         if --image-format is "jpg"
         Default: 0.7
 
-    --transform facemap
+    --transform facemap|cylinder-facemap|face
         Applies a transform to the input image. Possible values
         are:
 
         facemap
             Assumes that the input image is an equirectangular
+            map. Produces a cube map of six image pyramids.
+
+        cylinder-facemap
+            Assumes that the input image is an cylindrical map
             map. Produces a cube map of six image pyramids.
 
         face
@@ -141,18 +145,32 @@ Options:
 
     --yaw-offset
         The initial yaw offset to apply when using the "face"
-        or "facemap" transforms.
+        or "*-facemap" transforms.
         Default: 0
 
     --pitch-offset
         The initial pitch offset to apply when using the "face"
-        or "facemap" transforms.
+        or "*-facemap" transforms.
         Default: 0
 
     --roll-offset
         The initial roll offset to apply when using the "face"
-        or "facemap" transforms.
+        or "*-facemap" transforms.
         Default: 0
+
+    --input-horizon
+        For the "*-facemap" transforms, the y-coordinate of
+        the horizon in the map image.
+
+    --input-vfov
+        For the "*-facemap" transforms, the vertical field of
+        view of the map image.
+
+    --transform-pto
+        For the "*-facemap" transforms, sets the input-vfov
+        and input-horizon parameters from a Hugin .pto file.
+        Note: You must still specify the transform (cylindrical
+        or equirectangular).
 
     --oversampling
         The resolution, along each axis, of the oversampling 
@@ -189,3 +207,17 @@ Example:
     Creates a Deep Zoom Image cubic facemap from an 
     equirectangular image map, and allocates 800MB
     to the program.
+
+    java -Xmx800M -jar bigshot.jar big.jpg big.bigshot 
+        --preset dzi-cubemap
+        --input-vfov 124.4
+        --input-horizon 2655
+        --tile-size 510
+        --face-size 2040
+        --format archive
+            
+    Creates a Deep Zoom Image cubic facemap from an 
+    equirectangular image map, allocating 800MB
+    to the program and setting the vertical field
+    of view and horizon position. This is what was used
+    to create the Mars demo panorama.

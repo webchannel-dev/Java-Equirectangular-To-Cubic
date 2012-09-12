@@ -20,8 +20,12 @@
         </title>
         <style>
             body {
+                margin: 0px;
+                padding: 0px;
                 font-family: Arial;
-                font-size: 9pt;
+                font-size: 10pt;
+                background-color: black;
+                overflow: hidden;
             }
             
             div.bigshotContainer {
@@ -88,6 +92,14 @@
             div.hotspot:hover div.label {
                 visibility: visible;
             }
+            
+            div.controls {
+                padding: 4px;
+            }
+            
+            button.control {
+                width: 96px;
+            }
         </style>
         <script src="../js/bigshot.js?preprocessor=true">/* */</script>
         <script>
@@ -108,7 +120,13 @@
                         }));
                 
                 jsi.zoomToFit (0);
-                jsi.onresize ();
+                var onresize = function (e) {
+                    container.style.width = window.innerWidth + "px";
+                    container.style.height = window.innerHeight + "px";
+                    jsi.onresize ();
+                };
+                window.onresize = onresize;
+                onresize ();
                 
                 var browser = new bigshot.Browser ();
                 browser.stopMouseEventBubbling (document.getElementById ("bigshotControls"));
@@ -131,12 +149,8 @@
             }
             
             function fullScreen () {
-                var span = document.getElementById ("fullscreen");
                 var container = document.getElementById ("container");
-                span.style.visibility = "hidden";
-                jsi.fullScreen (function () {
-                        span.style.visibility = "inherit";
-                    });
+                jsi.fullScreen ({});
             }
             
             function flashUI () {
@@ -147,35 +161,23 @@
     <body onload="myonload();">
         <div>
             <div style="position: relative; background:black; overflow:hidden; height:600px;" id="container" class="bigshotContainer">
-                <div style="position:absolute; left:50%;">
-                    <div id="bigshotControls" class="bigshotControls">
-                        <p>
-                        <a href="#" onclick="zoomOut(); return false;">-</a> | 
-                        <a href="#" onclick="zoomIn(); return false;">+</a> | 
-                        <a href="#" onclick="smoothIn(); return false;">Zoom in on center</a> | 
-                        <a href="#" onclick="toHotspot(); return false;">Pan to hotspot</a> |
-                        <a href="#" onclick="jsi.flyZoomToFit (); return false;">Zoom to Fit</a> |
-                            <a href="#" onclick="jsi.zoomToFill (); return false;">Zoom to Fill</a>
-                        <span id="fullscreen"> | <a onclick="fullScreen (); return false;" href="#">Fullscreen</a></span>
-                        </p>
-                    </div>
-                </div>
             </div>
         </div>
-        <div class="mobileui">
-            <table width="100%">
-                <tr>
-                    <td width="30%">
-                        <button style="width:100%; font-size: 20pt;" type="button" onclick="zoomIn(); return false">In</button>
-                    </td>
-                    <td width="30%">
-                        <button style="width:100%; font-size: 20pt;" type="button" onclick="zoomOut(); return false">Out</button>
-                    </td>
-                    <td width="30%">
-                        <button style="width:100%; font-size: 20pt;" type="button" onclick="fullScreen(); return false">Fullscreen</button>
-                    </td>
-                </tr>
-            </table>
+        <div style="position:absolute; z-index:2; left: 0px; top:0px; width:100%;">
+            <div style="color:white; position:relative; background-color:rgba(0,0,0,0.8); border:1px solid rgba(0,0,0,0.7);">
+                <p style="margin: 0px; text-align:center">
+                Zoom: 
+                <button class="control" onclick="zoomOut(); return false;" type="button">Out</button>
+                <button class="control" onclick="zoomIn (); return false;" type="button">In</button>
+                <button class="control" onclick="smoothIn(); return false;" type="button">To Center</button>
+                <button class="control" onclick="toHotspot(); return false;" type="button">To Hotspot</button>
+                <button class="control" onclick="jsi.flyZoomToFit (); return false;" type="button">Fit</button>
+                <button class="control" onclick="jsi.zoomToFill (); return false;" type="button">Fill</button>
+                
+                &#160;&#160;&#160;&#160;View:
+                <button class="control" onclick="fullScreen (); return false;" type="button">Fullscreen</button>
+                </p>
+            </div>
         </div>
     </body>
 </html>

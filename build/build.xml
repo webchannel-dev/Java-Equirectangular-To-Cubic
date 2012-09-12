@@ -162,7 +162,7 @@
         <!--
         <mkdir dir="${temp}/vr.bigshot"/>
         <delete includeEmptyDirs="true">
-            <fileset dir="${temp}/vr.bigshot"/>
+        <fileset dir="${temp}/vr.bigshot"/>
         </delete>
         -->
         <java fork="yes" jar="${package-dir}/bigshot.jar"
@@ -179,7 +179,69 @@
             
             <arg value="--format"/>
             <arg value="archive"/>
-
+            
+            <jvmarg value="-Xmx1024M"/>
+        </java>
+    </target>
+    
+    <target name="build-cylinder-vr">
+        <!--
+        <mkdir dir="${temp}/vr.bigshot"/>
+        <delete includeEmptyDirs="true">
+        <fileset dir="${temp}/vr.bigshot"/>
+        </delete>
+        -->
+        <java fork="yes" jar="${package-dir}/bigshot.jar"
+            dir="${basedir}">
+            <arg value="${basedir}/test/cyl-sample.jpg"/>
+            <arg value="${temp}/cyl-vr.bigshot"/>
+            <arg value="--preset"/>
+            <arg value="dzi-cubemap"/>
+            
+            <arg value="--transform"/>
+            <arg value="cylinder-facemap"/>
+            <arg value="--transform-pto"/>
+            <arg value="${basedir}/test/cyl-sample.pto"/>
+            
+            <arg value="--tile-size"/>
+            <arg value="510"/>
+            <arg value="--face-size"/>
+            <arg value="2040"/>
+            
+            <arg value="--format"/>
+            <arg value="archive"/>
+            
+            <jvmarg value="-Xmx1024M"/>
+        </java>
+    </target>
+    
+    <target name="build-mars-vr">
+        <!--
+        <mkdir dir="${temp}/vr.bigshot"/>
+        <delete includeEmptyDirs="true">
+        <fileset dir="${temp}/vr.bigshot"/>
+        </delete>
+        -->
+        <java fork="yes" jar="${package-dir}/bigshot.jar"
+            dir="${basedir}">
+            <arg value="${basedir}/test/mars-sample.jpg"/>
+            <arg value="${temp}/mars-vr.bigshot"/>
+            <arg value="--preset"/>
+            <arg value="dzi-cubemap"/>
+            
+            <arg value="--input-vfov"/>
+            <arg value="124.4"/>
+            <arg value="--input-horizon"/>
+            <arg value="664"/>
+            
+            <arg value="--tile-size"/>
+            <arg value="510"/>
+            <arg value="--face-size"/>
+            <arg value="2040"/>
+            
+            <arg value="--format"/>
+            <arg value="archive"/>
+            
             <jvmarg value="-Xmx1024M"/>
         </java>
     </target>
@@ -204,50 +266,50 @@
             <arg value="/src/test/index.html"/>
         </java>
     </target>
-	
-	<target name="test-hires">
+    
+    <target name="test-hires">
         <!--
         <mkdir dir="${temp}/vr.bigshot"/>
         <delete includeEmptyDirs="true">
-            <fileset dir="${temp}/vr.bigshot"/>
+        <fileset dir="${temp}/vr.bigshot"/>
         </delete>
         -->
         <java fork="yes" jar="${package-dir}/bigshot.jar"
             dir="${basedir}">
             <arg value="${basedir}/test/vr-sample.jpg"/>
             <arg value="${temp}/hires.png"/>
-			
+            
             <arg value="--transform"/>
             <arg value="face"/>
-			
-			<arg value="--image-format"/>
+            
+            <arg value="--image-format"/>
             <arg value="png"/>			
-			
+            
             <arg value="--yaw"/>
             <arg value="238"/>
-			<arg value="--pitch"/>
+            <arg value="--pitch"/>
             <arg value="-12"/>
-			<arg value="--fov"/>
+            <arg value="--fov"/>
             <arg value="90"/>
-			
-			<arg value="--yaw-offset"/>
+            
+            <arg value="--yaw-offset"/>
             <arg value="151"/>
-			<arg value="--pitch-offset"/>
+            <arg value="--pitch-offset"/>
             <arg value="-0.25"/>
-			<arg value="--roll-offset"/>
+            <arg value="--roll-offset"/>
             <arg value="-1.0"/>
-			
-			<arg value="--output-width"/>
+            
+            <arg value="--output-width"/>
             <arg value="2480"/>
-			<arg value="--output-height"/>
+            <arg value="--output-height"/>
             <arg value="3500"/>
-			
-			<arg value="--oversampling"/>
+            
+            <arg value="--oversampling"/>
             <arg value="2"/>
-			
-			<arg value="--jitter"/>
+            
+            <arg value="--jitter"/>
             <arg value="0.2"/>
-			
+            
             <jvmarg value="-Xmx1224M"/>
         </java>
     </target>
@@ -258,6 +320,9 @@
         <antcall target="package"/>
         <antcall target="build-image"/>
         <antcall target="build-vr"/>
+        <antcall target="build-cylinder-vr"/>
+        <antcall target="build-equi-vr"/>
+        <antcall target="build-mars-vr"/>
         <antcall target="host"/>
     </target>
     

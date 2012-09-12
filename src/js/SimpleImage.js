@@ -29,8 +29,9 @@
  *
  * @param {bigshot.ImageParameters} parameters the image parameters. Required fields are: <code>container</code>. 
  * If the <code>imgElement</code> parameter is not given, then <code>basePath</code>, <code>width</code> and <code>height</code> are also required. The
- * following parameters are not supported and should be left as defaults: <code>fileSystem</code>, <code>fileSystemType</code>, <code>maxTextureMagnification</code>, 
- * <code>wrapX</code>, <code>wrapY</code> and <code>tileSize</code>. 
+ * following parameters are not supported and should be left as defaults: <code>fileSystem</code>, <code>fileSystemType</code>, 
+ * <code>maxTextureMagnification</code> and <code>tileSize</code>. <code>wrapX</code> and <code>wrapY</code> may only be used if the imgElement is <b>not</b>
+ * set.
  * 
  * @param {HTMLImageElement} [imgElement] an img element to use. The element should have <code>style.position = "absolute"</code>.
  * @see bigshot.ImageBase#dispose
@@ -42,8 +43,6 @@ bigshot.SimpleImage = function (parameters, imgElement) {
             fileSystem : null,
             fileSystemType : "simple",
             maxTextureMagnification : 1.0,
-            wrapX : false,
-            wrapY : false,
             tileSize : 1024
         }, true);
     
@@ -66,13 +65,27 @@ bigshot.SimpleImage = function (parameters, imgElement) {
 bigshot.SimpleImage.prototype = {
     setupLayers : function () {
         if (!this.imgElement) {
+            /*
             this.imgElement = document.createElement ("img");
             this.imgElement.src = this.parameters.basePath;
             this.imgElement.style.position = "absolute";
+            */
+            this.imgElement = document.createElement ("div");
+            this.imgElement.style.backgroundImage = "url('" + this.parameters.basePath + "')";
+            this.imgElement.style.position = "absolute";
+            if (!this.parameters.wrapX && !this.parameters.wrapY) {
+                this.imgElement.style.backgroundRepeat = "no-repeat";
+            } else if (this.parameters.wrapX && !this.parameters.wrapY) {
+                this.imgElement.style.backgroundRepeat = "repeat-x";
+            } else if (!this.parameters.wrapX && this.parameters.wrapY) {
+                this.imgElement.style.backgroundRepeat = "repeat-y";
+            } else if (this.parameters.wrapX && this.parameters.wrapY) {
+                this.imgElement.style.backgroundRepeat = "repeat";
+            }
         }
         
         this.addLayer (
-            new bigshot.HTMLElementLayer (this, this.imgElement, this.parameters.width, this.parameters.height)
+            new bigshot.HTMLDivElementLayer (this, this.imgElement, this.parameters.width, this.parameters.height, this.parameters.wrapX, this.parameters.wrapY)
         );
     }
 };

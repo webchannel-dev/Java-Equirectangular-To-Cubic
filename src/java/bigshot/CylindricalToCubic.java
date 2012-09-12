@@ -17,6 +17,7 @@ package bigshot;
 
 import java.io.File;
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.FileReader;
 import java.io.PrintStream;
 import java.io.FileOutputStream;
@@ -45,24 +46,16 @@ import java.util.List;
  * Transforms an equirectangular image map to rectilinear images. Used to create a cube map
  * for <a href="../../js/symbols/bigshot.VRPanorama.html">bigshot.VRPanorama</a>.
  */
-public class EquirectangularToCubic extends AbstractCubicTransform<EquirectangularToCubic> {
+public class CylindricalToCubic extends AbstractCubicTransform<CylindricalToCubic> {
     
     /**
      * Creates a new transform instance.
      */
-    public EquirectangularToCubic () {
+    public CylindricalToCubic () {
     }
     
     @Override
-    public EquirectangularToCubic input (Image input) {
-        if (this.inputVfov < 0) {
-            this.inputVfov (180);
-        }
-        return super.input (input);
-    }
-    
-    @Override
-        public EquirectangularToCubic fromHuginPtoParameters (int w, int h, double v, int cropLeft, int cropRight, int cropTop, int cropBottom) {
+        public CylindricalToCubic fromHuginPtoParameters (int w, int h, double v, int cropLeft, int cropRight, int cropTop, int cropBottom) {
         // figure out the horizon
         this.inputHorizon = (int) (h / 2 - cropTop);
         
@@ -70,21 +63,22 @@ public class EquirectangularToCubic extends AbstractCubicTransform<Equirectangul
         v = Math.PI * 2 * v / 360.0;
         
         double pa = v / w;
-        double p = pa;
+        double p = Math.tan (pa);
         
         // The input vfov is twice the angle at which we are input.height()/2 pixels away from the horizon
+        double H2 = (input.height() / 2) * p;
         
-        this.inputVfov = input.height() * p;
+        this.inputVfov = Math.atan (H2) * 2;
         this.inputHfov = v;
         
         return this;
     }
     
-    
     /**
      * Performs the transformation.
      */
-    public Image transform () throws Exception {
+    @Override
+        public Image transform () throws Exception {
         final Image output = new Image (width, height);
         
         final Point3D topLeft = new Point3D (-Math.tan (vfov / 2) * width / height, -Math.tan (vfov / 2), 1.0);
@@ -155,7 +149,7 @@ public class EquirectangularToCubic extends AbstractCubicTransform<Equirectangul
                                     }
                                     
                                     double inX = (theta / (inputHfov / 2)) * (input.width () / 2) + input.width () / 2;
-                                    double inY = (phi / (inputVfov / 2)) * (input.height () / 2) + inputHorizon;
+                                    double inY = Math.tan (phi) / Math.tan (inputVfov / 2) * (input.height () / 2) + inputHorizon;
                                     
                                     
                                     if (inY >= 0 && inY < input.height () && (horizontalWrap || (inX >= 0 && inX < input.width ()))) {
@@ -223,7 +217,7 @@ public class EquirectangularToCubic extends AbstractCubicTransform<Equirectangul
      * @param roll the roll angle of the viewer, in degrees
      */
     public static Image transformToFace (Image in, int outputSize, double vfov, double oy, double op, double or, double yaw, double pitch, double roll) throws Exception {
-        return new EquirectangularToCubic ()
+        return new CylindricalToCubic ()
             .input (in)
             .vfov (vfov)
             .offset (oy, op, or)

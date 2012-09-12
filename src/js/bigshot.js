@@ -86,6 +86,7 @@ if (!self["bigshot"]) {
     #include ImageBase.js
     #include Image.js
     #include HTMLElementLayer.js
+    #include HTMLDivElementLayer.js
     #include SimpleImage.js
     #include FileSystem.js
     #include SimpleFileSystem.js
