@@ -178,7 +178,7 @@ public abstract class AbstractCubicTransform<Derived extends AbstractCubicTransf
     
     /**
      * Loads projection parameters from a Hugin {@code .pto} file.
-     * Subclasses should override the {@lnk #fromHuginPtoParameters} method
+     * Subclasses should override the {@link #fromHuginPtoParameters} method
      * to actually set the projection parameters.
      */
     public Derived fromHuginPto (File ptoFile) throws IOException {
@@ -328,7 +328,7 @@ public abstract class AbstractCubicTransform<Derived extends AbstractCubicTransf
      * This is automatically set to true of the horizontal field of view
      * is set to 360.
      *
-     * @param inputHfov the field of view in degrees
+     * @param horizontalWrap if set to true, indicates that the input image wraps around horizontally
      */ 
     public Derived horizontalWrap (boolean horizontalWrap) {
         this.horizontalWrap = horizontalWrap;
