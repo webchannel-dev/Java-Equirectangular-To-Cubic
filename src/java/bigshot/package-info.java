@@ -17,7 +17,9 @@
 /**
  * Contains classes for image transformation, as well as image pyramid and VR cube generation.
  *
+ * @see bigshot.MakeImagePyramid
  * @see bigshot.EquirectangularToCubic
+ * @see bigshot.CylindricalToCubic
  */
 package bigshot;
 

@@ -421,6 +421,35 @@ public abstract class AbstractCubicTransform<Derived extends AbstractCubicTransf
     public abstract Image transform () throws Exception;
     
     /**
+     * Transforms an equirectangular map to six VR cube faces. This method modifies the view (yaw, pitch and roll) values for
+     * this transform.
+     *
+     * @param outputBase the base directory to output the cube faces to
+     * @return the resulting faces as PNG files in the outputBase directory. They are named "face_f.png", "face_r.png", "face_b.png", "face_l.png",
+     * "face_u.png" and "face_d.png", for "Front", "Right", "Back", "Left", "Up" and "Down" respectively.
+     */
+    public File[] transformToFaces (File outputBase) throws Exception {
+        final File[] files = new File[]{
+            new File (outputBase, "face_f.png"),
+            new File (outputBase, "face_r.png"),
+            new File (outputBase, "face_b.png"),
+            new File (outputBase, "face_l.png"),
+            new File (outputBase, "face_u.png"),
+            new File (outputBase, "face_d.png")
+            };
+        
+        view (  0,   0, 0).transform ().write (files[0]);
+        view ( 90,   0, 0).transform ().write (files[1]);
+        view (180,   0, 0).transform ().write (files[2]);
+        view (-90,   0, 0).transform ().write (files[3]);
+        view (  0,  90, 0).transform ().write (files[4]);
+        view (  0, -90, 0).transform ().write (files[5]);
+        
+        return files;
+    }
+    
+    
+    /**
      * Convenience function to load an image from a file.
      *
      * @param imageName the image to load
@@ -431,7 +460,7 @@ public abstract class AbstractCubicTransform<Derived extends AbstractCubicTransf
     }
     
     /**
-     * Transforms an equirectangular map to six VR cube faces.
+     * Executes a transformation six times to produce six VR cube faces.
      *
      * @param xform the transform to use. Its input must be set.
      * @param outputBase the base directory to output the cube faces to

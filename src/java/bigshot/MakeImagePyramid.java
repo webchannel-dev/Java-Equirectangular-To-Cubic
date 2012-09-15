@@ -320,12 +320,16 @@ public class MakeImagePyramid {
                 File[] faces = null;
                 AbstractCubicTransform xform = null;
                 if (parameters.transform () == ImagePyramidParameters.Transform.CYLINDER_FACEMAP) {
-                    xform = new CylindricalToCubic ()
-                        .input (input);
+                    xform = new CylindricalToCubic ();
                 } else {
-                    xform = new EquirectangularToCubic ()
-                        .input (input);
+                    xform = new EquirectangularToCubic ();
                 }
+                int xformFaceSize = parameters.optFaceSize (2048) + parameters.optOverlap (0);
+                xform.input (input)
+                    .vfov (90)
+                    .size (xformFaceSize, xformFaceSize)
+                    .offset (parameters.optYawOffset (0), parameters.optPitchOffset (0), parameters.optRollOffset (0));
+                
                 if (parameters.containsKey (ImagePyramidParameters.TRANSFORM_PTO)) {
                     xform.fromHuginPto (new File (parameters.transformPto ()));
                 }
@@ -341,12 +345,7 @@ public class MakeImagePyramid {
                 
                 System.out.println (String.format (Locale.US, "Input FOV: %.2f x %.2f degrees", xform.inputHfov (), xform.inputVfov ()));
                 
-                faces = AbstractCubicTransform.transformToFaces (
-                    xform, 
-                    facesOut, 
-                    parameters.optFaceSize (2048) + parameters.optOverlap (0),
-                    parameters.optYawOffset (0), parameters.optPitchOffset (0), parameters.optRollOffset (0)
-                    );
+                faces = xform.transformToFaces (facesOut);
                 
                 parameters.remove (ImagePyramidParameters.FORMAT);
                 parameters.remove (ImagePyramidParameters.FOLDER_LAYOUT);
