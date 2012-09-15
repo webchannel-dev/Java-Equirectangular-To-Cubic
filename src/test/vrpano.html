@@ -152,7 +152,7 @@
                 bvr.addHotspot (new bigshot.VRRectangleHotspot (bvr, -10, -8, 10, 2, hotspot));
                 
                 var hotspot2 = document.getElementById ("hotspot2");
-                var hs2 = new bigshot.VRPointHotspot (bvr, 0, -8, hotspot2, -16, -16);
+                var hs2 = new bigshot.VRPointHotspot (bvr, 10, -8, hotspot2, -16, -16);
                 hs2.clippingStrategy = bigshot.VRHotspot.CLIP_FADE (bvr, 32);
                 bvr.addHotspot (hs2);
                 bvr.render ();
@@ -215,7 +215,7 @@
                         <div style="position:absolute; left: 50%; top:100%;">
                             <div class="hotspot_label" style="position:absolute; width:30em; left: -15em; top: 16px; text-align:center">
                                 <span style="background:black; color:white; padding:4px; font-family:arial; font-size: 10pt;">
-                                    Parliament Building ("Riksdagen")
+                                    A Rectangular Hotspot
                                 </span>
                             </div>
                         </div>

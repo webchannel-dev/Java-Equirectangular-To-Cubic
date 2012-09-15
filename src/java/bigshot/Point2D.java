@@ -16,7 +16,7 @@
 package bigshot;
 
 /**
- * A 3D point
+ * A 2D point
  */
 public class Point2D {
     public double x;
