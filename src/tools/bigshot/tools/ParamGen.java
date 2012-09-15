@@ -82,6 +82,7 @@ public class ParamGen {
                     out.println ("     private final String stringified;");
                     out.println ("     " + name + " (String stringified) { this.stringified = stringified; }");
                     out.println ("     public String toString () { return stringified; }");
+                    out.println ("     public static " + name + " valueOfKey (String key) { for (" + name + " n : values()) { if (n.toString ().equals (key)) { return n; } } throw new IllegalArgumentException (key); }");
                     
                     out.println ("     }");
                     
@@ -100,7 +101,7 @@ public class ParamGen {
                     out.println ("     */");
                     out.println ("    public " + name + " opt" + name + " (" + name + " defaultValue) {");
                     out.println ("        if (containsKey (" + staticMember + ")) {");
-                    out.println ("            return " + name + ".valueOf (get (" + staticMember + "));");
+                    out.println ("            return " + name + ".valueOfKey (get (" + staticMember + "));");
                     out.println ("        } else {");    
                     out.println ("            return defaultValue;");
                     out.println ("        }");
@@ -109,7 +110,7 @@ public class ParamGen {
                     out.println ("    /** " + comment + " */");
                     out.println ("    public " + name + " " + toMethod (name) + " () {");
                     out.println ("        if (containsKey (" + staticMember + ")) {");
-                    out.println ("            return " + name + ".valueOf (get (" + staticMember + "));");
+                    out.println ("            return " + name + ".valueOfKey (get (" + staticMember + "));");
                     out.println ("        } else {");    
                     out.println ("            return null;");
                     out.println ("        }");

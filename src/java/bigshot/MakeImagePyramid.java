@@ -47,7 +47,7 @@ public class MakeImagePyramid {
         public void setFullSize (int width, int height);
         public void setTileSize (int tileSize, int overlap, int minZoom);
         public void setPosterSize (int posterSize, int pw, int ph);
-        public void configure (Map<String,String> parameters);
+        public void configure (ImagePyramidParameters parameters);
         public void output (File targetFile) throws Exception;
     }
     
@@ -72,7 +72,7 @@ public class MakeImagePyramid {
             descriptor.append (":posterSize:" + posterSize + ":posterWidth:" + pw + ":posterHeight:" + ph);
         }
         
-        public void configure (Map<String,String> parameters) {
+        public void configure (ImagePyramidParameters parameters) {
             
         }
         
@@ -120,7 +120,7 @@ public class MakeImagePyramid {
         public void setPosterSize (int posterSize, int pw, int ph) {
         }
         
-        public void configure (Map<String,String> parameters) {
+        public void configure (ImagePyramidParameters parameters) {
             
         }
         
@@ -151,7 +151,7 @@ public class MakeImagePyramid {
     private static interface Output {
         public void write (BufferedImage image, File output) throws Exception;
         public String getSuffix ();
-        public void configure (Map<String,String> parameters);
+        public void configure (ImagePyramidParameters parameters);
     }
     
     private static class PngOutput implements Output {
@@ -163,7 +163,7 @@ public class MakeImagePyramid {
             ImageIO.write (image, "PNG", output);
         }
         
-        public void configure (Map<String,String> parameters) {
+        public void configure (ImagePyramidParameters parameters) {
         }
     }
     
@@ -171,8 +171,8 @@ public class MakeImagePyramid {
         
         private double quality;
         
-        public void configure (Map<String,String> parameters) {
-            quality = getParameterAsDouble (parameters, "jpeg-quality", 0.7);
+        public void configure (ImagePyramidParameters parameters) {
+            quality = parameters.optJpegQuality (0.7f);
         }
         
         public String getSuffix () {
@@ -250,16 +250,10 @@ public class MakeImagePyramid {
         return (i & (i - 1)) == 0;
     }
     
-    protected static void putIfEmpty (Map<String,String> parameters, String key, String value) {
-        if (!parameters.containsKey (key)) {
-            parameters.put (key, value);
-        }
-    }
-    
-    protected static void presetDziCubemap (Map<String,String> parameters) throws Exception {
-        int overlap = getParameterAsInt (parameters, "overlap", 2);
-        int tileSize = getParameterAsInt (parameters, "tile-size", 256 - overlap);
-        int faceSize = getParameterAsInt (parameters, "face-size", 8 * tileSize);
+    protected static void presetDziCubemap (ImagePyramidParameters parameters) throws Exception {
+        int overlap = parameters.optOverlap (2);
+        int tileSize = parameters.optTileSize (256 - overlap);
+        int faceSize = parameters.optFaceSize (8 * tileSize);
         
         if (!isPowerOfTwo (tileSize + overlap)) {
             System.err.println ("WARNING: Resulting image tile size (tile-size + overlap) is not a power of two:" + (tileSize + overlap));
@@ -268,16 +262,16 @@ public class MakeImagePyramid {
             System.err.println ("WARNING: face-size is not an even multiple of tile-size:" + faceSize + " % " + tileSize + " != 0");
         }
         
-        putIfEmpty (parameters, "overlap", String.valueOf (overlap));
-        putIfEmpty (parameters, "tile-size", String.valueOf (tileSize));
-        putIfEmpty (parameters, "face-size", String.valueOf (faceSize));
-        putIfEmpty (parameters, "transform", "facemap");
+        parameters.putIfEmpty (ImagePyramidParameters.OVERLAP, String.valueOf (overlap));
+        parameters.putIfEmpty (ImagePyramidParameters.TILE_SIZE, String.valueOf (tileSize));
+        parameters.putIfEmpty (ImagePyramidParameters.FACE_SIZE, String.valueOf (faceSize));
+        parameters.putIfEmpty (ImagePyramidParameters.TRANSFORM, ImagePyramidParameters.Transform.FACEMAP.toString ());
         
         int levels = (int) Math.ceil (Math.log (faceSize + overlap) / Math.log (2));
-        putIfEmpty (parameters, "levels", String.valueOf (levels + 1));
-        putIfEmpty (parameters, "descriptor-format", "dzi");
-        putIfEmpty (parameters, "folder-layout", "dzi");
-        putIfEmpty (parameters, "level-numbering", "invert");
+        parameters.putIfEmpty (ImagePyramidParameters.LEVELS, String.valueOf (levels + 1));
+        parameters.putIfEmpty (ImagePyramidParameters.DESCRIPTOR_FORMAT, ImagePyramidParameters.DescriptorFormat.DZI.toString ());
+        parameters.putIfEmpty (ImagePyramidParameters.FOLDER_LAYOUT, ImagePyramidParameters.FolderLayout.DZI.toString ());
+        parameters.putIfEmpty (ImagePyramidParameters.LEVEL_NUMBERING, ImagePyramidParameters.LevelNumbering.INVERT.toString ());
     }
     
     public static void main (String[] args) throws Exception {
@@ -300,17 +294,24 @@ public class MakeImagePyramid {
                 }
             }
             
-            process (input, outputBase, parameters);
+            process (input, outputBase, new ImagePyramidParameters (parameters));
         }
     }
     
-    public static void process (File input, File outputBase, Map<String,String> parameters) throws Exception {
-        if ("dzi-cubemap".equals (parameters.get ("preset"))) {
+    /**
+     * Creates an image pyramid.
+     * 
+     * @param input the input image map
+     * @param outputBase the output base directory (for folder output) or bigshot archive file (for archive output)
+     */
+    public static void process (File input, File outputBase, ImagePyramidParameters parameters) throws Exception {
+        if (parameters.preset () == ImagePyramidParameters.Preset.DZI_CUBEMAP) {
             presetDziCubemap (parameters);
         }
         
-        if ("facemap".equals (parameters.get ("transform")) || "cylinder-facemap".equals (parameters.get ("transform"))) {
-            boolean archive = "archive".equals (parameters.get ("format"));
+        if (parameters.transform () == ImagePyramidParameters.Transform.FACEMAP || 
+            parameters.transform () == ImagePyramidParameters.Transform.CYLINDER_FACEMAP) {
+            boolean archive = parameters.format () == ImagePyramidParameters.Format.ARCHIVE;
             
             File facesOut = File.createTempFile ("makeimagepyramid", "bigshot");
             facesOut.delete ();
@@ -318,24 +319,24 @@ public class MakeImagePyramid {
             try {
                 File[] faces = null;
                 AbstractCubicTransform xform = null;
-                if ("cylinder-facemap".equals (parameters.get ("transform"))) {
+                if (parameters.transform () == ImagePyramidParameters.Transform.CYLINDER_FACEMAP) {
                     xform = new CylindricalToCubic ()
                         .input (input);
                 } else {
                     xform = new EquirectangularToCubic ()
                         .input (input);
                 }
-                if (parameters.containsKey ("transform-pto")) {
-                    xform.fromHuginPto (new File (parameters.get ("transform-pto")));
+                if (parameters.containsKey (ImagePyramidParameters.TRANSFORM_PTO)) {
+                    xform.fromHuginPto (new File (parameters.transformPto ()));
                 }
-                if (parameters.containsKey ("input-vfov")) {
-                    xform.inputVfov (getParameterAsDouble (parameters, "input-vfov", 90));
+                if (parameters.containsKey (ImagePyramidParameters.INPUT_VFOV)) {
+                    xform.inputVfov (parameters.inputVfov ());
                 }
-                if (parameters.containsKey ("input-hfov")) {
-                    xform.inputHfov (getParameterAsDouble (parameters, "input-hfov", 360));
+                if (parameters.containsKey (ImagePyramidParameters.INPUT_HFOV)) {
+                    xform.inputHfov (parameters.inputHfov ());
                 }
-                if (parameters.containsKey ("input-horizon")) {
-                    xform.inputHorizon (getParameterAsInt (parameters, "input-horizon", 0));
+                if (parameters.containsKey (ImagePyramidParameters.INPUT_HORIZON)) {
+                    xform.inputHorizon (parameters.inputHorizon ());
                 }
                 
                 System.out.println (String.format (Locale.US, "Input FOV: %.2f x %.2f degrees", xform.inputHfov (), xform.inputVfov ()));
@@ -343,12 +344,12 @@ public class MakeImagePyramid {
                 faces = AbstractCubicTransform.transformToFaces (
                     xform, 
                     facesOut, 
-                    getParameterAsInt (parameters, "face-size", 2048) + getParameterAsInt (parameters, "overlap", 0),
-                    getParameterAsDouble (parameters, "front-at", 0.0), 0.0, 0.0
+                    parameters.optFaceSize (2048) + parameters.optOverlap (0),
+                    parameters.optYawOffset (0), parameters.optPitchOffset (0), parameters.optRollOffset (0)
                     );
                 
-                parameters.remove ("format");
-                parameters.remove ("folder-layout");
+                parameters.remove (ImagePyramidParameters.FORMAT);
+                parameters.remove (ImagePyramidParameters.FOLDER_LAYOUT);
                 
                 File pyramidBase = outputBase;
                 if (archive) {
@@ -372,25 +373,25 @@ public class MakeImagePyramid {
             } finally {
                 deleteAll (facesOut);
             }
-        } else if ("face".equals (parameters.get ("transform"))) {
-            double fov = getParameterAsDouble (parameters, "fov", 60);
-            double yaw = getParameterAsDouble (parameters, "yaw", 0);
-            double pitch = getParameterAsDouble (parameters, "pitch", 0);
-            double roll = getParameterAsDouble (parameters, "roll", 0);
-            double yawOffset = getParameterAsDouble (parameters, "yaw-offset", 0);
-            double pitchOffset = getParameterAsDouble (parameters, "pitch-offset", 0);
-            double rollOffset = getParameterAsDouble (parameters, "roll-offset", 0);
-            int oversampling = getParameterAsInt (parameters, "oversampling", 1);
-            double jitter = getParameterAsDouble (parameters, "jitter", -1);
+        } else if (parameters.transform () == ImagePyramidParameters.Transform.FACE) {
+            double fov = parameters.optFov (60);
+            double yaw = parameters.optYaw (0);
+            double pitch = parameters.optPitch (0);
+            double roll = parameters.optRoll (0);
+            double yawOffset = parameters.optYawOffset (0);
+            double pitchOffset = parameters.optPitchOffset (0);
+            double rollOffset = parameters.optRollOffset (0);
+            int oversampling = parameters.optOversampling (1);
+            double jitter = parameters.optJitter (-1);
             
-            int outputSizeW = getParameterAsInt (parameters, "output-width", 640);
-            int outputSizeH = getParameterAsInt (parameters, "output-height", 480);
+            int outputSizeW = parameters.optOutputWidth (640);
+            int outputSizeH = parameters.optOutputHeight (480);
             
             Output output = null;
-            String imageFormat = getParameter (parameters, "image-format", "jpg");
-            if ("jpg".equals (imageFormat)) {
+            ImagePyramidParameters.ImageFormat imageFormat = parameters.optImageFormat (ImagePyramidParameters.ImageFormat.JPG);
+            if (ImagePyramidParameters.ImageFormat.JPG == imageFormat) {
                 output = new JpegOutput ();
-            } else if ("png".equals (imageFormat)) {
+            } else if (ImagePyramidParameters.ImageFormat.PNG == imageFormat) {
                 output = new PngOutput ();
             } else {
                 System.err.println ("Unknown image format: \"" + imageFormat + "\". Using JPEG.");
@@ -413,33 +414,6 @@ public class MakeImagePyramid {
             output.write (outImage.toBuffered (), outputBase);
         } else {
             makePyramid (input, outputBase, parameters);
-        }
-    }
-    
-    private static String getParameter (Map<String,String> parameters, String key, String defaultValue) {
-        String v = parameters.get (key);
-        if (v == null) {
-            return defaultValue;
-        } else {
-            return v;
-        }
-    }
-    
-    private static double getParameterAsDouble (Map<String,String> parameters, String key, double defaultValue) {
-        String v = parameters.get (key);
-        if (v == null) {
-            return defaultValue;
-        } else {
-            return Double.parseDouble (v);
-        }
-    }
-    
-    private static int getParameterAsInt (Map<String,String> parameters, String key, int defaultValue) {
-        String v = parameters.get (key);
-        if (v == null) {
-            return defaultValue;
-        } else {
-            return Integer.parseInt (v);
         }
     }
     
@@ -515,11 +489,11 @@ public class MakeImagePyramid {
         }
     }
     
-    protected static void makePyramid (File input, File outputBase, Map<String,String> parameters) throws Exception {
+    protected static void makePyramid (File input, File outputBase, ImagePyramidParameters parameters) throws Exception {
         BufferedImage full = ImageIO.read (input);
         
-        boolean outputPackage = "archive".equals (parameters.get ("format"));
-        boolean dziLayout = "dzi".equals (parameters.get ("folder-layout"));
+        boolean outputPackage = parameters.format () == ImagePyramidParameters.Format.ARCHIVE;
+        boolean dziLayout = parameters.folderLayout () == ImagePyramidParameters.FolderLayout.DZI;
         
         File folders = outputBase;
         
@@ -536,10 +510,10 @@ public class MakeImagePyramid {
         }
         
         Output output = null;
-        String imageFormat = getParameter (parameters, "image-format", "jpg");
-        if ("jpg".equals (imageFormat)) {
+        ImagePyramidParameters.ImageFormat imageFormat = parameters.optImageFormat (ImagePyramidParameters.ImageFormat.JPG);
+        if (ImagePyramidParameters.ImageFormat.JPG == imageFormat) {
             output = new JpegOutput ();
-        } else if ("png".equals (imageFormat)) {
+        } else if (ImagePyramidParameters.ImageFormat.PNG == imageFormat) {
             output = new PngOutput ();
         } else {
             System.err.println ("Unknown image format: \"" + imageFormat + "\". Using JPEG.");
@@ -549,10 +523,10 @@ public class MakeImagePyramid {
         
         
         DescriptorOutput descriptor = null;
-        String descriptorFormat = getParameter (parameters, "descriptor-format", "bigshot");
-        if ("bigshot".equals (descriptorFormat)) {
+        ImagePyramidParameters.DescriptorFormat descriptorFormat = parameters.optDescriptorFormat (ImagePyramidParameters.DescriptorFormat.BIGSHOT);
+        if (ImagePyramidParameters.DescriptorFormat.BIGSHOT.equals (descriptorFormat)) {
             descriptor = new BigshotDescriptorOutput ();
-        } else if ("dzi".equals (descriptorFormat)) {
+        } else if (ImagePyramidParameters.DescriptorFormat.DZI.equals (descriptorFormat)) {
             descriptor = new DziDescriptorOutput ();
         } else {
             System.err.println ("Unknown descriptor format: \"" + descriptorFormat + "\". Using Bigshot.");
@@ -572,7 +546,7 @@ public class MakeImagePyramid {
         int maxDimension = Math.max (w, h);
         
         {
-            int posterSize = getParameterAsInt (parameters, "poster-size", 512);
+            int posterSize = parameters.optPosterSize (512);
             double posterScale = ((double) posterSize) / maxDimension;
             
             int pw = (int) (w * posterScale);
@@ -591,11 +565,11 @@ public class MakeImagePyramid {
         }   
         
         
-        int tileSize = getParameterAsInt (parameters, "tile-size", 256) + getParameterAsInt (parameters, "overlap", 0);
+        int tileSize = parameters.optTileSize (256) + parameters.optOverlap (0);
         int heuristicMaxZoom = (int) (Math.ceil (Math.log (maxDimension) / Math.log (2)) - Math.floor (Math.log (tileSize) / Math.log (2)) + 2);
         
-        int maxZoom = getParameterAsInt (parameters, "levels", (int) heuristicMaxZoom);
-        if (parameters.get ("wrap-x") != null) {
+        int maxZoom = parameters.optLevels ((int) heuristicMaxZoom);
+        if (parameters.optWrapX (false)) {
             maxZoom = 0;
             int wxw = w;
             while (wxw % tileSize == 0) {
@@ -604,11 +578,11 @@ public class MakeImagePyramid {
             }
         }
         
-        int overlap = getParameterAsInt (parameters, "overlap", 0);
+        int overlap = parameters.optOverlap (0);
         System.out.println ("Creating pyramid with " + maxZoom + " levels.");
         for (int zoom = 0; zoom < maxZoom; ++zoom) {
             File outputDir = 
-                "invert".equals (getParameter (parameters, "level-numbering", ""))
+                ImagePyramidParameters.LevelNumbering.INVERT == parameters.levelNumbering ()
                 ?
                 new File (folders, String.valueOf (maxZoom - zoom - 1))
                 :

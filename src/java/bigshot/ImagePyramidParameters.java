@@ -36,6 +36,15 @@ public class ImagePyramidParameters extends TreeMap<String,String> {
         this.putAll (params);
     }
     
+    /**
+     * Sets the given parameter if it is not set.
+     */
+    public void putIfEmpty (String key, String value) {
+        if (!containsKey (key)) {
+            put (key, value);
+        }
+    }
+    
     @CLASSNAME
         ImagePyramidParameters
         ;
@@ -195,6 +204,11 @@ public class ImagePyramidParameters extends TreeMap<String,String> {
     @FLOAT
         jitter
         The random sampling jitter to use when using the "face" transform.
+        ;
+
+    @FLOAT
+        fov
+        The output field of view when using the "face" transform.
         ;
 
     @INTEGER
