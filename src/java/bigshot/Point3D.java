@@ -15,43 +15,19 @@
  */
 package bigshot;
 
-import java.io.File;
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.PrintStream;
-import java.io.FileOutputStream;
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.awt.image.BufferedImage;
-import javax.imageio.ImageIO;
-import javax.imageio.stream.ImageInputStream;
-import javax.imageio.ImageReader;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
-
-import java.util.StringTokenizer;
-import java.util.Iterator;
-import java.util.Arrays;
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * A 3D point
  */
-public class Point3D {
-    public double x;
-    public double y;
+public class Point3D extends Point2D {
+
     public double z;
     
+    public Point3D () {
+        this (0, 0, 0);
+    }
+    
     public Point3D (double x, double y, double z) {
-        this.x = x;
-        this.y = y;
+        super (x, y);
         this.z = z;
     }
     
@@ -74,23 +50,13 @@ public class Point3D {
     }
     
     public void rotateZ (double angle) {
-        double nx = x * Math.cos (angle) - y * Math.sin (angle);
-        double ny = x * Math.sin (angle) + y * Math.cos (angle);
-        double nz = z;
-        this.x = nx;
-        this.y = ny;
-        this.z = nz;
+        rotate (angle);
     }
     
     public void scale (double s) {
         this.x *= s;
         this.y *= s;
         this.z *= s;
-    }
-    
-    public void translate2D (double dx, double dy) {
-        this.x += dx;
-        this.y += dy;
     }
     
     public void translate3D (double dx, double dy, double dz) {

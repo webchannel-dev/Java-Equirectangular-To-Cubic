@@ -45,7 +45,7 @@ import java.util.List;
  * Transforms an equirectangular image map to rectilinear images. Used to create a cube map
  * for <a href="../../js/symbols/bigshot.VRPanorama.html">bigshot.VRPanorama</a>.
  */
-public class EquirectangularToCubic extends AbstractCubicTransform<EquirectangularToCubic> {
+public class EquirectangularToCubic extends AbstractSphericalCubicTransform<EquirectangularToCubic> {
     
     /**
      * Creates a new transform instance.
@@ -54,7 +54,7 @@ public class EquirectangularToCubic extends AbstractCubicTransform<Equirectangul
     }
     
     @Override
-    public EquirectangularToCubic input (Image input) {
+        public EquirectangularToCubic input (Image input) {
         if (this.inputVfov < 0) {
             this.inputVfov (180);
         }
@@ -80,123 +80,10 @@ public class EquirectangularToCubic extends AbstractCubicTransform<Equirectangul
         return this;
     }
     
-    
-    /**
-     * Performs the transformation.
-     */
-    public Image transform () throws Exception {
-        final Image output = new Image (width, height);
-        
-        final Point3D topLeft = new Point3D (-Math.tan (vfov / 2) * width / height, -Math.tan (vfov / 2), 1.0);
-        final Point3D uv = new Point3D (- 2 * topLeft.x / width, - 2 * topLeft.y / height, 0.0);
-        if (oversampling != 1) {
-            uv.scale (1.0 / oversampling);
-        }
-        
-        final Point3DTransform transform = new Point3DTransform ();
-        transform.rotateZ (MathUtil.toRad (roll));
-        transform.rotateX (MathUtil.toRad (pitch));
-        transform.rotateY (MathUtil.toRad (yaw));
-        
-        transform.rotateY (MathUtil.toRad (oy));
-        transform.rotateX (MathUtil.toRad (op));
-        transform.rotateZ (MathUtil.toRad (or));
-        
-        final FastTrigInverse.FastAcos fastAcos = new FastTrigInverse.FastAcos (input.width () * 2 * oversampling);
-        final FastTrigInverse.FastAtan fastAtan = new FastTrigInverse.FastAtan (input.height () * 2 * oversampling);
-        
-        final int STEPS = Runtime.getRuntime ().availableProcessors () * 2;
-        final int STEP = Math.max (height / STEPS, 256);
-        
-        ExecutorService es = Executors.newFixedThreadPool (Runtime.getRuntime ().availableProcessors ());
-        List<Callable<Object>> callables = new ArrayList<Callable<Object>> ();
-        
-        for (int topLine = 0; topLine < height; topLine += STEP) {
-            final int startY = topLine;
-            final int endY = Math.min (startY + STEP, height);
-            callables.add (new Callable<Object> () {
-                    public Object call () throws Exception {
-                        final Point3D point = new Point3D (0,0,0);
-                        final int[] oversamplingBuffer = new int[width * 3];
-                        final int[] sampleBuffer = new int[3];
-                        for (int destY = startY; destY < endY; ++destY) {
-                            Arrays.fill (oversamplingBuffer, 0);
-                            for (int y = destY * oversampling; y < destY * oversampling + oversampling; ++y) {
-                                for (int x = 0; x < width * oversampling; ++x) {
-                                    point.x = topLeft.x;
-                                    point.y = topLeft.y;
-                                    point.z = topLeft.z;
-                                    if (jitter > 0.0) {
-                                        point.translate3D (
-                                            (x + Math.random () * jitter) * uv.x,
-                                            (y + Math.random () * jitter) * uv.y, 0.0);
-                                    } else {
-                                        point.translate3D (x * uv.x, y * uv.y, 0.0);
-                                    }
-                                    
-                                    transform.transform (point);
-                                    
-                                    double theta = 0.0;
-                                    double phi = 0.0;
-                                    
-                                    double nxz = Math.sqrt (point.x * point.x + point.z * point.z);
-                                    if (nxz < Double.MIN_NORMAL) {
-                                        if (point.y > 0) {
-                                            phi = MathUtil.toRad (90);
-                                        } else {
-                                            phi = MathUtil.toRad (-90);
-                                        }
-                                    } else {
-                                        phi = fastAtan.f (point.y / nxz);
-                                        theta = fastAcos.f (point.z / nxz); //Math.acos (
-                                        if (point.x < 0) {
-                                            theta = -theta;
-                                        }
-                                    }
-                                    
-                                    double inX = (theta / (inputHfov / 2)) * (input.width () / 2) + input.width () / 2;
-                                    double inY = (phi / (inputVfov / 2)) * (input.height () / 2) + inputHorizon;
-                                    
-                                    
-                                    if (inY >= 0 && inY < input.height () && (horizontalWrap || (inX >= 0 && inX < input.width ()))) {
-                                        if (inY >= input.height () - 1 || (!horizontalWrap && inX >= input.width () - 1)) {
-                                            input.componentValue ((int) inX, (int) inY, sampleBuffer);
-                                        } else {
-                                            input.sampleComponents (inX, inY, sampleBuffer);
-                                        }
-                                    } else {
-                                        sampleBuffer[0] = 0;
-                                        sampleBuffer[1] = 0;
-                                        sampleBuffer[2] = 0;
-                                    }
-                                    
-                                    int obx = x / oversampling;
-                                    obx *= 3;
-                                    for (int i = 0; i < sampleBuffer.length; ++i) {
-                                        oversamplingBuffer[obx + i] += sampleBuffer[i];
-                                    }
-                                }
-                            }
-                            int oversampling2 = oversampling * oversampling;
-                            for (int x = 0; x < oversamplingBuffer.length; ++x) {
-                                oversamplingBuffer[x] /= oversampling2;
-                            }
-                            for (int x = 0; x < width; ++x) {
-                                output.componentValue (x, destY, oversamplingBuffer[x * 3 + 0], oversamplingBuffer[x * 3 + 1], oversamplingBuffer[x * 3 + 2]);
-                            }
-                        }
-                        return null;
-                    }
-                });
-        }
-        
-        for (Future<Object> f : es.invokeAll (callables)) {
-            f.get ();
-        }
-        es.shutdown ();
-        es.awaitTermination (20, TimeUnit.SECONDS);
-        
-        return output;
+    @Override
+        protected void transformPoint (double theta, double phi, Point2D output) {
+        output.x = (theta / (inputHfov / 2)) * (input.width () / 2) + input.width () / 2;
+        output.y = (phi / (inputVfov / 2)) * (input.height () / 2) + inputHorizon;
     }
     
     /**

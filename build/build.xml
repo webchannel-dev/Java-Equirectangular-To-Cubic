@@ -321,7 +321,6 @@
         <antcall target="build-image"/>
         <antcall target="build-vr"/>
         <antcall target="build-cylinder-vr"/>
-        <antcall target="build-equi-vr"/>
         <antcall target="build-mars-vr"/>
         <antcall target="host"/>
     </target>

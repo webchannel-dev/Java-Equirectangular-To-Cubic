@@ -236,7 +236,12 @@ public abstract class AbstractCubicTransform<Derived extends AbstractCubicTransf
         if (w < 0 || h < 0 || v < 0) {
             throw new IllegalArgumentException ("Missing projection parameters - must at minimum have w, h, and v.");
         }
-        return fromHuginPtoParameters (w, h, v, cropLeft, cropRight, cropTop, cropBottom);
+        
+        fromHuginPtoParameters (w, h, v, cropLeft, cropRight, cropTop, cropBottom);
+        
+        @SuppressWarnings("unchecked") 
+            Derived dthis = (Derived) this;
+        return dthis;
     }
     
     /**
@@ -255,7 +260,7 @@ public abstract class AbstractCubicTransform<Derived extends AbstractCubicTransf
      * @param cropTop the first used row in the image
      * @param cropBottom one past the bottom-most used row of the image
      */
-    public abstract Derived fromHuginPtoParameters (int w, int h, double v, int cropLeft, int cropRight, int cropTop, int cropBottom);
+    public abstract void fromHuginPtoParameters (int w, int h, double v, int cropLeft, int cropRight, int cropTop, int cropBottom);
     
     /**
      * Sets the vertical field of view.

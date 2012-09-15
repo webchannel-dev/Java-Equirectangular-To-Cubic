@@ -330,6 +330,9 @@ public class MakeImagePyramid {
                 if (parameters.containsKey ("input-vfov")) {
                     xform.inputVfov (getParameterAsDouble (parameters, "input-vfov", 90));
                 }
+                if (parameters.containsKey ("input-hfov")) {
+                    xform.inputVfov (getParameterAsDouble (parameters, "input-hfov", 360));
+                }
                 if (parameters.containsKey ("input-horizon")) {
                     xform.inputHorizon (getParameterAsInt (parameters, "input-horizon", 0));
                 }
@@ -557,7 +560,6 @@ public class MakeImagePyramid {
             packageOs.write (indexBytes);
             
             for (PackageEntry pe : fileList) {
-                System.out.println (pe.key);
                 FileInputStream is = new FileInputStream (pe.file);
                 try {
                     while (true) {
