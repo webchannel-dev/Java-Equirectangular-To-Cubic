@@ -260,7 +260,7 @@ public abstract class AbstractCubicTransform<Derived extends AbstractCubicTransf
      * @param cropTop the first used row in the image
      * @param cropBottom one past the bottom-most used row of the image
      */
-    public abstract void fromHuginPtoParameters (int w, int h, double v, int cropLeft, int cropRight, int cropTop, int cropBottom);
+    public abstract Derived fromHuginPtoParameters (int w, int h, double v, int cropLeft, int cropRight, int cropTop, int cropBottom);
     
     /**
      * Sets the vertical field of view.
@@ -298,6 +298,10 @@ public abstract class AbstractCubicTransform<Derived extends AbstractCubicTransf
         return dthis;
     } 
     
+    public double inputVfov () {
+        return MathUtil.toDeg (inputVfov);
+    }
+    
     /**
      * Sets the horizontal field of view of the input image.
      * Also sets the horizontalWrap flag if the input
@@ -314,6 +318,10 @@ public abstract class AbstractCubicTransform<Derived extends AbstractCubicTransf
             Derived dthis = (Derived) this;
         return dthis;
     } 
+    
+    public double inputHfov () {
+        return MathUtil.toDeg (inputHfov);
+    }
     
     /**
      * Sets whether the input image wraps around horizontally.

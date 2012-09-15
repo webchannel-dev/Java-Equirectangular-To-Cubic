@@ -145,17 +145,17 @@ Options:
 
     --yaw-offset
         The initial yaw offset to apply when using the "face"
-        or "*-facemap" transforms.
+        or "*-facemap" transforms, in degrees.
         Default: 0
 
     --pitch-offset
         The initial pitch offset to apply when using the "face"
-        or "*-facemap" transforms.
+        or "*-facemap" transforms, in degrees.
         Default: 0
 
     --roll-offset
         The initial roll offset to apply when using the "face"
-        or "*-facemap" transforms.
+        or "*-facemap" transforms, in degrees.
         Default: 0
 
     --input-horizon
@@ -164,7 +164,11 @@ Options:
 
     --input-vfov
         For the "*-facemap" transforms, the vertical field of
-        view of the map image.
+        view of the map image, in degrees.
+
+    --input-hfov
+        For the "*-facemap" transforms, the horizontal field of
+        view of the map image, in degrees.
 
     --transform-pto
         For the "*-facemap" transforms, sets the input-vfov

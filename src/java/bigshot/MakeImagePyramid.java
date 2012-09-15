@@ -32,6 +32,7 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.Map;
 import java.util.List;
+import java.util.Locale;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -331,13 +332,15 @@ public class MakeImagePyramid {
                     xform.inputVfov (getParameterAsDouble (parameters, "input-vfov", 90));
                 }
                 if (parameters.containsKey ("input-hfov")) {
-                    xform.inputVfov (getParameterAsDouble (parameters, "input-hfov", 360));
+                    xform.inputHfov (getParameterAsDouble (parameters, "input-hfov", 360));
                 }
                 if (parameters.containsKey ("input-horizon")) {
                     xform.inputHorizon (getParameterAsInt (parameters, "input-horizon", 0));
                 }
                 
-                faces = EquirectangularToCubic.transformToFaces (
+                System.out.println (String.format (Locale.US, "Input FOV: %.2f x %.2f degrees", xform.inputHfov (), xform.inputVfov ()));
+                
+                faces = AbstractCubicTransform.transformToFaces (
                     xform, 
                     facesOut, 
                     getParameterAsInt (parameters, "face-size", 2048) + getParameterAsInt (parameters, "overlap", 0),
