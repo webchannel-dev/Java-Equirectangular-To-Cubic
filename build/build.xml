@@ -121,7 +121,7 @@
                 <attribute name="Main-Class" value="bigshot.MakeImagePyramid"/>
             </manifest>
         </jar>
-        <java fork="yes" classpath="${temp}/classes/" className="minihttpd.IncludeProcessor">
+        <java fork="yes" classpath="${temp}/tool-classes/" className="bigshot.tools.minihttpd.IncludeProcessor">
             <arg value="${package-dir}/bigshot.js"/>
             <arg value="${src}/js/bigshot.js"/>
             <arg value="${src}/js/"/>
@@ -130,7 +130,7 @@
             <fileset dir="${src}/php/"/>
             <fileset dir="${doc}" includes="LICENSE.txt,README.txt"/>
         </copy>
-        <java fork="yes" jar="${basedir}/tools/yuicompressor-2.4.2.jar"
+        <java fork="yes" jar="${basedir}/tools/yuicompressor-2.4.7.jar"
             dir="${basedir}">
             <arg value="-o"/>
             <arg value="${package-dir}/bigshot-compressed.js"/>
@@ -142,7 +142,7 @@
             <filelist dir="${src}/js/webgl/" files="glUtils.js"/>
             <filelist dir="${package-dir}/" files="bigshot.js"/>
         </concat>
-        <java fork="yes" jar="${basedir}/tools/yuicompressor-2.4.2.jar"
+        <java fork="yes" jar="${basedir}/tools/yuicompressor-2.4.7.jar"
             dir="${basedir}">
             <arg value="-o"/>
             <arg value="${package-dir}/bigshot-full-compressed.js"/>
@@ -155,7 +155,7 @@
             <filelist dir="${src}/js/webgl/" files="webgl-debug.js"/>
             <filelist dir="${package-dir}/" files="bigshot.js"/>
         </concat>
-        <java fork="yes" jar="${basedir}/tools/yuicompressor-2.4.2.jar"
+        <java fork="yes" jar="${basedir}/tools/yuicompressor-2.4.7.jar"
             dir="${basedir}">
             <arg value="-o"/>
             <arg value="${package-dir}/bigshot-full-and-optional-compressed.js"/>
@@ -285,8 +285,8 @@
     <target name="host">
         <echo><![CDATA[Point your web browser at:
     http://localhost/]]></echo>
-        <java classname="minihttpd.MinimalHttpd"
-            classpath="${temp}/classes/" fork="yes">
+        <java classname="bigshot.tools.minihttpd.MinimalHttpd"
+            classpath="${temp}/tool-classes/" fork="yes">
             <arg value="."/>
             <arg value="-1"/>
             <arg value="/src/test/index.html"/>

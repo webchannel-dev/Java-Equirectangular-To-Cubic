@@ -19,6 +19,6 @@
  * development. The classes in this package are only for
  * Bigshot development - they are not part of any public API.
  */
-package minihttpd;
+package bigshot.tools.minihttpd;
 
 

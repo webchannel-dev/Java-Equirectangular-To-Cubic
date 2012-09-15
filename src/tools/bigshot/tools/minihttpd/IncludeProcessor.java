@@ -1,4 +1,4 @@
-package minihttpd;    
+package bigshot.tools.minihttpd;
 
 import java.io.*;
 import java.util.*;
