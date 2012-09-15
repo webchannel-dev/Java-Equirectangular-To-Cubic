@@ -20,9 +20,9 @@
  * @class An abstraction for textured quads. Used in the
  * {@link bigshot.WebGLTexturedQuadScene}.
  *
- * @param {point} p the top-left corner of the quad
- * @param {vector} u vector pointing from p along the top edge of the quad
- * @param {vector} v vector pointing from p along the left edge of the quad
+ * @param {bigshot.Point3D} p the top-left corner of the quad
+ * @param {bigshot.Point3D} u vector pointing from p along the top edge of the quad
+ * @param {bigshot.Point3D} v vector pointing from p along the left edge of the quad
  * @param {WebGLTexture} the texture to use.
  */
 bigshot.WebGLTexturedQuad = function (p, u, v, texture) {
@@ -51,18 +51,11 @@ bigshot.WebGLTexturedQuad.prototype = {
         ];
         webGl.gl.bufferData(webGl.gl.ARRAY_BUFFER, new Float32Array (vertices), webGl.gl.STATIC_DRAW);
         
-        webGl.gl.bindBuffer(webGl.gl.ARRAY_BUFFER, textureCoordBuffer);
-        webGl.gl.vertexAttribPointer(webGl.shaderProgram.textureCoordAttribute, 2, webGl.gl.FLOAT, false, 0, 0);
-        
-        webGl.gl.bindBuffer(webGl.gl.ARRAY_BUFFER, vertexPositionBuffer);
-        webGl.gl.vertexAttribPointer(webGl.shaderProgram.vertexPositionAttribute, 3, webGl.gl.FLOAT, false, 0, 0);
-        
         webGl.gl.activeTexture(webGl.gl.TEXTURE0);
         webGl.gl.bindTexture(webGl.gl.TEXTURE_2D, this.texture);
         webGl.gl.uniform1i(webGl.shaderProgram.samplerUniform, 0);
         
         webGl.gl.bindBuffer(webGl.gl.ELEMENT_ARRAY_BUFFER, vertexIndexBuffer);
-        webGl.setMatrixUniforms();
         webGl.gl.drawElements(webGl.gl.TRIANGLES, 6, webGl.gl.UNSIGNED_SHORT, 0);
     }
 }

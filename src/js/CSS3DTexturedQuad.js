@@ -20,9 +20,9 @@
  * @class An abstraction for textured quads. Used in the
  * {@link bigshot.CSS3DTexturedQuadScene}.
  *
- * @param {point} p the top-left corner of the quad
- * @param {vector} u vector pointing from p along the top edge of the quad
- * @param {vector} v vector pointing from p along the left edge of the quad
+ * @param {bigshot.Point3D} p the top-left corner of the quad
+ * @param {bigshot.Point3D} u vector pointing from p along the top edge of the quad
+ * @param {bigshot.Point3D} v vector pointing from p along the left edge of the quad
  * @param {HTMLImageElement} the image to use.
  */
 bigshot.CSS3DTexturedQuad = function (p, u, v, image) {
@@ -33,17 +33,44 @@ bigshot.CSS3DTexturedQuad = function (p, u, v, image) {
 }
 
 bigshot.CSS3DTexturedQuad.prototype = {
-    crossProduct : function crossProduct (a,b) {
-        var x = [
-            a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]
-        ];
-        return x;
+    /**
+     * Computes the cross product of two vectors.
+     * 
+     * @param {bigshot.Point3D} a the first vector
+     * @param {bigshot.Point3D} b the second vector
+     * @type bigshot.Point3D
+     * @return the cross product
+     */
+    crossProduct : function crossProduct (a, b) {
+        return {
+            x : a.y*b.z-a.z*b.y, 
+            y : a.z*b.x-a.x*b.z, 
+            z : a.x*b.y-a.y*b.x
+        };
     },
     
+    /**
+     * Stringifies a vector as the x, y, and z components 
+     * separated by commas.
+     * 
+     * @param {bigshot.Point3D} u the vector
+     * @type String
+     * @return the stringified vector
+     */
     vecToStr : function vecToStr (u) {
-        return (u[0]) + "," + (u[1]) + "," + (u[2]);
+        return (u.x) + "," + (u.y) + "," + (u.z);
     },
     
+    /**
+     * Creates a CSS3D matrix3d transform from 
+     * an origin point and two basis vectors
+     * 
+     * @param {bigshot.Point3D} tl the top left corner
+     * @param {bigshot.Point3D} u the vector pointing along the top edge
+     * @param {bigshot.Point3D} y the vector pointing down the left edge
+     * @type String
+     * @return the matrix3d statement
+     */
     quadTransform : function quadTransform (tl, u, v) {
         var w = this.crossProduct (u, v);
         var res = 
@@ -55,6 +82,11 @@ bigshot.CSS3DTexturedQuad.prototype = {
         return res;
     },
     
+    /**
+     * Computes the norm of a vector.
+     *
+     * @param {bigshot.Point3D} vec the vector
+     */
     norm : function norm (vec) {
         return Math.sqrt (vec.x * vec.x + vec.y * vec.y + vec.z * vec.z);
     },
@@ -76,6 +108,18 @@ bigshot.CSS3DTexturedQuad.prototype = {
         this.image.inWorld = 2;
         this.image.style.WebkitTransformOrigin = "0px 0px 0px";
         this.image.style.WebkitTransform = 
-            this.quadTransform ([(p.x + view.x) * ps, (-p.y + view.y) * ps, (p.z + view.z) * ps], [u.x * s, -u.y * s, u.z * s], [v.x * s, -v.y * s, v.z * s]);
+            this.quadTransform ({
+                    x : (p.x + view.x) * ps, 
+                    y : (-p.y + view.y) * ps, 
+                    z : (p.z + view.z) * ps
+                }, {
+                    x : u.x * s, 
+                    y : -u.y * s, 
+                    z : u.z * s
+                }, {
+                    x : v.x * s, 
+                    y : -v.y * s, 
+                    z : v.z * s
+                });
     }
 }

@@ -235,43 +235,5 @@ bigshot.WebGL.prototype = {
                     }
         
         that.gl.bindTexture(that.gl.TEXTURE_2D, null);      
-    },
-    
-    /**
-     * Transforms a vector to world coordinates.
-     *
-     * @param {vector} vector the vector to transform
-     */
-    transformToWorld : function (vector) {
-        var sylvesterVector = Vector.createNoCopy ([vector[0], vector[1], vector[2], 1.0]);
-        var world = this.mvMatrix.matrix ().xvec (sylvesterVector);
-        return world;
-    },
-    
-    transformWorldToScreen : function (world) {
-        if (world.elements[2] > 0) {
-            return null;
-        }
-        
-        var screen = this.pMatrix.matrix ().xvec (world);
-        if (Math.abs (screen.elements[3]) < Sylvester.precision) {
-            return null;
-        }
-        var r = {
-            x: (this.gl.viewportWidth / 2) * screen.elements[0] / screen.elements[3] + this.gl.viewportWidth / 2, 
-            y: - (this.gl.viewportHeight / 2) * screen.elements[1] / screen.elements[3] + this.gl.viewportHeight / 2
-        };
-        return r;
-    },
-    
-    /**
-     * Transforms a vector to screen coordinates.
-     *
-     * @param {vector} vector the vector to transform
-     * @return the transformed vector, or null if the vector is nearer than the near-z plane.
-     */
-    transformToScreen : function (vector) {
-        var world = this.transformToWorld (vector);
-        return this.transformWorldToScreen (world);
     }
 };

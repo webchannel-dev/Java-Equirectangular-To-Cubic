@@ -91,10 +91,10 @@ bigshot.TransformStack.prototype = {
     /**
      * Adds a translation to the world transform matrix.
      *
-     * @param {number[3]} vector the translation vector
+     * @param {bigshot.Point3D} vector the translation vector
      */
     translate : function (vector) {
-        var m = Matrix.Translation($V([vector[0], vector[1], vector[2]])).ensure4x4 ();
+        var m = Matrix.Translation($V([vector.x, vector.y, vector.z])).ensure4x4 ();
         this.multiply (m);
     },
     
@@ -102,12 +102,39 @@ bigshot.TransformStack.prototype = {
      * Adds a rotation to the world transform matrix.
      *
      * @param {number} ang the angle in degrees to rotate
-     * @param {number[3]} vector the rotation vector
+     * @param {bigshot.Point3D} vector the rotation vector
      */
     rotate : function (ang, vector) {
         var arad = ang * Math.PI / 180.0;
-        var m = Matrix.Rotation(arad, $V([vector[0], vector[1], vector[2]])).ensure4x4 ();
+        var m = Matrix.Rotation(arad, $V([vector.x, vector.y, vector.z])).ensure4x4 ();
         this.multiply (m);
+    },
+    
+    /**
+     * Adds a rotation around the x-axis to the world transform matrix.
+     *
+     * @param {number} ang the angle in degrees to rotate
+     */
+    rotateX : function (ang) {
+        this.rotate (ang, { x : 1, y : 0, z : 0 });
+    },
+    
+    /**
+     * Adds a rotation around the y-axis to the world transform matrix.
+     *
+     * @param {number} ang the angle in degrees to rotate
+     */
+    rotateY : function (ang) {
+        this.rotate (ang, { x : 0, y : 1, z : 0 });
+    },
+    
+    /**
+     * Adds a rotation around the z-axis to the world transform matrix.
+     *
+     * @param {number} ang the angle in degrees to rotate
+     */
+    rotateZ : function (ang) {
+        this.rotate (ang, { x : 0, y : 0, z : 1 });
     },
     
     /**

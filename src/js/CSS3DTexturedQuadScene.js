@@ -21,6 +21,7 @@
  * the world coordinate system.
  * @param {number} scale the scaling factor to use to avoid 
  * numeric errors.
+ * @param {xyz-triplet} view the 3d-coordinates of the viewer
  *
  * @class A "scene" consisting of a number of quads, all with
  * a unique texture. Used by the {@link bigshot.VRPanorama} to render the VR cube.

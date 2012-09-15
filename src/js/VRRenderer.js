@@ -52,22 +52,31 @@ bigshot.VRRenderer.prototype = {
     
     /**
      * Transforms a vector to world coordinates.
+     *
+     * @param {bigshot.Point3D} v the view-space point to transform
      */
     transformToWorld : function (v) {},
     
     /**
-     * Transforms a worl vector to screen coordinates.
+     * Transforms a world vector to screen coordinates.
+     *
+     * @param {bigshot.Point3D} worldVector the world-space point to transform
      */
     transformWorldToScreen : function (worldVector) {},
     
     /**
      * Transforms a 3D vector to screen coordinates.
      *
-     * @param {number[4],number[3]} vector the vector to transform. 
+     * @param {bigshot.Point3D} vector the vector to transform. 
      * If it is already in homogenous coordinates (4-element array) 
      * the transformation is faster. Otherwise it will be converted.
      */
     transformToScreen : function (vector) {},
+    
+    /**
+     * Disposes the renderer and associated resources.
+     */
+    dispose : function () {},
     
     /**
      * Called to begin a render.

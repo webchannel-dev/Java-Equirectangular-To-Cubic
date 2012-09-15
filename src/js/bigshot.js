@@ -64,6 +64,7 @@ if (!self["bigshot"]) {
      * This is supposed to be processed using a minimalhttpd.IncludeProcessor
      * during development. The files must be listed in dependency order.
      */
+    #include types.js
     #include object.js
     #include Browser.js
     #include EventDispatcher.js

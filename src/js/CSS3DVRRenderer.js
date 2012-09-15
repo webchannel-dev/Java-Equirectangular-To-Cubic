@@ -63,6 +63,10 @@ bigshot.CSS3DVRRenderer = function (_container) {
 bigshot.CSS3DVRRenderer.prototype = {
     browser : new bigshot.Browser (),
     
+    dispose : function () {
+        
+    },
+    
     createTileCache : function (onloaded, onCacheInit, parameters) {
         return new bigshot.ImageVRTileCache (onloaded, onCacheInit, parameters);
     },
@@ -122,19 +126,20 @@ bigshot.CSS3DVRRenderer.prototype = {
         
         this.mvMatrix.reset ();
         
-        this.mvMatrix.translate ([tx, ty, tz]);
         this.view = {
             x : tx,
             y : ty,
             z : tz
         };
+        this.mvMatrix.translate (this.view);
         
-        this.mvMatrix.rotate (or, [0, 0, 1]);
-        this.mvMatrix.rotate (op, [1, 0, 0]);
-        this.mvMatrix.rotate (oy, [0, 1, 0]);
         
-        this.mvMatrix.rotate (this.yaw, [0, 1, 0]);
-        this.mvMatrix.rotate (this.pitch, [1, 0, 0]);
+        this.mvMatrix.rotateZ (or);
+        this.mvMatrix.rotateX (op);
+        this.mvMatrix.rotateY (oy);
+        
+        this.mvMatrix.rotateY (this.yaw);
+        this.mvMatrix.rotateX (this.pitch);
         
         
         this.pMatrix.reset ();

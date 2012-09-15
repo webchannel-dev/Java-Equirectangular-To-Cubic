@@ -24,9 +24,10 @@
  *
  * @see bigshot.WebGLTexturedQuad
  */
-bigshot.WebGLTexturedQuadScene = function (webGl) {
+bigshot.WebGLTexturedQuadScene = function (webGl, buffers) {
     this.quads = new Array ();
     this.webGl = webGl;
+    this.buffers = buffers;
 }
 
 bigshot.WebGLTexturedQuadScene.prototype = {
@@ -41,33 +42,14 @@ bigshot.WebGLTexturedQuadScene.prototype = {
      * Renders all quads.
      */
     render : function () {
-        var vertexPositionBuffer = this.webGl.gl.createBuffer();
+        var vertexPositionBuffer = this.buffers.vertexPositionBuffer;
+        var textureCoordBuffer = this.buffers.textureCoordBuffer;
+        var vertexIndexBuffer = this.buffers.vertexIndexBuffer;
         
-        var textureCoordBuffer = this.webGl.gl.createBuffer();
-        this.webGl.gl.bindBuffer(this.webGl.gl.ARRAY_BUFFER, textureCoordBuffer);
-        var textureCoords = [
-            // Front face
-            0.0,  0.0,
-            1.0,  0.0,
-            1.0,  1.0,
-            0.0,  1.0
-        ];
-        this.webGl.gl.bufferData (this.webGl.gl.ARRAY_BUFFER, new Float32Array (textureCoords), this.webGl.gl.STATIC_DRAW);
-        
-        var vertexIndexBuffer = this.webGl.gl.createBuffer();
-        this.webGl.gl.bindBuffer(this.webGl.gl.ELEMENT_ARRAY_BUFFER, vertexIndexBuffer);            
-        var vertexIndexes = [
-            0, 2, 1,
-            0, 3, 2
-        ];
-        this.webGl.gl.bufferData(this.webGl.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array (vertexIndexes), this.webGl.gl.STATIC_DRAW);
+        this.webGl.setMatrixUniforms();
         
         for (var i = 0; i < this.quads.length; ++i) {
             this.quads[i].render (this.webGl, vertexPositionBuffer, textureCoordBuffer, vertexIndexBuffer);
         }
-        
-        this.webGl.gl.deleteBuffer (vertexPositionBuffer);
-        this.webGl.gl.deleteBuffer (vertexIndexBuffer);
-        this.webGl.gl.deleteBuffer (textureCoordBuffer);
     }
 };

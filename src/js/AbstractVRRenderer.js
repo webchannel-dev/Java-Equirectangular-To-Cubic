@@ -24,34 +24,32 @@ bigshot.AbstractVRRenderer.prototype = {
     /**
      * Transforms a vector to world coordinates.
      *
-     * @param {vector} vector the vector to transform
+     * @param {bigshot.Point3D} vector the vector to transform
      */
     transformToWorld : function transformToWorld (vector) {
-        if (vector.length != 4) {
-            vector = vector.slice (0);
-            vector.push (1.0);
-        }
-        var sylvesterVector = Vector.createNoCopy (vector);
-        
-        var world = this.mvMatrix.matrix ().xvec (sylvesterVector);
+        var world = this.mvMatrix.matrix ().xPoint3Dhom1 (vector);
         
         return world;
     },
     
+    /**
+     * Transforms a world vector to screen coordinates.
+     *
+     * @param {bigshot.Point3D} world the world-vector to transform
+     */
     transformWorldToScreen : function transformWorldToScreen (world) {
-        if (world.elements[2] > 0) {
+        if (world.z > 0) {
             return null;
         }
         
-        var screen = this.pMatrix.matrix ().xvec (world);
-        if (Math.abs (screen.elements[3]) < Sylvester.precision) {
+        var screen = this.pMatrix.matrix ().xPoint3Dhom (world);
+        if (Math.abs (screen.w) < Sylvester.precision) {
             return null;
         }
         
-        var sel = screen.elements;
-        var sx = sel[0];
-        var sy = sel[1];
-        var sz = sel[3];
+        var sx = screen.x;
+        var sy = screen.y;
+        var sz = screen.z;
         var vw = this.getViewportWidth ();
         var vh = this.getViewportHeight ();
         
@@ -65,29 +63,24 @@ bigshot.AbstractVRRenderer.prototype = {
     /**
      * Transforms a vector to screen coordinates.
      *
-     * @param {vector} vector the vector to transform
+     * @param {bigshot.Point3D} vector the vector to transform
      * @return the transformed vector, or null if the vector is nearer than the near-z plane.
      */
     transformToScreen : function transformToScreen (vector) {
-        if (vector.length != 4) {
-            vector = vector.slice (0);
-            vector.push (1.0);
-        }
+        var sel = this.mvpMatrix.xPoint3Dhom (vector);
         
-        var sel = this.mvpMatrix.xvecarray (vector);
-        
-        if (sel[2] < 0) {
+        if (sel.z < 0) {
             return null;
         }
         
-        var sz = sel[3];
+        var sz = sel.w;
         
-        if (Math.abs (sz) < Sylvester.precision) {
+        if (Math.abs (sel.w) < Sylvester.precision) {
             return null;
         }
         
-        var sx = sel[0];
-        var sy = sel[1];
+        var sx = sel.x;
+        var sy = sel.y;
         var vw = this.getViewportWidth ();
         var vh = this.getViewportHeight ();
         

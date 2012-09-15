@@ -769,6 +769,7 @@ bigshot.VRPanorama.prototype = {
     dispose : function () {
         this.browser.unregisterListener (window, "resize", this.onresizeHandler, false);
         this.browser.unregisterListener (document.body, "orientationchange", this.onresizeHandler, false);
+        this.renderer.dispose ();
     },
     
     /**

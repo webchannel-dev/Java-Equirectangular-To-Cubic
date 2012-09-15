@@ -493,6 +493,34 @@ Matrix.prototype = {
         }
         return outEl;
     },
+    
+    xPoint3D : function xPoint3D (pt3d) {
+        var thisEl = this.elements;
+        return {
+            x : pt3d.x * thisEl[0][0] + pt3d.y * thisEl[0][1] + pt3d.z * thisEl[0][2],
+            y : pt3d.x * thisEl[1][0] + pt3d.y * thisEl[1][1] + pt3d.z * thisEl[1][2],
+            z : pt3d.x * thisEl[2][0] + pt3d.y * thisEl[2][1] + pt3d.z * thisEl[2][2]
+        };
+    },
+    
+    xPoint3Dhom1 : function xPoint3D (pt3d) {
+        var thisEl = this.elements;
+        return {
+            x : pt3d.x * thisEl[0][0] + pt3d.y * thisEl[0][1] + pt3d.z * thisEl[0][2] + thisEl[0][3],
+            y : pt3d.x * thisEl[1][0] + pt3d.y * thisEl[1][1] + pt3d.z * thisEl[1][2] + thisEl[1][3],
+            z : pt3d.x * thisEl[2][0] + pt3d.y * thisEl[2][1] + pt3d.z * thisEl[2][2] + thisEl[2][3]
+        };
+    },
+    
+    xPoint3Dhom : function xPoint3D (pt3d) {
+        var thisEl = this.elements;
+        return {
+            x : pt3d.x * thisEl[0][0] + pt3d.y * thisEl[0][1] + pt3d.z * thisEl[0][2] + thisEl[0][3],
+            y : pt3d.x * thisEl[1][0] + pt3d.y * thisEl[1][1] + pt3d.z * thisEl[1][2] + thisEl[1][3],
+            z : pt3d.x * thisEl[2][0] + pt3d.y * thisEl[2][1] + pt3d.z * thisEl[2][2] + thisEl[2][3],
+            w : pt3d.x * thisEl[3][0] + pt3d.y * thisEl[3][1] + pt3d.z * thisEl[3][2] + thisEl[3][3]
+        };
+    },
 
   // Returns a submatrix taken from the matrix
   // Argument order is: start row, start col, nrows, ncols

@@ -224,15 +224,15 @@ bigshot.VRHotspot.prototype = {
      * Helper function to rotate a point around an axis.
      *
      * @param {number} ang the angle
-     * @param {number[3]} vector the vector to rotate around
+     * @param {bigshot.Point3D} vector the vector to rotate around
      * @param {Vector} point the point
      * @type Vector
      * @private
      */
     rotate : function (ang, vector, point) {
         var arad = ang * Math.PI / 180.0;
-        var m = Matrix.Rotation(arad, $V([vector[0], vector[1], vector[2]])).ensure4x4 ();
-        return m.x (point);
+        var m = Matrix.Rotation(arad, $V([vector.x, vector.y, vector.z])).ensure4x4 ();
+        return m.xPoint3Dhom1 (point);
     },
     
     /**
@@ -241,20 +241,19 @@ bigshot.VRHotspot.prototype = {
      *
      * @param yaw the yaw, in degrees
      * @param pitch the pitch, in degrees
-     * @type number[3]
+     * @type bigshot.Point3D
      */
     toVector : function (yaw, pitch) {
-        var point = $V([0, 0, -1, 1]);
-        point = this.rotate (-pitch, [1, 0, 0], point);
-        point = this.rotate (-yaw, [0, 1, 0], point);
-        var res = [point.e(1), point.e(2), point.e(3)];
-        return res;
+        var point = { x : 0, y : 0, z : -1 };
+        point = this.rotate (-pitch, { x : 1, y : 0, z : 0 }, point);
+        point = this.rotate (-yaw, { x : 0, y : 1, z : 0 }, point);
+        return point;
     },
     
     /**
      * Converts the world-coordinate point p to screen coordinates.
      *
-     * @param {number[3]} p the world-coordinate point
+     * @param {bigshot.Point3D} p the world-coordinate point
      * @type point
      */
     toScreen : function (p) {

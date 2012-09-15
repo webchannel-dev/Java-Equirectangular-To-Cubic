@@ -23,10 +23,10 @@
  * @param {bigshot.VRPanorama} owner the VR panorama this face is part of.
  * @param {String} key the identifier for the face. "f" is front, "b" is back, "u" is
  * up, "d" is down, "l" is left and "r" is right.
- * @param {point} topLeft_ the top-left corner of the quad.
+ * @param {bigshot.Point3D} topLeft_ the top-left corner of the quad.
  * @param {number} width_ the length of the sides of the face, expressed in multiples of u and v.
- * @param {vector} u basis vector going from the top left corner along the top edge of the face
- * @param {vector} v basis vector going from the top left corner along the left edge of the face
+ * @param {bigshot.Point3D} u basis vector going from the top left corner along the top edge of the face
+ * @param {bigshot.Point3D} v basis vector going from the top left corner along the left edge of the face
  */
 bigshot.VRFace = function (owner, key, topLeft_, width_, u, v, onLoaded) {
     var that = this;
@@ -76,9 +76,9 @@ bigshot.VRFace.prototype = {
      * Utility function to do a multiply-and-add of a 3d point.
      *
      * @private
-     * @param p {point} the point to multiply
+     * @param p {bigshot.Point3D} the point to multiply
      * @param m {number} the number to multiply the elements of p with
-     * @param a {point} the point to add
+     * @param a {bigshot.Point3D} the point to add
      * @return p * m + a
      */
     pt3dMultAdd : function (p, m, a) {
@@ -93,7 +93,7 @@ bigshot.VRFace.prototype = {
      * Utility function to do an element-wise multiply of a 3d point.
      *
      * @private
-     * @param p {point} the point to multiply
+     * @param p {bigshot.Point3D} the point to multiply
      * @param m {number} the number to multiply the elements of p with
      * @return p * m
      */
@@ -216,7 +216,7 @@ bigshot.VRFace.prototype = {
     },
     
     transformToScreen : function transformToScreen (v) {
-        return this.owner.renderer.transformToScreen ([v.x, v.y, v.z, 1.0]);
+        return this.owner.renderer.transformToScreen (v);
     },
     
     /**
@@ -225,7 +225,7 @@ bigshot.VRFace.prototype = {
      *
      * @private
      * @param {bigshot.WebGLTexturedQuadScene} scene the scene to add quads to
-     * @param {point} topLeft the top left corner of this quad
+     * @param {bigshot.Point3D} topLeft the top left corner of this quad
      * @param {number} width the sides of the quad, expressed in multiples of u and v
      * @param {int} divisions the current number of divisions done (increases by one for each
      * split-in-four).

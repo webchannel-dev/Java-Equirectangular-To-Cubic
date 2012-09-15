@@ -31,15 +31,61 @@ bigshot.WebGLVRRenderer = function (container) {
     this.webGl.gl.enable (this.webGl.gl.BLEND);
     this.webGl.gl.disable(this.webGl.gl.DEPTH_TEST);
     this.webGl.gl.clearDepth(1.0);
+    this.buffers = this.setupBuffers ();
 }
-    
+
 bigshot.WebGLVRRenderer.prototype = {
     createTileCache : function (onloaded, onCacheInit, parameters) {
         return new bigshot.TextureTileCache (onloaded, onCacheInit, parameters, this.webGl);
     },
     
     createTexturedQuadScene : function () {
-        return new bigshot.WebGLTexturedQuadScene (this.webGl);
+        return new bigshot.WebGLTexturedQuadScene (this.webGl, this.buffers);
+    },
+    
+    setupBuffers : function () {
+        var vertexPositionBuffer = this.webGl.gl.createBuffer();
+        
+        var textureCoordBuffer = this.webGl.gl.createBuffer();
+        this.webGl.gl.bindBuffer(this.webGl.gl.ARRAY_BUFFER, textureCoordBuffer);
+        var textureCoords = [
+            // Front face
+            0.0,  0.0,
+            1.0,  0.0,
+            1.0,  1.0,
+            0.0,  1.0
+        ];
+        this.webGl.gl.bufferData (this.webGl.gl.ARRAY_BUFFER, new Float32Array (textureCoords), this.webGl.gl.STATIC_DRAW);
+        
+        var vertexIndexBuffer = this.webGl.gl.createBuffer();
+        this.webGl.gl.bindBuffer(this.webGl.gl.ELEMENT_ARRAY_BUFFER, vertexIndexBuffer);            
+        var vertexIndexes = [
+            0, 2, 1,
+            0, 3, 2
+        ];
+        this.webGl.gl.bufferData(this.webGl.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array (vertexIndexes), this.webGl.gl.STATIC_DRAW);
+        
+        this.webGl.gl.bindBuffer(this.webGl.gl.ARRAY_BUFFER, textureCoordBuffer);
+        this.webGl.gl.vertexAttribPointer(this.webGl.shaderProgram.textureCoordAttribute, 2, this.webGl.gl.FLOAT, false, 0, 0);
+        
+        this.webGl.gl.bindBuffer(this.webGl.gl.ARRAY_BUFFER, vertexPositionBuffer);
+        this.webGl.gl.vertexAttribPointer(this.webGl.shaderProgram.vertexPositionAttribute, 3, this.webGl.gl.FLOAT, false, 0, 0);
+        
+        return {
+            vertexPositionBuffer : vertexPositionBuffer,
+            textureCoordBuffer : textureCoordBuffer,
+            vertexIndexBuffer : vertexIndexBuffer
+        };
+    },
+    
+    dispose : function () {
+        this.disposeBuffers ();
+    },
+    
+    disposeBuffers : function () {
+        this.webGl.gl.deleteBuffer (this.buffers.vertexPositionBuffer);
+        this.webGl.gl.deleteBuffer (this.buffers.vertexIndexBuffer);
+        this.webGl.gl.deleteBuffer (this.buffers.textureCoordBuffer);
     },
     
     getElement : function () {
@@ -69,12 +115,12 @@ bigshot.WebGLVRRenderer.prototype = {
         this.webGl.pMatrix.perspective (fov, this.webGl.gl.viewportWidth / this.webGl.gl.viewportHeight, 0.1, 100.0);
         
         this.webGl.mvMatrix.reset ();
-        this.webGl.mvMatrix.translate ([tx, ty, tz]);
-        this.webGl.mvMatrix.rotate (or, [0, 0, 1]);
-        this.webGl.mvMatrix.rotate (op, [1, 0, 0]);
-        this.webGl.mvMatrix.rotate (oy, [0, 1, 0]);
-        this.webGl.mvMatrix.rotate (y, [0, 1, 0]);
-        this.webGl.mvMatrix.rotate (p, [1, 0, 0]);
+        this.webGl.mvMatrix.translate ({ x : tz, y : ty, z : tz });
+        this.webGl.mvMatrix.rotateZ (or);
+        this.webGl.mvMatrix.rotateX (op);
+        this.webGl.mvMatrix.rotateY (oy);
+        this.webGl.mvMatrix.rotateY (y);
+        this.webGl.mvMatrix.rotateX (p);
         
         this.mvMatrix = this.webGl.mvMatrix;
         this.pMatrix = this.webGl.pMatrix;
