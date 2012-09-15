@@ -43,27 +43,100 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Transforms an equirectangular image map to rectilinear images. Used to create a cube map
+ * Transforms an image map to a set of rectilinear images. Used to create a cube map
  * for <a href="../../js/symbols/bigshot.VRPanorama.html">bigshot.VRPanorama</a>.
+ *
+ * @param <Derived> for subclasses, the most derived class name. Used to implement the
+ * method chaining for builder methods.
  */
 public abstract class AbstractCubicTransform<Derived extends AbstractCubicTransform> {
     
+    /**
+     * The input image map.
+     */
     protected Image input;
+    
+    /**
+     * Vertical field of view of the output image, in radians.
+     */
     protected double vfov;
+    
+    /**
+     * Vertical field of view of the image map, in radians.
+     */
     protected double inputVfov = -1;
+    
+    /**
+     * Horizontal field of view of the image map, in radians.
+     */
     protected double inputHfov = -1;
+    
+    /**
+     * True iff the image map wraps horizontally. Should only be true if {@link #inputHfov}
+     * is {@code Math.PI * 2}.
+     */
     protected boolean horizontalWrap = true;
+    
+    /**
+     * The pixel row that is at the horizon.
+     */
     protected int inputHorizon = -1;
+    
+    /**
+     * Yaw offset of the bubble in degrees. Used to level the bubble before rotating it
+     * and producing the rectilinear image in the direction given by {@link #yaw}, {@link #pitch}
+     * and {@link #roll}.
+     */
     protected double oy;
+    
+    /**
+     * Pitch offset of the bubble in degrees. Used to level the bubble before rotating it
+     * and producing the rectilinear image in the direction given by {@link #yaw}, {@link #pitch}
+     * and {@link #roll}.
+     */
     protected double op;
+    
+    /**
+     * Roll offset of the bubble in degrees. Used to level the bubble before rotating it
+     * and producing the rectilinear image in the direction given by {@link #yaw}, {@link #pitch}
+     * and {@link #roll}.
+     */
     protected double or;
+    
+    /**
+     * Yaw of the center point of the output image, in degrees.
+     */
     protected double yaw;
+    
+    /**
+     * Pitch of the center point of the output image, in degrees.
+     */
     protected double pitch;
+    
+    /**
+     * Roll of the output image, in degrees.
+     */
     protected double roll;
+    
+    /**
+     * Width in pixels of the output image.
+     */
     protected int width;
+    
+    /**
+     * Width in pixels of the output image.
+     */
     protected int height;
+    
+    /**
+     * The amount of oversampling done. 1 means no oversampling.
+     */
     protected int oversampling = 1;
-    protected double jitter;
+    
+    /**
+     * Amount of jitter in the oversampling. Defaults to 0.
+     */
+    protected double jitter = 0.0;
     
     /**
      * Creates a new transform instance.
