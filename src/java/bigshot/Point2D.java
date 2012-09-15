@@ -16,21 +16,43 @@
 package bigshot;
 
 /**
- * A 2D point
+ * A mutable 2D point
  */
 public class Point2D {
+    
+    /**
+     * The x-coordinate.
+     */
     public double x;
+    
+    /**
+     * The y-coordinate.
+     */
     public double y;
     
+    /**
+     * Creates a new 2d point with coordinates (0, 0).
+     */
     public Point2D () {
         this (0, 0);
     }
     
+    /**
+     * Creates a new 2d point with the given coordinates.
+     * 
+     * @param x the x-coordinate
+     * @param y the y-coordinate
+     */
     public Point2D (double x, double y) {
         this.x = x;
         this.y = y;
     }
     
+    /**
+     * Rotates the point around the origin.
+     *
+     * @param angle the angle in radians
+     */
     public void rotate (double angle) {
         double nx = x * Math.cos (angle) - y * Math.sin (angle);
         double ny = x * Math.sin (angle) + y * Math.cos (angle);
@@ -38,20 +60,37 @@ public class Point2D {
         this.y = ny;
     }
     
+    /**
+     * Scales the point relative to the origin.
+     *
+     * @param s the scale factor
+     */
     public void scale (double s) {
         this.x *= s;
         this.y *= s;
     }
     
+    /**
+     * Translates the point.
+     *
+     * @param dx the amount to move the point along the x-axis
+     * @param dy the amount to move the point along the y-axis
+     */
     public void translate2D (double dx, double dy) {
         this.x += dx;
         this.y += dy;
     }
     
+    /**
+     * The euclidean distance of the point to the origin.
+     */
     public double norm () {
         return Math.sqrt (x * x + y * y);
     }
     
+    /**
+     * Formats the point on the form <code>[<i>x</i>, <i>y</i>]</code>.
+     */
     public String toString () {
         return "[" + x + ", " + y + "]";
     }

@@ -16,34 +16,9 @@
 package bigshot;
 
 import java.io.File;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.FileReader;
-import java.io.PrintStream;
-import java.io.FileOutputStream;
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.awt.image.BufferedImage;
-import javax.imageio.ImageIO;
-import javax.imageio.stream.ImageInputStream;
-import javax.imageio.ImageReader;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
-
-import java.util.StringTokenizer;
-import java.util.Iterator;
-import java.util.Arrays;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
- * Transforms an equirectangular image map to rectilinear images. Used to create a cube map
+ * Transforms an cylindrical image map to rectilinear images. Used to create a cube map
  * for <a href="../../js/symbols/bigshot.VRPanorama.html">bigshot.VRPanorama</a>.
  */
 public class CylindricalToCubic extends AbstractSphericalCubicTransform<CylindricalToCubic> {
@@ -91,7 +66,7 @@ public class CylindricalToCubic extends AbstractSphericalCubicTransform<Cylindri
     }
     
     /**
-     * Transforms an equirectangular map to a rectilinear image.
+     * Transforms a cylindrical map to a rectilinear image.
      *
      * @param in the equirectangular image map
      * @param outputSize the size (width and height), in pixels, of each face
@@ -114,7 +89,7 @@ public class CylindricalToCubic extends AbstractSphericalCubicTransform<Cylindri
     }
     
     /**
-     * Transforms an equirectangular map to a rectilinear image.
+     * Transforms an cylindrical map to a rectilinear image.
      *
      * @param imageName the equirectangular image map
      * @param output the output file name

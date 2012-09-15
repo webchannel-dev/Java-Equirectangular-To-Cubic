@@ -145,7 +145,7 @@ public abstract class AbstractCubicTransform<Derived extends AbstractCubicTransf
     }
     
     /**
-     * Sets the equirectangular image map. Once set, the {@link #transform()}
+     * Sets the image map. Once set, the {@link #transform()}
      * method can be called several times with other parameters being adjusted
      * between calls.
      */
@@ -168,7 +168,7 @@ public abstract class AbstractCubicTransform<Derived extends AbstractCubicTransf
     }
     
     /**
-     * Loads the equirectangular image map from a file. Once set, the {@link #transform()}
+     * Loads the image map from a file. Once set, the {@link #transform()}
      * method can be called several times with other parameters being adjusted
      * between calls.
      */
@@ -180,6 +180,8 @@ public abstract class AbstractCubicTransform<Derived extends AbstractCubicTransf
      * Loads projection parameters from a Hugin {@code .pto} file.
      * Subclasses should override the {@link #fromHuginPtoParameters} method
      * to actually set the projection parameters.
+     *
+     * @param ptoFile the Hugin {@code .pto} file to read transformation parameters from
      */
     public Derived fromHuginPto (File ptoFile) throws IOException {
         String projectionParams = null;
@@ -298,6 +300,11 @@ public abstract class AbstractCubicTransform<Derived extends AbstractCubicTransf
         return dthis;
     } 
     
+    /**
+     * Return the input vertical field of view, in degrees.
+     * The result may suffer from rounding errors, as it is stored
+     * as radians internally.
+     */
     public double inputVfov () {
         return MathUtil.toDeg (inputVfov);
     }
@@ -319,6 +326,11 @@ public abstract class AbstractCubicTransform<Derived extends AbstractCubicTransf
         return dthis;
     } 
     
+    /**
+     * Return the input horizontal field of view, in degrees.
+     * The result may suffer from rounding errors, as it is stored
+     * as radians internally.
+     */
     public double inputHfov () {
         return MathUtil.toDeg (inputHfov);
     }
@@ -421,7 +433,7 @@ public abstract class AbstractCubicTransform<Derived extends AbstractCubicTransf
     public abstract Image transform () throws Exception;
     
     /**
-     * Transforms an equirectangular map to six VR cube faces. This method modifies the view (yaw, pitch and roll) values for
+     * Transforms an image map to six VR cube faces. This method modifies the view (yaw, pitch and roll) values for
      * this transform.
      *
      * @param outputBase the base directory to output the cube faces to

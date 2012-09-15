@@ -79,12 +79,15 @@
     <target name="java-docs" depends="prepare-source">
         <mkdir dir="${package-dir}/doc/java"/>
         <javadoc
-            access="public"
+            access="protected"
             Overview="${doc}/javadoc-files/overview.html"
             Windowtitle="Bigshot ${version}"
             Doctitle="Bigshot ${version}"
             sourcepath="${temp}/prepared-source/java/"
-            destdir="${package-dir}/doc/java"/>
+            destdir="${package-dir}/doc/java">
+            <link href="http://java.sun.com/javase/6/docs/api/"/>
+            <link href="http://java.sun.com/javaee/5/docs/api/"/>
+        </javadoc>
     </target>
     
     <target name="js-docs">
