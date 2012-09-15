@@ -34,7 +34,33 @@
         </delete>
     </target>
     
-    <target name="build">
+    <target name="build-tools">
+        <mkdir dir="${temp}/tool-classes/"/>
+        
+        <mkdir dir="${temp}/classes/"/>
+        <javac failonerror="true" fork="yes" 
+            destdir="${temp}/tool-classes/"
+            classpath="${temp}/tool-classes/" 
+            deprecation="on"
+            debug="on"
+            includeantruntime="false">
+            <src path="${src}/tools/"/>
+        </javac>
+    </target>
+    
+    <target name="prepare-source" depends="build-tools">
+        <mkdir dir="${temp}/prepared-source/java"/>
+        <copy todir="${temp}/prepared-source/java">
+            <fileset dir="${src}/java"/>
+        </copy>
+        <java fork="yes" classpath="${temp}/tool-classes/"
+            dir="${basedir}" classname="bigshot.tools.ParamGen">
+            <arg value="${src}/java/bigshot/ImagePyramidParameters.java"/>
+            <arg value="${temp}/prepared-source/java/bigshot/ImagePyramidParameters.java"/>
+        </java>
+    </target>
+    
+    <target name="build" depends="prepare-source">
         <mkdir dir="${temp}/classes/"/>
         <javac failonerror="true" fork="yes" 
             destdir="${temp}/classes/"
@@ -42,7 +68,7 @@
             deprecation="on"
             debug="on"
             includeantruntime="false">
-            <src path="${src}/java/"/>
+            <src path="${temp}/prepared-source/java/"/>
         </javac>
     </target>
     
@@ -50,14 +76,14 @@
         
     </target>
     
-    <target name="java-docs">
+    <target name="java-docs" depends="prepare-source">
         <mkdir dir="${package-dir}/doc/java"/>
         <javadoc
             access="public"
             Overview="${doc}/javadoc-files/overview.html"
             Windowtitle="Bigshot ${version}"
             Doctitle="Bigshot ${version}"
-            sourcepath="${src}/java/"
+            sourcepath="${temp}/prepared-source/java/"
             destdir="${package-dir}/doc/java"/>
     </target>
     
