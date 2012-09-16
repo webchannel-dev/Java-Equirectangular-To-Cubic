@@ -74,5 +74,5 @@ bigshot.VRPointHotspot.prototype = {
     }
 }
 
-bigshot.object.extend (bigshot.VRPointHotspot, bigshot.VRHotspot);
-bigshot.object.validate ("bigshot.VRPointHotspot", bigshot.VRHotspot);
+bigshot.Object.extend (bigshot.VRPointHotspot, bigshot.VRHotspot);
+bigshot.Object.validate ("bigshot.VRPointHotspot", bigshot.VRHotspot);

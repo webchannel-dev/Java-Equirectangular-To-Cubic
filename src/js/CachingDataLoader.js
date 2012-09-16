@@ -122,4 +122,4 @@ bigshot.CachingDataLoader.prototype = {
     }
 }
 
-bigshot.object.validate ("bigshot.CachingDataLoader", bigshot.DataLoader);
+bigshot.Object.validate ("bigshot.CachingDataLoader", bigshot.DataLoader);

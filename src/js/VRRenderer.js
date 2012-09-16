@@ -22,7 +22,11 @@ bigshot.VRRenderer = function () {
 
 bigshot.VRRenderer.prototype = {
     /**
-     * Creates a new bigshot.TileCache, appropriate for the rendering system.
+     * Creates a new {@link bigshot.VRTileCache}, appropriate for the rendering system.
+     *
+     * @param {function()} onloaded function that is called whenever a texture tile has been loaded
+     * @param {function()} onCacheInit function that is called when the texture cache is fully initialized
+     * @param {bigshot.VRPanoramaParameters} parameters the parameters for the panorama
      */
     createTileCache : function (onloaded, onCacheInit, parameters) {},
     
@@ -33,6 +37,13 @@ bigshot.VRRenderer.prototype = {
     
     /**
      * Creates a bigshot.TexturedQuad.
+     *
+     * @param {bigshot.Point3D} p the top-left corner of the quad
+     * @param {bigshot.Point3D} u a vector going along the top edge of the quad
+     * @param {bigshot.Point3D} v a vector going down the left edge of the quad
+     * @param {Object} texture a texture to use for the quad. The texture type may vary among different
+     * VRRenderer implementations. The VRTileCache that is created using the createTileCache method will
+     * supply the correct type.
      */
     createTexturedQuad : function (p, u, v, texture) {},
     
@@ -80,15 +91,31 @@ bigshot.VRRenderer.prototype = {
     
     /**
      * Called to begin a render.
+     *
+     * @param {bigshot.Rotation} rotation the rotation of the viewer
+     * @param {number} fov the vertical field of view, in degrees
+     * @param {bigshot.Point3D} translation the position of the viewer in world space
+     * @param {bigshot.Rotation} rotationOffsets the rotation to apply to the VR cube 
+     * before the viewer rotation is applied
      */
-    beginRender : function (y, p, fov, tx, ty, tz, oy, op, or) {},
+    beginRender : function (rotation, fov, translation, rotationOffsets) {},
     
     /**
      * Called to end a render.
      */
     endRender : function () {},
     
+    /**
+     * Called by client code to notify the renderer that the viewport has been resized.
+     */
     onresize : function () {},
+    
+    /**
+     * Resizes the viewport.
+     *
+     * @param {int} w the new width of the viewport, in pixels
+     * @param {int} h the new height of the viewport, in pixels
+     */
     resize : function (w, h) {},
     
     /**

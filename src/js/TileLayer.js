@@ -161,4 +161,4 @@ bigshot.TileLayer.prototype = {
     }
 };
 
-bigshot.object.validate ("bigshot.TileLayer", bigshot.Layer);
+bigshot.Object.validate ("bigshot.TileLayer", bigshot.Layer);

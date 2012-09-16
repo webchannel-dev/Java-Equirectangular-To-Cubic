@@ -1312,4 +1312,4 @@ bigshot.ImageBase.prototype = {
  * @param {bigshot.ImageEvent} event the event object
  */
 
-bigshot.object.extend (bigshot.ImageBase, bigshot.EventDispatcher);
+bigshot.Object.extend (bigshot.ImageBase, bigshot.EventDispatcher);

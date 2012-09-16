@@ -16,6 +16,7 @@
 
 /**
  * @class CSS 3D Transform-based renderer.
+ * @param {HTMLElement} _container the HTML container element for the render viewport
  *
  * @augments bigshot.VRRenderer
  */
@@ -113,11 +114,11 @@ bigshot.CSS3DVRRenderer.prototype = {
         }
     },
     
-    beginRender : function (y, p, fov, tx, ty, tz, oy, op, or) {
+    beginRender : function (rotation, fov, translation, rotationOffsets) {
         this.viewportSize = this.browser.getElementSize (this.container);
         
-        this.yaw = y;
-        this.pitch = p;
+        this.yaw = rotation.y;
+        this.pitch = rotation.p;
         this.fov = fov;
         
         var halfFovInRad = 0.5 * fov * Math.PI / 180;
@@ -126,17 +127,13 @@ bigshot.CSS3DVRRenderer.prototype = {
         
         this.mvMatrix.reset ();
         
-        this.view = {
-            x : tx,
-            y : ty,
-            z : tz
-        };
+        this.view = translation;
         this.mvMatrix.translate (this.view);
         
         
-        this.mvMatrix.rotateZ (or);
-        this.mvMatrix.rotateX (op);
-        this.mvMatrix.rotateY (oy);
+        this.mvMatrix.rotateZ (rotationOffsets.r);
+        this.mvMatrix.rotateX (rotationOffsets.p);
+        this.mvMatrix.rotateY (rotationOffsets.y);
         
         this.mvMatrix.rotateY (this.yaw);
         this.mvMatrix.rotateX (this.pitch);
@@ -154,11 +151,11 @@ bigshot.CSS3DVRRenderer.prototype = {
         }
         
         this.world.style.WebkitTransform = 
-            "rotate3d(1,0,0," + (-p) + "deg) " +
-            "rotate3d(0,1,0," + y + "deg) " +
-            "rotate3d(0,1,0," + (oy) + "deg) " +
-            "rotate3d(1,0,0," + (-op) + "deg) " +
-            "rotate3d(0,0,1," + (-or) + "deg) ";
+            "rotate3d(1,0,0," + (-rotation.p) + "deg) " +
+            "rotate3d(0,1,0," + rotation.y + "deg) " +
+            "rotate3d(0,1,0," + (rotationOffsets.y) + "deg) " +
+            "rotate3d(1,0,0," + (-rotationOffsets.p) + "deg) " +
+            "rotate3d(0,0,1," + (-rotationOffsets.r) + "deg) ";
         this.world.style.WebkitTransformStyle = "preserve-3d";
         this.world.style.WebKitBackfaceVisibility = "hidden";
         
@@ -179,5 +176,5 @@ bigshot.CSS3DVRRenderer.prototype = {
     }    
 };
 
-bigshot.object.extend (bigshot.CSS3DVRRenderer, bigshot.AbstractVRRenderer);
-bigshot.object.validate ("bigshot.CSS3DVRRenderer", bigshot.VRRenderer);
+bigshot.Object.extend (bigshot.CSS3DVRRenderer, bigshot.AbstractVRRenderer);
+bigshot.Object.validate ("bigshot.CSS3DVRRenderer", bigshot.VRRenderer);

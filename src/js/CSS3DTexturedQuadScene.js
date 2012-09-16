@@ -21,9 +21,9 @@
  * the world coordinate system.
  * @param {number} scale the scaling factor to use to avoid 
  * numeric errors.
- * @param {xyz-triplet} view the 3d-coordinates of the viewer
+ * @param {bigshot.Point3D} view the 3d-coordinates of the viewer
  *
- * @class A "scene" consisting of a number of quads, all with
+ * @class A scene consisting of a number of quads, all with
  * a unique texture. Used by the {@link bigshot.VRPanorama} to render the VR cube.
  *
  * @see bigshot.CSS3DTexturedQuad
@@ -38,6 +38,8 @@ bigshot.CSS3DTexturedQuadScene = function (world, scale, view) {
 bigshot.CSS3DTexturedQuadScene.prototype = {  
     /** 
      * Adds a new quad to the scene.
+     *
+     * @param {bigshot.TexturedQuad} quad the quad to add to the scene
      */
     addQuad : function (quad) {
         this.quads.push (quad);

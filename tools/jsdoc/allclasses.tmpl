@@ -9,7 +9,7 @@
 			output += "<i>"+new Link().toClass(thisClass.alias)+"</i>";
 		}
 		else {
-			output += new Link().toClass(thisClass.alias);
+            output += new Link().toClass(thisClass.alias).withText (thisClass.alias.substring (thisClass.alias.search (/\.[A-Z]/) + 1));
 		}
 	!}</li>
 	</for>

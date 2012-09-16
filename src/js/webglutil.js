@@ -17,7 +17,7 @@
 /**
  * @class WebGL utility functions.
  */
-bigshot.webglutil = {
+bigshot.WebGLUtil = {
     /**
      * Flag indicating whether we want to wrap the WebGL context in a 
      * WebGLDebugUtils.makeDebugContext. Defaults to false.

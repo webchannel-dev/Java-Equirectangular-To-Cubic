@@ -14,6 +14,15 @@
  * limitations under the License. 
  */
 
+/**
+ * This class has no constructor, it is created as an object literal.
+ * @name bigshot.HomogeneousPoint3D
+ * @class A 3d homogenous point. 
+ * @property {number} x the x-coordinate
+ * @property {number} y the y-coordinate
+ * @property {number} z the z-coordinate
+ * @property {number} w the w-coordinate
+ */
 
 /**
  * This class has no constructor, it is created as an object literal.
@@ -30,6 +39,15 @@
  * @class A 2d point. 
  * @property {number} x the x-coordinate
  * @property {number} y the y-coordinate
+ */
+
+/**
+ * This class has no constructor, it is created as an object literal.
+ * @name bigshot.Rotation
+ * @class A rotation specified as a yaw-pitch-roll triplet. 
+ * @property {number} y the rotation around the yaw (y) axis
+ * @property {number} p the rotation around the pitch (x) axis
+ * @property {number} r the rotation around the roll (z) axis
  */
 
 

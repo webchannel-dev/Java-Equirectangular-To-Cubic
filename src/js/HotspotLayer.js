@@ -81,4 +81,4 @@ bigshot.HotspotLayer.prototype = {
     }
 }
 
-bigshot.object.validate ("bigshot.HotspotLayer", bigshot.Layer);
+bigshot.Object.validate ("bigshot.HotspotLayer", bigshot.Layer);

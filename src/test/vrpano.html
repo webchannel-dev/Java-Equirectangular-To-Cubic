@@ -93,8 +93,8 @@
                 var vrFileName = document.location.hash ? document.location.hash.substring (1) : "vr.bigshot";
                 var hotspot = document.getElementById ("hotspot");
                 var linear = null;
-                if (bigshot.webglutil.isWebGLSupported ()) {
-                    linear = bigshot.webglutil.createContext (document.createElement ("canvas")).LINEAR;
+                if (bigshot.WebGLUtil.isWebGLSupported ()) {
+                    linear = bigshot.WebGLUtil.createContext (document.createElement ("canvas")).LINEAR;
                 }
                 bvr = new bigshot.VRPanorama (
                     new bigshot.VRPanoramaParameters ({

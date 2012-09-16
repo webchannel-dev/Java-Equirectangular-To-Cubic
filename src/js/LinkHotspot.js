@@ -38,4 +38,4 @@ bigshot.LinkHotspot = function (x, y, w, h, labelText, url) {
         });
 };
 
-bigshot.object.extend (bigshot.LinkHotspot, bigshot.LabeledHotspot);
+bigshot.Object.extend (bigshot.LinkHotspot, bigshot.LabeledHotspot);

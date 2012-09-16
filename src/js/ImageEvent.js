@@ -79,4 +79,4 @@ bigshot.ImageEvent = function (data) {
 bigshot.ImageEvent.prototype = {
 };
 
-bigshot.object.extend (bigshot.ImageEvent, bigshot.Event);
+bigshot.Object.extend (bigshot.ImageEvent, bigshot.Event);

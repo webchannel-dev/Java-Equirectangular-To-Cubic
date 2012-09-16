@@ -36,4 +36,4 @@ bigshot.ImageVRTileCache.prototype = {
     }
 }
 
-bigshot.object.validate ("bigshot.ImageVRTileCache", bigshot.VRTileCache);
+bigshot.Object.validate ("bigshot.ImageVRTileCache", bigshot.VRTileCache);

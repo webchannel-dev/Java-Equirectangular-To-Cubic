@@ -60,5 +60,5 @@ bigshot.LabeledHotspot.prototype = {
     }
 };
 
-bigshot.object.extend (bigshot.LabeledHotspot, bigshot.Hotspot);
+bigshot.Object.extend (bigshot.LabeledHotspot, bigshot.Hotspot);
 

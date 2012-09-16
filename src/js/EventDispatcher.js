@@ -23,6 +23,8 @@ bigshot.EventDispatcher = function () {
     /**
      * The event listeners. Each key-value pair in the map is
      * an event name and an <code>Array</code> of listeners.
+     * 
+     * @type Object
      */
     this.eventListeners = {};
 }

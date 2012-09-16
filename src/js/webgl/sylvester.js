@@ -494,6 +494,11 @@ Matrix.prototype = {
         return outEl;
     },
     
+    /**
+     * Multiplies a bigshot.Point3D with this matrix.
+     * The 4th column of the matrix is ignored, and the transformation
+     * behaves as if the point was a {@link bigshot.HomogeneousPoint3D} with a w value of 0.
+     */
     xPoint3D : function xPoint3D (pt3d) {
         var thisEl = this.elements;
         return {
@@ -503,6 +508,10 @@ Matrix.prototype = {
         };
     },
     
+    /**
+     * Multiplies a bigshot.Point3D with this matrix.
+     * The transformation behaves as if the point was a {@link bigshot.HomogeneousPoint3D} homogenous coordinate with a w value of 1.
+     */
     xPoint3Dhom1 : function xPoint3D (pt3d) {
         var thisEl = this.elements;
         return {
@@ -512,6 +521,12 @@ Matrix.prototype = {
         };
     },
     
+    /**
+     * Multiplies a bigshot.Point3D with this matrix, preserving the w-value.
+     * The transformation behaves as if the point was a x,y,z,w homogenous coordinate with a w value of 1.
+     *
+     * @type bigshot.HomogeneousPoint3D
+     */
     xPoint3Dhom : function xPoint3D (pt3d) {
         var thisEl = this.elements;
         return {

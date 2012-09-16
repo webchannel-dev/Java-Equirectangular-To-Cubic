@@ -79,4 +79,4 @@ bigshot.FolderFileSystem.prototype = {
     }
 };
 
-bigshot.object.validate ("bigshot.FolderFileSystem", bigshot.FileSystem);
+bigshot.Object.validate ("bigshot.FolderFileSystem", bigshot.FileSystem);

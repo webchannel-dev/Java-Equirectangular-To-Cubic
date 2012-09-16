@@ -83,4 +83,4 @@ bigshot.DefaultDataLoader.prototype = {
     }
 }
 
-bigshot.object.validate ("bigshot.DefaultDataLoader", bigshot.DataLoader);
+bigshot.Object.validate ("bigshot.DefaultDataLoader", bigshot.DataLoader);

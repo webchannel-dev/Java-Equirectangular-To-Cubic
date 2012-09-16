@@ -18,7 +18,7 @@
  * @class Object-oriented support functions, used to make JavaScript
  * a bit more palatable to a Java-head.
  */
-bigshot.object = {
+bigshot.Object = {
     /**
      * Extends a base class with a derived class.
      *

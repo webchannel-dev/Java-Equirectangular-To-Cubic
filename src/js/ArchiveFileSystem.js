@@ -123,4 +123,4 @@ bigshot.ArchiveFileSystem.prototype = {
     }
 }
 
-bigshot.object.validate ("bigshot.ArchiveFileSystem", bigshot.FileSystem);
+bigshot.Object.validate ("bigshot.ArchiveFileSystem", bigshot.FileSystem);

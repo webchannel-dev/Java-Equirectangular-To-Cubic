@@ -186,9 +186,9 @@ bigshot.VRPanorama = function (parameters) {
     this.hotspots = [];
     
     this.transformOffsets = {
-        yaw : parameters.yawOffset,
-        pitch : parameters.pitchOffset,
-        roll : parameters.rollOffset
+        y : parameters.yawOffset,
+        p : parameters.pitchOffset,
+        r : parameters.rollOffset
     };
     
     /**
@@ -196,19 +196,23 @@ bigshot.VRPanorama = function (parameters) {
      * @private
      */
     this.state = {
-        /**
-         * Pitch in degrees.
-         * @type float
-         * @private
-         */
-        p : 0.0,
-        
-        /**
-         * Yaw in degrees.
-         * @type float
-         * @private
-         */
-        y : 0.0,
+        rotation : {
+            /**
+             * Pitch in degrees.
+             * @type float
+             * @private
+             */
+            p : 0.0,
+            
+            /**
+             * Yaw in degrees.
+             * @type float
+             * @private
+             */
+            y : 0.0,
+            
+            r : 0
+        },
         
         /**
          * Field of view (vertical) in degrees.
@@ -217,26 +221,28 @@ bigshot.VRPanorama = function (parameters) {
          */
         fov : 45,
         
-        /**
-         * Translation along X-axis.
-         * @private
-         * @type float
-         */
-        tx : 0.0,
-        
-        /**
-         * Translation along Y-axis.
-         * @private
-         * @type float
-         */
-        ty : 0.0,
-        
-        /**
-         * Translation along Z-axis.
-         * @private
-         * @type float
-         */
-        tz : 0.0
+        translation : {
+            /**
+             * Translation along X-axis.
+             * @private
+             * @type float
+             */
+            x : 0.0,
+            
+            /**
+             * Translation along Y-axis.
+             * @private
+             * @type float
+             */
+            y : 0.0,
+            
+            /**
+             * Translation along Z-axis.
+             * @private
+             * @type float
+             */
+            z : 0.0
+        }
     };
     
     /**
@@ -255,7 +261,7 @@ bigshot.VRPanorama = function (parameters) {
         }
     } else {
         this.renderer = 
-            bigshot.webglutil.isWebGLSupported () ? 
+            bigshot.WebGLUtil.isWebGLSupported () ? 
         new bigshot.WebGLVRRenderer (this.container)
         :
         new bigshot.CSS3DVRRenderer (this.container);
@@ -486,11 +492,20 @@ bigshot.VRPanorama.DRAG_GRAB = "grab";
 bigshot.VRPanorama.DRAG_PAN = "pan";
 
 /**
+ * @name bigshot.VRPanorama.RenderState
+ * @class The state the renderer is in when a {@link bigshot.VRPanorama.RenderListener} is called.
+ *
+ * @see bigshot.VRPanorama.ONRENDER_BEGIN
+ * @see bigshot.VRPanorama.ONRENDER_END
+ */
+
+/**
  * A RenderListener state parameter value used at the start of each render.
  * 
  * @constant
  * @public
  * @static
+ * @type bigshot.VRPanorama.RenderState
  */
 bigshot.VRPanorama.ONRENDER_BEGIN = 0;
 
@@ -500,6 +515,7 @@ bigshot.VRPanorama.ONRENDER_BEGIN = 0;
  * @constant
  * @public
  * @static
+ * @type bigshot.VRPanorama.RenderState
  */
 bigshot.VRPanorama.ONRENDER_END = 1;
 
@@ -510,17 +526,28 @@ bigshot.VRPanorama.ONRENDER_END = 1;
  * @constant
  * @public
  * @static
+ * @param {bigshot.VRPanorama.RenderCause}
  */
 bigshot.VRPanorama.ONRENDER_TEXTURE_UPDATE = 0;
+
+/**
+ * @name bigshot.VRPanorama.RenderCause
+ * @class The reason why the {@link bigshot.VRPanorama} is being rendered.
+ * Due to the events outside of the panorama, the VR panorama may be forced to
+ * re-render itself. When this happens, the {@link bigshot.VRPanorama.RenderListener}s
+ * receive a constant indicating the cause of the rendering.
+ * 
+ * @see bigshot.VRPanorama.ONRENDER_TEXTURE_UPDATE
+ */
 
 /**
  * Specification for functions passed to {@link bigshot.VRPanorama#addRenderListener}.
  *
  * @name bigshot.VRPanorama.RenderListener
  * @function
- * @param state The state of the renderer. Can be {@link bigshot.VRPanorama.ONRENDER_BEGIN} or {@link bigshot.VRPanorama.ONRENDER_END}
- * @param [cause] The reason for rendering the scene. Can be undefined or {@link bigshot.VRPanorama.ONRENDER_TEXTURE_UPDATE}
- * @param [data] An optional data object that is dependent on the cause. See the documentation 
+ * @param {bigshot.VRPanorama.RenderState} state The state of the renderer. Can be {@link bigshot.VRPanorama.ONRENDER_BEGIN} or {@link bigshot.VRPanorama.ONRENDER_END}
+ * @param {bigshot.VRPanorama.RenderCause} [cause] The reason for rendering the scene. Can be undefined or {@link bigshot.VRPanorama.ONRENDER_TEXTURE_UPDATE}
+ * @param {Object} [data] An optional data object that is dependent on the cause. See the documentation 
  *             for the different causes.
  */
 
@@ -561,9 +588,9 @@ bigshot.VRPanorama.prototype = {
      * @param z translation of the viewer along the Z axis
      */
     setTranslation : function (x, y, z) {
-        this.state.tx = x;
-        this.state.ty = y;
-        this.state.tz = z;
+        this.state.translation.x = x;
+        this.state.translation.y = y;
+        this.state.translation.z = z;
     },
     
     /**
@@ -574,11 +601,7 @@ bigshot.VRPanorama.prototype = {
      * @returns {number} z translation of the viewer along the Z axis
      */
     getTranslation : function () {
-        return {
-            x : this.state.tx,
-            y : this.state.ty,
-            z : this.state.tz
-        };
+        return this.state.translation;
     },
     
     /**
@@ -665,7 +688,7 @@ bigshot.VRPanorama.prototype = {
      * @param {number} p the pitch, in degrees
      */
     setPitch : function (p) {
-        this.state.p = this.snapPitch (p);
+        this.state.rotation.p = this.snapPitch (p);
     },
     
     /**
@@ -737,7 +760,7 @@ bigshot.VRPanorama.prototype = {
      * @param {number} y the yaw, in degrees
      */
     setYaw : function (y) {
-        this.state.y = this.snapYaw (y);
+        this.state.rotation.y = this.snapYaw (y);
     },
     
     /**
@@ -746,7 +769,7 @@ bigshot.VRPanorama.prototype = {
      * @return {number} the yaw, in degrees
      */
     getYaw : function () {
-        return this.state.y;
+        return this.state.rotation.y;
     },
     
     /**
@@ -755,7 +778,7 @@ bigshot.VRPanorama.prototype = {
      * @return {number} the pitch, in degrees
      */
     getPitch : function () {
-        return this.state.p;
+        return this.state.rotation.p;
     },
     
     /**
@@ -812,7 +835,7 @@ bigshot.VRPanorama.prototype = {
      */
     beginRender : function (cause, data) {
         this.onrender (bigshot.VRPanorama.ONRENDER_BEGIN, cause, data);
-        this.renderer.beginRender (this.state.y, this.state.p, this.state.fov, this.state.tx, this.state.ty, this.state.tz, this.transformOffsets.yaw, this.transformOffsets.pitch, this.transformOffsets.roll);
+        this.renderer.beginRender (this.state.rotation, this.state.fov, this.state.translation, this.transformOffsets);
     },
     
     
@@ -851,6 +874,7 @@ bigshot.VRPanorama.prototype = {
      * @event
      * @private
      * @type function()
+     * @param {bigshot.VRPanorama.RenderState} state the current render state
      */
     onrender : function (state, cause, data) {
         var rl = this.renderListeners;
@@ -864,7 +888,7 @@ bigshot.VRPanorama.prototype = {
      * of {@link bigshot.VRPanorama.ONRENDER_END}.
      *
      * @private
-     *    
+     * 
      * @param [cause] parameter for the {@link bigshot.VRPanorama.RenderListener}s.
      * @param [data] parameter for the {@link bigshot.VRPanorama.RenderListener}s.
      */
@@ -1192,9 +1216,9 @@ bigshot.VRPanorama.prototype = {
     screenToRay : function (x, y) {
         var dray = this.screenToRayDelta (x, y);
         var ray = this.renderer.transformToWorld ([dray.x, dray.y, dray.z]);
-        ray = Matrix.RotationY (-this.transformOffsets.yaw * Math.PI / 180.0).ensure4x4 ().x (ray);
-        ray = Matrix.RotationX (-this.transformOffsets.pitch * Math.PI / 180.0).ensure4x4 ().x (ray);
-        ray = Matrix.RotationZ (-this.transformOffsets.roll * Math.PI / 180.0).ensure4x4 ().x (ray);
+        ray = Matrix.RotationY (-this.transformOffsets.y * Math.PI / 180.0).ensure4x4 ().x (ray);
+        ray = Matrix.RotationX (-this.transformOffsets.p * Math.PI / 180.0).ensure4x4 ().x (ray);
+        ray = Matrix.RotationZ (-this.transformOffsets.r * Math.PI / 180.0).ensure4x4 ().x (ray);
         return {
             x : ray.e(1),
             y : ray.e(2),
@@ -1677,4 +1701,4 @@ bigshot.VRPanorama.prototype = {
  * @param {bigshot.VREvent} event the event object
  */
 
-bigshot.object.extend (bigshot.VRPanorama, bigshot.EventDispatcher);
+bigshot.Object.extend (bigshot.VRPanorama, bigshot.EventDispatcher);

@@ -54,4 +54,4 @@ bigshot.SimpleFileSystem.prototype = {
     }
 }
 
-bigshot.object.validate ("bigshot.SimpleFileSystem", bigshot.FileSystem);
+bigshot.Object.validate ("bigshot.SimpleFileSystem", bigshot.FileSystem);

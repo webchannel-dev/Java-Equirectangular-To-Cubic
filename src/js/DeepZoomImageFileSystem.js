@@ -18,7 +18,7 @@
  * Creates a new instance of a Deep Zoom Image folder-based filesystem adapter.
  *
  * @augments bigshot.FileSystem
- * @class Folder-based filesystem.
+ * @class A Deep Zoom Image filesystem.
  * @param {bigshot.ImageParameters|bigshot.VRPanoramaParameters} parameters the associated image parameters
  * @constructor
  */

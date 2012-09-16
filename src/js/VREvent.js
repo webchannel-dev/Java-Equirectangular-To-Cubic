@@ -89,4 +89,4 @@ bigshot.VREvent = function (data) {
 bigshot.VREvent.prototype = {
 };
 
-bigshot.object.extend (bigshot.VREvent, bigshot.Event);
+bigshot.Object.extend (bigshot.VREvent, bigshot.Event);

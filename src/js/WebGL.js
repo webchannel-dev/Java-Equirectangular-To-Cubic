@@ -34,7 +34,7 @@ bigshot.WebGL = function (canvas_) {
      *
      * @type WebGLRenderingContext
      */
-    this.gl = bigshot.webglutil.createContext (this.canvas); 
+    this.gl = bigshot.WebGLUtil.createContext (this.canvas); 
             
     /**
      * The current object-to-world transform matrix.

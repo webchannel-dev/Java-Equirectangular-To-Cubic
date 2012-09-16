@@ -108,19 +108,19 @@ bigshot.WebGLVRRenderer.prototype = {
         return this.webGl.gl.viewportHeight;
     },
     
-    beginRender : function (y, p, fov, tx, ty, tz, oy, op, or) {
+    beginRender : function (rotation, fov, translation, rotationOffsets) {
         this.webGl.gl.viewport (0, 0, this.webGl.gl.viewportWidth, this.webGl.gl.viewportHeight);
         
         this.webGl.pMatrix.reset ();
         this.webGl.pMatrix.perspective (fov, this.webGl.gl.viewportWidth / this.webGl.gl.viewportHeight, 0.1, 100.0);
         
         this.webGl.mvMatrix.reset ();
-        this.webGl.mvMatrix.translate ({ x : tz, y : ty, z : tz });
-        this.webGl.mvMatrix.rotateZ (or);
-        this.webGl.mvMatrix.rotateX (op);
-        this.webGl.mvMatrix.rotateY (oy);
-        this.webGl.mvMatrix.rotateY (y);
-        this.webGl.mvMatrix.rotateX (p);
+        this.webGl.mvMatrix.translate (translation);
+        this.webGl.mvMatrix.rotateZ (rotationOffsets.r);
+        this.webGl.mvMatrix.rotateX (rotationOffsets.p);
+        this.webGl.mvMatrix.rotateY (rotationOffsets.y);
+        this.webGl.mvMatrix.rotateY (rotation.y);
+        this.webGl.mvMatrix.rotateX (rotation.p);
         
         this.mvMatrix = this.webGl.mvMatrix;
         this.pMatrix = this.webGl.pMatrix;
@@ -147,5 +147,5 @@ bigshot.WebGLVRRenderer.prototype = {
     }
 }
 
-bigshot.object.extend (bigshot.WebGLVRRenderer, bigshot.AbstractVRRenderer);
-bigshot.object.validate ("bigshot.WebGLVRRenderer", bigshot.VRRenderer);
+bigshot.Object.extend (bigshot.WebGLVRRenderer, bigshot.AbstractVRRenderer);
+bigshot.Object.validate ("bigshot.WebGLVRRenderer", bigshot.VRRenderer);

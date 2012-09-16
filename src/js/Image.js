@@ -88,5 +88,5 @@ bigshot.Image.prototype = {
     }
 };
 
-bigshot.object.extend (bigshot.Image, bigshot.ImageBase);
+bigshot.Object.extend (bigshot.Image, bigshot.ImageBase);
 

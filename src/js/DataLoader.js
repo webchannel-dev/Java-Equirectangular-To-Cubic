@@ -15,7 +15,7 @@
  */
     
 /**
- * @class Abstract base.
+ * @class Loads image and XML data.
  */
 bigshot.DataLoader = function () {
 }
@@ -30,7 +30,7 @@ bigshot.DataLoader.prototype = {
     loadImage : function (url, onloaded) {},
     
     /**
-     * Loads the xml.
+     * Loads XML data.
      *
      * @param {String} url the url to load
      * @param {boolean} async use async request

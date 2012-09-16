@@ -93,6 +93,10 @@ bigshot.CSS3DTexturedQuad.prototype = {
     
     /**
      * Renders the quad.
+     *
+     * @param {HTMLElement} world the world element
+     * @param {number} scale the scale factor to apply to world space to get CSS pixel distances
+     * @param {bigshot.Point3D} view the viewer position in world space
      */
     render : function render (world, scale, view) {
         var s = scale / (this.image.width - 1);

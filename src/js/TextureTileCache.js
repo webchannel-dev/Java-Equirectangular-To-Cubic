@@ -19,9 +19,9 @@
  *
  * @class Tile texture cache for a {@link bigshot.VRFace}.
  * @augments bigshot.VRTileCache
- * @param {function()} onLoaded function that is called whenever a texture tile has been
- * loaded.
- * @param {bigshot.VRPanoramaParameters} image parameters
+ * @param {function()} onLoaded function that is called whenever a texture tile has been loaded
+ * @param {function()} onCacheInit function that is called when the texture cache is fully initialized
+ * @param {bigshot.VRPanoramaParameters} parameters image parameters
  * @param {bigshot.WebGL} _webGl WebGL instance to use
  */
 bigshot.TextureTileCache = function (onLoaded, onCacheInit, parameters, _webGl) {
@@ -187,4 +187,4 @@ bigshot.TextureTileCache.prototype = {
 };
 
 
-bigshot.object.validate ("bigshot.TextureTileCache", bigshot.VRTileCache);
+bigshot.Object.validate ("bigshot.TextureTileCache", bigshot.VRTileCache);

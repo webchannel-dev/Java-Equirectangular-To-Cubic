@@ -70,4 +70,4 @@ bigshot.HTMLElementLayer.prototype = {
     }
 }
 
-bigshot.object.validate ("bigshot.HTMLElementLayer", bigshot.Layer);
+bigshot.Object.validate ("bigshot.HTMLElementLayer", bigshot.Layer);
