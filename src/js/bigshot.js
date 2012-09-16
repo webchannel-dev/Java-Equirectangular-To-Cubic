@@ -69,6 +69,7 @@ if (!self["bigshot"]) {
     #include Browser.js
     #include EventDispatcher.js
     #include Event.js
+    #include TimedWeakReference.js
     #include ImageEvent.js
     #include VREvent.js
     #include FullScreen.js

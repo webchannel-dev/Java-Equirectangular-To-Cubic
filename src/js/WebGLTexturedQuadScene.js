@@ -42,9 +42,10 @@ bigshot.WebGLTexturedQuadScene.prototype = {
      * Renders all quads.
      */
     render : function () {
-        var vertexPositionBuffer = this.buffers.vertexPositionBuffer;
-        var textureCoordBuffer = this.buffers.textureCoordBuffer;
-        var vertexIndexBuffer = this.buffers.vertexIndexBuffer;
+        var b = this.buffers.get ();
+        var vertexPositionBuffer = b.vertexPositionBuffer;
+        var textureCoordBuffer = b.textureCoordBuffer;
+        var vertexIndexBuffer = b.vertexIndexBuffer;
         
         this.webGl.setMatrixUniforms();
         

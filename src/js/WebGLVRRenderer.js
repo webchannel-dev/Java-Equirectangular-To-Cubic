@@ -31,7 +31,13 @@ bigshot.WebGLVRRenderer = function (container) {
     this.webGl.gl.enable (this.webGl.gl.BLEND);
     this.webGl.gl.disable(this.webGl.gl.DEPTH_TEST);
     this.webGl.gl.clearDepth(1.0);
-    this.buffers = this.setupBuffers ();
+    
+    var that = this;
+    this.buffers = new bigshot.TimedWeakReference (function () {
+            return that.setupBuffers ();
+        }, function (buffers) {
+            that.disposeBuffers (buffers);
+        }, 1000);
 }
 
 bigshot.WebGLVRRenderer.prototype = {
@@ -79,13 +85,13 @@ bigshot.WebGLVRRenderer.prototype = {
     },
     
     dispose : function () {
-        this.disposeBuffers ();
+        this.buffers.dispose ();
     },
     
-    disposeBuffers : function () {
-        this.webGl.gl.deleteBuffer (this.buffers.vertexPositionBuffer);
-        this.webGl.gl.deleteBuffer (this.buffers.vertexIndexBuffer);
-        this.webGl.gl.deleteBuffer (this.buffers.textureCoordBuffer);
+    disposeBuffers : function (buffers) {
+        this.webGl.gl.deleteBuffer (buffers.vertexPositionBuffer);
+        this.webGl.gl.deleteBuffer (buffers.vertexIndexBuffer);
+        this.webGl.gl.deleteBuffer (buffers.textureCoordBuffer);
     },
     
     getElement : function () {
