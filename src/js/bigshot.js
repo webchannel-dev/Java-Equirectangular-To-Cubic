@@ -65,7 +65,7 @@ if (!self["bigshot"]) {
      * during development. The files must be listed in dependency order.
      */
     #include types.js
-    #include object.js
+    #include Object.js
     #include Browser.js
     #include EventDispatcher.js
     #include Event.js
@@ -98,7 +98,7 @@ if (!self["bigshot"]) {
     #include ImageVRTileCache.js
     #include TextureTileCache.js
     #include VRFace.js
-    #include webglutil.js
+    #include WebGLUtil.js
     #include TransformStack.js
     #include WebGL.js
     #include VRRenderer.js
