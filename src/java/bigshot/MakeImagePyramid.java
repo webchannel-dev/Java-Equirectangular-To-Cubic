@@ -202,7 +202,7 @@ public class MakeImagePyramid {
         }
     }
     
-    protected static void tile (BufferedImage full, int tileWidth, int overlap, File outputBase, Output output) throws Exception {
+    private static void tile (BufferedImage full, int tileWidth, int overlap, File outputBase, Output output) throws Exception {
         BufferedImage tile = new BufferedImage (tileWidth, tileWidth, BufferedImage.TYPE_INT_RGB);
         int startOffset = 0;
         
@@ -230,7 +230,7 @@ public class MakeImagePyramid {
         }
     }
     
-    protected static void showHelp () throws Exception {
+    private static void showHelp () throws Exception {
         byte[] buffer = new byte[1024];
         InputStream is = MakeImagePyramid.class.getResourceAsStream ("help.txt");
         try {
@@ -246,11 +246,11 @@ public class MakeImagePyramid {
         }
     }
     
-    protected static boolean isPowerOfTwo (int i) {
+    private static boolean isPowerOfTwo (int i) {
         return (i & (i - 1)) == 0;
     }
     
-    protected static void presetDziCubemap (ImagePyramidParameters parameters) throws Exception {
+    private static void presetDziCubemap (ImagePyramidParameters parameters) throws Exception {
         int overlap = parameters.optOverlap (2);
         int tileSize = parameters.optTileSize (256 - overlap);
         int faceSize = parameters.optFaceSize (8 * tileSize);
@@ -274,6 +274,12 @@ public class MakeImagePyramid {
         parameters.putIfEmpty (ImagePyramidParameters.LEVEL_NUMBERING, ImagePyramidParameters.LevelNumbering.INVERT.toString ());
     }
     
+    /**
+     * Command line interface. Parses the command line options and invokes the
+     * {@link #process} method.
+     * To run this fro your own code, use the {@link #process} method. This method
+     * may call {@code System.exit()}.
+     */
     public static void main (String[] args) throws Exception {
         if (args.length < 2) {
             showHelp ();
@@ -426,7 +432,7 @@ public class MakeImagePyramid {
         }
     }
     
-    protected static long scan (File directory, List<PackageEntry> result, String relativePath, long currentPosition) {
+    private static long scan (File directory, List<PackageEntry> result, String relativePath, long currentPosition) {
         for (File f : directory.listFiles ()) {
             if (f.isDirectory ()) {
                 currentPosition = scan (f, result, relativePath + f.getName () + "/", currentPosition);
@@ -444,7 +450,7 @@ public class MakeImagePyramid {
         return currentPosition;
     }
     
-    protected static void pack (File source, File outputBase) throws Exception {
+    private static void pack (File source, File outputBase) throws Exception {
         File packedOutput = outputBase;
         List<PackageEntry> fileList = new ArrayList<PackageEntry> ();
         scan (source, fileList, "", 0);
@@ -488,7 +494,7 @@ public class MakeImagePyramid {
         }
     }
     
-    protected static void makePyramid (File input, File outputBase, ImagePyramidParameters parameters) throws Exception {
+    private static void makePyramid (File input, File outputBase, ImagePyramidParameters parameters) throws Exception {
         BufferedImage full = ImageIO.read (input);
         
         boolean outputPackage = parameters.format () == ImagePyramidParameters.Format.ARCHIVE;
@@ -619,7 +625,7 @@ public class MakeImagePyramid {
     }
     
     
-    protected static void deleteAll (File f) {
+    private static void deleteAll (File f) {
         if (f.isDirectory ()) {
             for (File f2 : f.listFiles ()) {
                 deleteAll (f2);
