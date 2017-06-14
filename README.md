@@ -26,7 +26,7 @@ One Paragraph of project description goes here, there should be a short introduc
 	- [Release History](#)
 	- [Contributors](#)
 	- [License](#)
-	- [Acknowledgments](#)
+	- [Acknowledgments](## Acknowledgments)
 
 
 
@@ -169,7 +169,7 @@ We use [SemVer](http://semver.org/) for versioning. For the versions available, 
 
 ## Contributors
 
-* **Billie Thompson** - *Initial work* - [anyBet Frontend Team](https://MavajSunCo.com/frontend)
+* **Billie Thompson** - *Initial work* - [Frontend Team](https://MavajSunCo.com/frontend)
 
 
 
