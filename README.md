@@ -23,9 +23,9 @@ One Paragraph of project description goes here, there should be a short introduc
 	- [API Reference](#)
 	- [Permissions](#)
 	- [Versioning](#)
-	- [Release History](#)
-	- [Contributors](#)
-	- [License](#)
+	- [Release History](#release-history)
+	- [Contributors](#contributors)
+	- [License](#license)
 	- [Acknowledgments](#acknowledgments)
 
 
