@@ -26,7 +26,7 @@ One Paragraph of project description goes here, there should be a short introduc
 	- [Release History](#)
 	- [Contributors](#)
 	- [License](#)
-	- [Acknowledgments](#Acknowledgments)
+	- [Acknowledgments](#acknowledgments)
 
 
 
